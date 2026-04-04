@@ -1,0 +1,119 @@
+.event-countdown {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 2000;
+    cursor: pointer;
+    animation: slideInRight 0.5s ease-out;
+}
+
+.countdown-content {
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border-radius: 16px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    box-shadow: var(--shadow-lg);
+    min-width: 320px;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.countdown-content:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.countdown-close {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--danger);
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    transition: all 0.2s;
+}
+
+.countdown-close:hover {
+    transform: scale(1.1);
+}
+
+.countdown-icon {
+    font-size: 32px;
+    animation: bounce 0.5s ease;
+}
+
+.countdown-text {
+    flex: 1;
+}
+
+.countdown-text strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.countdown-text span {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.countdown-timer {
+    font-size: 18px;
+    font-weight: bold;
+    font-family: monospace;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 8px;
+    border-radius: 8px;
+}
+
+.countdown-arrow {
+    font-size: 18px;
+    animation: pulse 1s infinite;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(5px); }
+}
+
+@media (max-width: 768px) {
+    .countdown-content {
+        min-width: 280px;
+        padding: 12px 16px;
+    }
+
+    .countdown-timer {
+        font-size: 14px;
+    }
+
+    .countdown-icon {
+        font-size: 24px;
+    }
+}

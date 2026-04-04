@@ -1,0 +1,113 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: platform_db
+      POSTGRES_USER: platform_user
+      POSTGRES_PASSWORD: platform_pass_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U platform_user -d platform_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - platform_network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/platform_db
+      KC_DB_USERNAME: platform_user
+      KC_DB_PASSWORD: platform_pass_2026
+      KC_HOSTNAME: auth.platform.local
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+      KC_PROXY: edge
+      KC_HTTP_RELATIVE_PATH: /auth
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: ["start-dev", "--import-realm", "--http-relative-path=/auth"]
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - platform_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      PROFILE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/platform_db
+      DB_USER: platform_user
+      DB_PASSWORD: platform_pass_2026
+      KEYCLOAK_URL: http://keycloak:8080/auth
+      KEYCLOAK_REALM: platform
+      KEYCLOAK_CLIENT_ID: platform-backend
+      MEDIA_PATH: /app/uploads
+      MEDIA_BASE_URL: https://platform.local/media
+    ports:
+      - "8081:8081"
+    volumes:
+      - uploads:/app/uploads
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - platform_network
+
+  frontend:
+    build: ./frontend
+    environment:
+      REACT_APP_API_URL: https://platform.local/api
+      REACT_APP_KEYCLOAK_URL: https://auth.platform.local/auth
+      REACT_APP_KEYCLOAK_REALM: platform
+      REACT_APP_KEYCLOAK_CLIENT_ID: platform-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - platform_network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/platform.conf:/etc/nginx/conf.d/platform.conf:ro
+      - C:/Users/Suveren/IdeaProjects/platform/ssl:/etc/nginx/ssl:ro
+      - uploads:/uploads:ro
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+      - keycloak
+    networks:
+      - platform_network
+
+volumes:
+  postgres_data:
+  uploads:
+
+networks:
+  platform_network:
+    driver: bridge

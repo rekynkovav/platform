@@ -1,0 +1,25 @@
+.role-switcher-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--bg-secondary);
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.role-switcher-header:hover {
+    background: var(--border);
+    transform: scale(1.05);
+}
+
+.role-icon {
+    font-size: 14px;
+}
+
+.role-text {
+    font-weight: 500;
+    color: var(--text-primary);
+}

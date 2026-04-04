@@ -1,0 +1,34 @@
+# src/main/resources/application-dev.yml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/platform_db
+    username: platform_user
+    password: platform_pass
+    hikari:
+      connection-test-query: SELECT 1
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/platform
+          jwk-set-uri: http://localhost:8080/realms/platform/protocol/openid-connect/certs
+
+  jpa:
+    show-sql: true
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    drop-first: false
+
+logging:
+  level:
+    com.platform: DEBUG
+    org.springframework.web: DEBUG
+    liquibase: DEBUG
+
+app:
+  media:
+    upload-path: ./uploads
+    base-url: http://localhost:8081/media

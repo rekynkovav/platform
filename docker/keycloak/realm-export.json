@@ -1,0 +1,115 @@
+{
+  "realm": "platform",
+  "enabled": true,
+  "displayName": "Platform",
+  "displayNameHtml": "<b>Platform</b> Auth",
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 3600,
+  "ssoSessionMaxLifespan": 604800,
+  "clients": [
+    {
+      "clientId": "platform-frontend",
+      "name": "Platform Frontend",
+      "publicClient": true,
+      "redirectUris": [
+        "https://platform.local/*",
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "https://platform.local",
+        "http://localhost:3000"
+      ],
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "platform-backend",
+      "name": "Platform Backend",
+      "secret": "backend-secret-2026",
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true,
+      "redirectUris": [],
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "email": "admin@platform.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["admin", "offline_access", "uma_authorization"],
+      "clientRoles": {
+        "account": ["view-profile", "manage-account"]
+      }
+    },
+    {
+      "username": "moderator",
+      "email": "moderator@platform.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "moderator123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["moderator"]
+    },
+    {
+      "username": "user",
+      "email": "user@platform.local",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Administrator role"
+      },
+      {
+        "name": "moderator",
+        "description": "Moderator role"
+      },
+      {
+        "name": "user",
+        "description": "Regular user role"
+      },
+      {
+        "name": "super_admin",
+        "description": "Super Administrator role"
+      }
+    ]
+  }
+}

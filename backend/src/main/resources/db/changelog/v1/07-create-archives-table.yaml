@@ -1,0 +1,75 @@
+# src/main/resources/db/changelog/v1/07-create-archives-table.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 07-create-archives-table
+      author: platform
+      labels: schema
+      comment: Создание таблицы archives (архив записей эфиров)
+      changes:
+        - createTable:
+            tableName: archives
+            remarks: Архив записей прошедших эфиров
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  remarks: UUID записи
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  remarks: Название записи
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+                  remarks: Описание
+              - column:
+                  name: video_url
+                  type: VARCHAR(512)
+                  remarks: Ссылка на видео
+              - column:
+                  name: thumbnail_url
+                  type: VARCHAR(512)
+                  remarks: Ссылка на превью
+              - column:
+                  name: duration
+                  type: INTEGER
+                  remarks: Длительность в секундах
+              - column:
+                  name: views_count
+                  type: INTEGER
+                  defaultValue: 0
+                  remarks: Количество просмотров
+              - column:
+                  name: start_time
+                  type: TIMESTAMPTZ
+                  remarks: Время начала эфира
+              - column:
+                  name: end_time
+                  type: TIMESTAMPTZ
+                  remarks: Время окончания эфира
+              - column:
+                  name: event_id
+                  type: VARCHAR(36)
+                  remarks: ID связанного события
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  remarks: Дата создания
+              - column:
+                  name: updated_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  remarks: Дата обновления
+        - addForeignKeyConstraint:
+            constraintName: fk_archives_event
+            baseTableName: archives
+            baseColumnNames: event_id
+            referencedTableName: events
+            referencedColumnNames: id
+            onDelete: SET NULL

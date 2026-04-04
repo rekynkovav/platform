@@ -1,0 +1,80 @@
+# src/main/resources/db/changelog/v1/03-create-comments-table.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 03-create-comments-table
+      author: platform
+      labels: schema
+      comment: Создание таблицы comments (комментарии к постам)
+      changes:
+        - createTable:
+            tableName: comments
+            remarks: Комментарии к постам
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  remarks: UUID комментария
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: content
+                  type: TEXT
+                  remarks: Текст комментария
+                  constraints:
+                    nullable: false
+              - column:
+                  name: post_id
+                  type: VARCHAR(36)
+                  remarks: ID поста
+                  constraints:
+                    nullable: false
+              - column:
+                  name: author_id
+                  type: VARCHAR(36)
+                  remarks: ID автора
+                  constraints:
+                    nullable: false
+              - column:
+                  name: author_name
+                  type: VARCHAR(128)
+                  remarks: Имя автора
+              - column:
+                  name: parent_comment_id
+                  type: VARCHAR(36)
+                  remarks: ID родительского комментария (для вложенных)
+              - column:
+                  name: deleted_at
+                  type: TIMESTAMPTZ
+                  remarks: Дата мягкого удаления
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  remarks: Дата создания
+              - column:
+                  name: updated_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  remarks: Дата обновления
+        - addForeignKeyConstraint:
+            constraintName: fk_comments_post
+            baseTableName: comments
+            baseColumnNames: post_id
+            referencedTableName: posts
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            constraintName: fk_comments_parent
+            baseTableName: comments
+            baseColumnNames: parent_comment_id
+            referencedTableName: comments
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            constraintName: fk_comments_author
+            baseTableName: comments
+            baseColumnNames: author_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE

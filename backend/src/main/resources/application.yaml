@@ -1,0 +1,71 @@
+# src/main/resources/application.yml
+spring:
+  application:
+    name: platform-backend
+  
+  profiles:
+    active: ${PROFILE:dev}
+  
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/platform_db}
+    username: ${DB_USER:platform_user}
+    password: ${DB_PASSWORD:platform_pass}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 20
+    show-sql: ${SHOW_SQL:false}
+
+  # Liquibase конфигурация
+  liquibase:
+    enabled: false
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    drop-first: false
+    default-schema: public
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL:http://localhost:8080}/realms/platform
+          jwk-set-uri: ${KEYCLOAK_URL:http://localhost:8080}/realms/platform/protocol/openid-connect/certs
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+server:
+  port: ${PORT:8081}
+  forward-headers-strategy: native
+
+logging:
+  level:
+    com.platform: ${LOG_LEVEL:DEBUG}
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    liquibase: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+app:
+  media:
+    upload-path: ${MEDIA_PATH:/tmp/platform-media}
+    base-url: ${MEDIA_BASE_URL:https://api.platform.com/media}

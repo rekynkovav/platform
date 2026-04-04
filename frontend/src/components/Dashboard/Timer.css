@@ -1,0 +1,55 @@
+/* components/Dashboard/Timer.css */
+.timer {
+    text-align: center;
+    padding: 8px;
+}
+
+.timer-value {
+    font-family: monospace;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.timer-unit {
+    display: inline-block;
+    min-width: 70px;
+}
+
+.timer-unit-label {
+    font-size: 14px;
+    margin-left: 4px;
+    font-weight: normal;
+}
+
+.timer-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 8px;
+    letter-spacing: 0.5px;
+}
+
+.timer.expired .timer-value {
+    font-size: 24px;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@media (max-width: 500px) {
+    .timer-value {
+        font-size: 24px;
+    }
+    .timer-unit {
+        min-width: 55px;
+    }
+}

@@ -1,0 +1,18 @@
+/* components/Layout/ThemeToggle.css */
+.theme-toggle {
+    font-size: 20px;
+    padding: 8px;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+    background: var(--border);
+    transform: scale(1.05);
+}

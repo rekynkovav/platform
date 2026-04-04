@@ -1,0 +1,77 @@
+# src/main/resources/db/changelog/v1/05-create-events-table.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 05-create-events-table
+      author: platform
+      labels: schema
+      comment: Создание таблицы events (события/эфиры)
+      changes:
+        - createTable:
+            tableName: events
+            remarks: Запланированные события и эфиры
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  remarks: UUID события
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  remarks: Название события
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+                  remarks: Описание события
+              - column:
+                  name: start_time
+                  type: TIMESTAMPTZ
+                  remarks: Время начала
+                  constraints:
+                    nullable: false
+              - column:
+                  name: end_time
+                  type: TIMESTAMPTZ
+                  remarks: Время окончания
+              - column:
+                  name: cover_image
+                  type: VARCHAR(512)
+                  remarks: Обложка события
+              - column:
+                  name: links
+                  type: JSONB
+                  remarks: Связанные ссылки (JSON)
+              - column:
+                  name: stream_url
+                  type: VARCHAR(512)
+                  remarks: Ссылка на трансляцию
+              - column:
+                  name: status
+                  type: VARCHAR(32)
+                  defaultValue: scheduled
+                  remarks: Статус (scheduled, live, ended, cancelled)
+              - column:
+                  name: created_by
+                  type: VARCHAR(36)
+                  remarks: Кто создал
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  remarks: Дата создания
+              - column:
+                  name: updated_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  remarks: Дата обновления
+        - addForeignKeyConstraint:
+            constraintName: fk_events_created_by
+            baseTableName: events
+            baseColumnNames: created_by
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: SET NULL
