@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getUserRoles } from '../../keycloak';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
+import ContentModal from '../Common/ContentModal';
 import './MainFeed.css';
 
 const MainFeed = () => {
@@ -18,15 +19,12 @@ const MainFeed = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [postToDelete, setPostToDelete] = useState(null);
 
-    // Состояния для записи аудио
-    const [isRecording, setIsRecording] = useState(false);
-    const [mediaRecorder, setMediaRecorder] = useState(null);
-    const [audioChunks, setAudioChunks] = useState([]);
-    const [recordingTime, setRecordingTime] = useState(0);
-    const recordingTimerRef = useRef(null);
+    // Состояние для ContentModal
+    const [showContentModal, setShowContentModal] = useState(false);
 
     const {
         playTrack,
+        pauseTrack,
         currentTrack,
         isPlaying,
         stopTrack,
@@ -45,16 +43,15 @@ const MainFeed = () => {
         const demoRole = localStorage.getItem('demoRole');
         let roles = [];
 
-        if (demoRole === 'admin') {
+        if (demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin') {
             roles = ['admin', 'user'];
-        } else if (demoRole === 'user') {
+        } else if (demoRole === 'user1' || demoRole === 'user2') {
             roles = ['user'];
         } else {
             roles = getUserRoles();
         }
 
         setUserRoles(roles);
-        console.log('🔧 MainFeed - Роли обновлены:', roles);
         return roles;
     };
 
@@ -173,94 +170,25 @@ const MainFeed = () => {
         return 'text';
     };
 
-    // Обработка загрузки файла
-    const handleFileUpload = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const fileType = getFileType(file);
-        const url = URL.createObjectURL(file);
-
-        setNewPost({
-            ...newPost,
-            type: fileType,
-            url: url,
-            title: newPost.title || file.name.replace(/\.[^/.]+$/, '')
-        });
-    };
-
-    // Функции для записи аудио
-    const startRecording = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
-            const chunks = [];
-
-            recorder.ondataavailable = (e) => {
-                chunks.push(e.data);
-            };
-
-            recorder.onstop = async () => {
-                const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-
-                setNewPost({
-                    ...newPost,
-                    type: 'audio',
-                    url: audioUrl,
-                    title: newPost.title || `Аудиозапись ${new Date().toLocaleString()}`
-                });
-
-                setAudioChunks([]);
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            recorder.start();
-            setMediaRecorder(recorder);
-            setIsRecording(true);
-
-            setRecordingTime(0);
-            recordingTimerRef.current = setInterval(() => {
-                setRecordingTime(prev => prev + 1);
-            }, 1000);
-
-        } catch (err) {
-            console.error('Ошибка доступа к микрофону:', err);
-            alert('Не удалось получить доступ к микрофону. Проверьте разрешения.');
-        }
-    };
-
-    const stopRecording = () => {
-        if (mediaRecorder && isRecording) {
-            mediaRecorder.stop();
-            setIsRecording(false);
-            if (recordingTimerRef.current) {
-                clearInterval(recordingTimerRef.current);
-            }
-        }
-    };
-
-    const formatRecordingTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    };
-
     const handleAddPost = () => {
         const demoRole = localStorage.getItem('demoRole');
-        if (demoRole !== 'admin') {
+        const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
+
+        if (!isAdmin) {
             alert('Только администратор может добавлять записи');
             return;
         }
 
-        if (!newPost.title || (!newPost.content && newPost.type === 'text')) {
-            alert('Заполните заголовок и содержание');
-            return;
-        }
+        setShowContentModal(true);
+    };
 
+    const handleSavePost = (data) => {
         const post = {
             id: Date.now(),
-            ...newPost,
+            type: data.mediaType || 'text',
+            title: data.title,
+            content: data.description,
+            url: data.mediaUrl || '',
             date: new Date().toISOString().split('T')[0],
             author: 'Admin'
         };
@@ -269,11 +197,7 @@ const MainFeed = () => {
         setPosts(updatedPosts);
         localStorage.setItem('mainFeedPosts', JSON.stringify(updatedPosts));
 
-        setNotification(post.title);
-        setTimeout(() => setNotification(null), 5000);
-
-        setNewPost({ type: 'text', title: '', content: '', url: '' });
-        setShowAddForm(false);
+        setShowContentModal(false);
 
         setTimeout(() => {
             if (feedEndRef.current) {
@@ -293,7 +217,9 @@ const MainFeed = () => {
         if (!postToDelete) return;
 
         const demoRole = localStorage.getItem('demoRole');
-        if (demoRole !== 'admin') {
+        const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
+
+        if (!isAdmin) {
             alert('Только администратор может удалять записи!');
             setShowDeleteConfirm(false);
             setPostToDelete(null);
@@ -308,9 +234,6 @@ const MainFeed = () => {
             stopTrack();
         }
 
-        setNotification(`🗑️ Запись "${postToDelete.title}" удалена`);
-        setTimeout(() => setNotification(null), 3000);
-
         setShowDeleteConfirm(false);
         setPostToDelete(null);
         forceUpdate(prev => prev + 1);
@@ -320,13 +243,11 @@ const MainFeed = () => {
     const cancelDeletePost = () => {
         setShowDeleteConfirm(false);
         setPostToDelete(null);
-        setNotification(`❌ Удаление отменено`);
-        setTimeout(() => setNotification(null), 2000);
     };
 
     const handlePlayAudio = (post) => {
         if (activeAudioPostId === post.id && currentTrack?.id === post.id && isPlaying) {
-            stopTrack();
+            pauseTrack();
         } else if (activeAudioPostId === post.id && currentTrack?.id === post.id && !isPlaying) {
             playTrack({ id: post.id, title: post.title, url: post.url });
         } else {
@@ -374,7 +295,8 @@ const MainFeed = () => {
         return currentTrack?.id === postId && isPlaying;
     };
 
-    const isAdmin = localStorage.getItem('demoRole') === 'admin';
+    const demoRole = localStorage.getItem('demoRole');
+    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
 
     return (
         <div className="main-feed">
@@ -409,20 +331,14 @@ const MainFeed = () => {
             {notification && (
                 <div className={`event-notification ${notification.includes('удалена') ? 'delete-notification' : ''}`}>
                     <div className="notification-content">
-                        <div className="notification-icon">{notification.includes('удалена') ? '🗑️' : '🎉'}</div>
                         <div className="notification-text">
                             <strong>{notification.includes('удалена') ? 'Запись удалена' : 'Новая запись!'}</strong>
-                            <span>{notification.replace('🗑️ ', '')}</span>
+                            <span>{notification}</span>
                         </div>
                         <div className="notification-close" onClick={() => setNotification(null)}>✕</div>
                     </div>
                 </div>
             )}
-
-            <div className="feed-header">
-                <h2>📰 Лента проекта "Путь Сердца"</h2>
-                <p>Свежие записи внизу, архивные вверху</p>
-            </div>
 
             <div className="feed-container">
                 <div className="feed-list">
@@ -516,81 +432,19 @@ const MainFeed = () => {
                 {isAdmin && (
                     <div className="admin-section" ref={addFormRef}>
                         <div className="admin-panel">
-                            <div className="admin-panel-header">
-                                <h3>📝 Создать запись</h3>
-                                <button className="toggle-panel-btn" onClick={() => setShowAddForm(!showAddForm)}>
-                                    {showAddForm ? '−' : '+'}
-                                </button>
-                            </div>
-
-                            {showAddForm && (
-                                <div className="admin-panel-content">
-                                    <input
-                                        type="text"
-                                        className="post-title-input"
-                                        placeholder="Заголовок записи"
-                                        value={newPost.title}
-                                        onChange={(e) => setNewPost({...newPost, title: e.target.value})}
-                                    />
-                                    <textarea
-                                        className="post-content-input"
-                                        placeholder="Текст записи..."
-                                        value={newPost.content}
-                                        onChange={(e) => setNewPost({...newPost, content: e.target.value})}
-                                        rows="4"
-                                    />
-
-                                    <div className="media-controls">
-                                        <div className="media-buttons">
-                                            <label className="attach-button">
-                                                📎 Прикрепить файл
-                                                <input
-                                                    type="file"
-                                                    accept="audio/*,video/*"
-                                                    onChange={handleFileUpload}
-                                                    style={{ display: 'none' }}
-                                                />
-                                            </label>
-
-                                            <button
-                                                className={`mic-button ${isRecording ? 'recording' : ''}`}
-                                                onClick={isRecording ? stopRecording : startRecording}
-                                                type="button"
-                                            >
-                                                {isRecording ? '⏹️ Остановить запись' : '🎤 Записать аудио'}
-                                            </button>
-                                        </div>
-
-                                        {isRecording && (
-                                            <div className="recording-indicator">
-                                                <span className="recording-dot">🔴</span>
-                                                <span className="recording-time">Запись: {formatRecordingTime(recordingTime)}</span>
-                                            </div>
-                                        )}
-
-                                        {newPost.url && (
-                                            <div className="attached-file">
-                                                <span className="file-info">
-                                                    {newPost.type === 'audio' ? '🎵 Аудиофайл' : '🎬 Видеофайл'}:
-                                                    {newPost.title !== newPost.url && ` ${newPost.title}`}
-                                                </span>
-                                                <button
-                                                    className="remove-file"
-                                                    onClick={() => setNewPost({...newPost, url: '', type: 'text'})}
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <button className="publish-btn" onClick={handleAddPost}>Опубликовать</button>
-                                </div>
-                            )}
+                            <button className="add-post-btn" onClick={handleAddPost}>
+                                ➕ Создать запись
+                            </button>
                         </div>
                     </div>
                 )}
             </div>
+
+            <ContentModal
+                isOpen={showContentModal}
+                onClose={() => setShowContentModal(false)}
+                onSave={handleSavePost}
+            />
         </div>
     );
 };
