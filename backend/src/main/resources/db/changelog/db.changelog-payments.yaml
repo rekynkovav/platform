@@ -1,0 +1,91 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1-create-payments-table
+      author: platform
+      changes:
+        - createTable:
+            tableName: payments
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: DECIMAL(10,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: currency
+                  type: VARCHAR(3)
+                  defaultValue: RUB
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subscription_months
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: PENDING
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payment_method
+                  type: VARCHAR(50)
+              - column:
+                  name: bank_transaction_id
+                  type: VARCHAR(255)
+              - column:
+                  name: qr_code_data
+                  type: TEXT
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP
+              - column:
+                  name: paid_at
+                  type: TIMESTAMP
+              - column:
+                  name: confirmed_by
+                  type: VARCHAR(255)
+              - column:
+                  name: notes
+                  type: TEXT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        - createIndex:
+            indexName: idx_payments_user_id
+            tableName: payments
+            columns:
+              - column:
+                  name: user_id
+
+        - createIndex:
+            indexName: idx_payments_status
+            tableName: payments
+            columns:
+              - column:
+                  name: status
+
+        - createIndex:
+            indexName: idx_payments_created_at
+            tableName: payments
+            columns:
+              - column:
+                  name: created_at
