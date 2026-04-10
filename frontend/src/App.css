@@ -28,12 +28,20 @@ body {
     border-bottom: 1px solid var(--border);
     background: var(--bg-primary);
     transition: all 0.3s ease;
+    position: relative;
 }
 
 .header-left {
     display: flex;
     align-items: baseline;
     cursor: pointer;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.header-spacer {
+    flex: 1;
 }
 
 .header-info {
@@ -56,7 +64,7 @@ body {
 
 .header-founder {
     font-size: 15px;
-    color: var(--text-secondary);
+    color: white;
     margin: 0;
     transition: opacity 0.3s;
     white-space: nowrap;
@@ -71,6 +79,9 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    position: relative;
+    z-index: 10;
+    margin-left: auto;
 }
 
 .header-username {
@@ -89,6 +100,9 @@ body {
     border: none;
     font-size: 18px;
     transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .header-logout:hover,
@@ -99,7 +113,7 @@ body {
 
 .main-content {
     padding: 24px;
-    max-width: 1400px;
+    max-width: 1200px;
     margin: 0 auto;
     width: 100%;
 }
@@ -111,6 +125,38 @@ body {
     min-height: 100vh;
     font-size: 18px;
     color: var(--text-secondary);
+}
+
+/* Уведомление о недоступности */
+.access-denied-message {
+    background: linear-gradient(135deg, #7f1d1d, #6b1515);
+    color: white;
+    padding: 16px 32px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    box-shadow: 0 4px 16px rgba(127, 29, 29, 0.3);
+    animation: accessDeniedAnim 2s ease-in-out forwards;
+    pointer-events: none;
+}
+
+@keyframes accessDeniedAnim {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+    }
+    10% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+    70% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+    }
 }
 
 /* Адаптивность для мобильных устройств */

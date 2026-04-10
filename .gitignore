@@ -14,7 +14,6 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-frontend/public/audio/
 .idea
 *.iws
 *.iml
@@ -32,3 +31,34 @@ build/
 
 ### VS Code ###
 .vscode/
+f r o n t e n d / p u b l i c / a u d i o / * . m p 3 
+
+# === GODMODE additions — Security & AI ===
+# Secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.pfx
+.p12
+
+# Qwen Code
+.qwen/trustedFolders.json
+.qwen/tmp/
+.qwen/logs/
+
+# Prompt Injection Protection
+.cursorrules
+.vscode/tasks.json
+
+# Yandex Cloud secrets
+terraform.tfvars
+*.auto.tfvars
+.terraform/
+
+# WebRTC recordings
+recordings/
+*.webm
+*.mkv
+ 

@@ -3,7 +3,6 @@ import { getUserRoles } from '../../keycloak';
 import './ScheduledEvents.css';
 
 const ScheduledEvents = () => {
-    const [expandedEvent, setExpandedEvent] = useState(null);
     const [events, setEvents] = useState([]);
     const [newEvent, setNewEvent] = useState({
         title: '',
@@ -38,7 +37,14 @@ const ScheduledEvents = () => {
     useEffect(() => {
         const savedEvents = localStorage.getItem('scheduledEvents');
         if (savedEvents) {
-            setEvents(JSON.parse(savedEvents));
+            const parsed = JSON.parse(savedEvents);
+            // Сортируем события по дате и времени (ближайшие сверху)
+            const sorted = parsed.sort((a, b) => {
+                const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
+                const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
+                return dateA - dateB;
+            });
+            setEvents(sorted);
         } else {
             const initialEvents = [
                 { id: 1, title: "Открытие сезона", date: "2025-04-10", time: "15:00", description: "Открытие весеннего сезона. Первая встреча в новом формате." },
@@ -70,11 +76,9 @@ const ScheduledEvents = () => {
         }));
     }, []);
 
-    const isAdmin = userRoles.includes('admin');
-
-    const toggleExpand = (id) => {
-        setExpandedEvent(expandedEvent === id ? null : id);
-    };
+    // Проверяем роль из localStorage напрямую
+    const demoRole = localStorage.getItem('demoRole');
+    const isAdmin = demoRole === 'admin' || demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'vyacheslav' || demoRole === 'super-admin';
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -99,8 +103,14 @@ const ScheduledEvents = () => {
         };
 
         const updatedEvents = [...events, event];
-        setEvents(updatedEvents);
-        localStorage.setItem('scheduledEvents', JSON.stringify(updatedEvents));
+        // Сортируем события по дате и времени (ближайшие сверху)
+        const sorted = updatedEvents.sort((a, b) => {
+            const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
+            const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
+            return dateA - dateB;
+        });
+        setEvents(sorted);
+        localStorage.setItem('scheduledEvents', JSON.stringify(sorted));
 
         // Показываем уведомление
         setNotificationEvent(event);
@@ -144,11 +154,6 @@ const ScheduledEvents = () => {
         // Показываем уведомление об удалении
         setDeleteNotification(eventToDelete?.title);
         setTimeout(() => setDeleteNotification(null), 3000);
-
-        // Если удаляем развернутое событие - закрываем
-        if (expandedEvent === eventToDelete.id) {
-            setExpandedEvent(null);
-        }
 
         setShowDeleteConfirm(false);
         setEventToDelete(null);
@@ -238,63 +243,62 @@ const ScheduledEvents = () => {
                 </div>
             )}
 
-            <div className="events-header">
-                <h2>📅 События</h2>
-                <p>
-                    {isAdmin
-                        ? '👑 Управляйте событиями: добавляйте и удаляйте'
-                        : '👤 Просмотр предстоящих событий'
-                    }
-                </p>
-            </div>
-
             {/* Кнопка добавления события - только для админа */}
             {isAdmin && (
                 <div className="admin-controls-events">
                     <button
                         className="add-event-button"
-                        onClick={() => setShowAddForm(!showAddForm)}
+                        onClick={() => setShowAddForm(true)}
                     >
-                        {showAddForm ? '✖ Отмена' : '+ Добавить событие'}
+                        + Добавить событие
                     </button>
                 </div>
             )}
 
-            {/* Форма добавления события - только для админа */}
+            {/* Модальное окно формы добавления события */}
             {isAdmin && showAddForm && (
-                <div className="add-event-form">
-                    <h3>Новое событие</h3>
-                    <input
-                        type="text"
-                        placeholder="Название события"
-                        value={newEvent.title}
-                        onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
-                    />
-                    <div className="date-time-group">
-                        <div className="date-field">
-                            <label>📅 Дата</label>
-                            <input
-                                type="date"
-                                value={newEvent.date}
-                                onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
-                            />
+                <div className="modal-overlay" onClick={() => setShowAddForm(false)}>
+                    <div className="modal-content add-event-modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Новое событие</h3>
+                        <input
+                            type="text"
+                            placeholder="Название события"
+                            value={newEvent.title}
+                            onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
+                        />
+                        <div className="date-time-group">
+                            <div className="date-field">
+                                <label>📅 Дата</label>
+                                <input
+                                    type="date"
+                                    value={newEvent.date}
+                                    onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
+                                />
+                            </div>
+                            <div className="time-field">
+                                <label>⏰ Время</label>
+                                <input
+                                    type="time"
+                                    value={newEvent.time}
+                                    onChange={(e) => setNewEvent({...newEvent, time: e.target.value})}
+                                />
+                            </div>
                         </div>
-                        <div className="time-field">
-                            <label>⏰ Время</label>
-                            <input
-                                type="time"
-                                value={newEvent.time}
-                                onChange={(e) => setNewEvent({...newEvent, time: e.target.value})}
-                            />
+                        <textarea
+                            placeholder="Описание события"
+                            value={newEvent.description}
+                            onChange={(e) => setNewEvent({...newEvent, description: e.target.value})}
+                            rows="3"
+                        />
+                        <div className="modal-buttons-vertical">
+                            <button className="modal-btn-create" onClick={handleAddEvent}>
+                                Создать событие
+                            </button>
+                            <button className="modal-btn-cancel" onClick={() => setShowAddForm(false)}>
+                                Отмена
+                            </button>
                         </div>
                     </div>
-                    <textarea
-                        placeholder="Описание события"
-                        value={newEvent.description}
-                        onChange={(e) => setNewEvent({...newEvent, description: e.target.value})}
-                        rows="3"
-                    />
-                    <button onClick={handleAddEvent}>✅ Создать событие</button>
                 </div>
             )}
 
@@ -306,11 +310,11 @@ const ScheduledEvents = () => {
                     </div>
                 ) : (
                     events.map((event) => (
-                        <div key={event.id} className={`event-card ${expandedEvent === event.id ? 'expanded' : ''}`}>
-                            <div className="event-header" onClick={() => toggleExpand(event.id)}>
+                        <div key={event.id} className="event-card">
+                            <div className="event-header">
                                 <div className="event-title-section">
                                     <h3 className="event-title">{event.title}</h3>
-                                    <span className="event-date">{formatDate(event.date)}</span>
+                                    <span className="event-date">{formatDate(event.date)} {event.time}</span>
                                 </div>
                                 <div className="event-actions">
                                     {/* Кнопка удаления - только для админа */}
@@ -326,20 +330,13 @@ const ScheduledEvents = () => {
                                             🗑️
                                         </button>
                                     )}
-                                    <div className="event-expand-icon">
-                                        {expandedEvent === event.id ? '▲' : '▼'}
-                                    </div>
                                 </div>
                             </div>
 
-                            <div className="event-content">
-                                <div className="event-details">
-                                    <div className="event-detail-item">
-                                        <span className="detail-label">⏰ Время:</span>
-                                        <span className="detail-value">{event.time}</span>
-                                    </div>
-                                </div>
-                                <p className="event-description">{event.description || 'Нет описания'}</p>
+                            <div className="event-info">
+                                {event.description && (
+                                    <p className="event-description">{event.description}</p>
+                                )}
                             </div>
                         </div>
                     ))

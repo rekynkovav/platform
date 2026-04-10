@@ -2,103 +2,62 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initKeycloak, getUsername, getUserRoles, logout } from './keycloak';
 import NavTabs from './components/Navigation/NavTabs';
 import MainFeed from './components/Feed/MainFeed';
+import NutritionFeed from './components/Feed/NutritionFeed';
 import Dashboard from './components/Dashboard/Dashboard';
 import EventsHub from './components/Events/EventsHub';
 import ArchiveList from './components/Archive/ArchiveList';
 import GeneralChat from './components/Chat/GeneralChat';
+import NutritionChat from './components/Chat/NutritionChat';
 import Questions from './components/Help/Questions';
 import GlobalEventNotification from './components/Notification/GlobalEventNotification';
+import NotificationBell from './components/Notification/NotificationBell';
 import RoleSwitcher from './components/Admin/RoleSwitcher';
+import UserProfile from './components/UserProfile/UserProfile';
 import { useTheme } from './hooks/useTheme';
 import './App.css';
 import ScheduledEvents from "./components/Scheduled/ScheduledEvents";
 
-// Глобальные переменные вне компонента
-let globalInitStarted = false;
-let globalInitPromise = null;
-let globalAuthResult = null;
-let globalAuthCompleted = false;
-
 function App() {
-    const [authenticated, setAuthenticated] = useState(globalAuthResult !== null ? globalAuthResult : false);
-    const [loading, setLoading] = useState(!globalAuthCompleted);
+    const [authenticated, setAuthenticated] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('main');
     const [userRoles, setUserRoles] = useState([]);
     const [username, setUsername] = useState('User');
-    const isMounted = useRef(true);
-    const forceUpdate = useState(0)[1];
+    const [showAccessDenied, setShowAccessDenied] = useState(false);
+    const [accessDeniedPosition, setAccessDeniedPosition] = useState({ x: 0, y: 0 });
+    const initStartedRef = useRef(false);
+    const accessDeniedTimerRef = useRef(null);
     const { theme, toggleTheme } = useTheme();
 
-    // Проверяем демо-роль из localStorage (приоритет у переключателя)
     const demoRole = localStorage.getItem('demoRole');
     const effectiveRoles = demoRole === 'admin' ? ['admin', 'user'] : (demoRole === 'user' ? ['user'] : userRoles);
 
     useEffect(() => {
-        console.log('🔧 useEffect started, globalInitStarted:', globalInitStarted);
-        console.log('🔧 globalAuthCompleted:', globalAuthCompleted, 'globalAuthResult:', globalAuthResult);
+        if (initStartedRef.current) return;
+        initStartedRef.current = true;
 
-        if (globalAuthCompleted) {
-            console.log('🔧 Already completed, setting loading false');
-            setLoading(false);
-            setAuthenticated(globalAuthResult);
-            if (globalAuthResult) {
-                setUserRoles(getUserRoles());
-                setUsername(getUsername());
-            }
-            forceUpdate(prev => prev + 1);
-            return;
-        }
-
-        if (!globalInitStarted) {
-            globalInitStarted = true;
-            globalInitPromise = initKeycloak();
-            console.log('🔧 initPromise created');
-        }
-
-        globalInitPromise
+        initKeycloak()
             .then((auth) => {
-                console.log('🔧 Auth result:', auth);
-                globalAuthResult = auth;
-                globalAuthCompleted = true;
+                setAuthenticated(auth);
+                if (auth) {
+                    setUserRoles(getUserRoles());
+                    setUsername(getUsername());
+                }
+                setLoading(false);
 
-                if (isMounted.current) {
-                    setAuthenticated(auth);
-                    if (auth) {
-                        const roles = getUserRoles();
-                        const user = getUsername();
-                        console.log('🔧 User roles:', roles);
-                        console.log('🔧 Username:', user);
-                        setUserRoles(roles);
-                        setUsername(user);
-                    }
-                    console.log('🔧 Setting loading to false');
-                    setLoading(false);
-                    forceUpdate(prev => prev + 1);
-                } else {
-                    console.log('🔧 Component unmounted but saving globally');
+                // Для пользователя 0 устанавливаем вкладку help по умолчанию
+                const demoRole = localStorage.getItem('demoRole');
+                if (demoRole === 'user0') {
+                    setActiveTab('help');
                 }
             })
             .catch((err) => {
                 console.error('Keycloak init failed', err);
-                globalAuthResult = false;
-                globalAuthCompleted = true;
-                if (isMounted.current) {
-                    setLoading(false);
-                    forceUpdate(prev => prev + 1);
-                }
+                setLoading(false);
             });
-
-        return () => {
-            console.log('🔧 Cleanup: unmounting');
-            isMounted.current = false;
-        };
     }, []);
 
     const handleLogout = () => {
-        globalInitStarted = false;
-        globalInitPromise = null;
-        globalAuthResult = null;
-        globalAuthCompleted = false;
         logout();
     };
 
@@ -107,24 +66,70 @@ function App() {
         window.location.href = loginUrl;
     };
 
-    const handleLogoClick = () => {
+    const showAccessDeniedMessage = (x, y) => {
+        // Сначала скрываем, если уже показано
+        setShowAccessDenied(false);
+
+        // Очищаем предыдущий таймер если есть
+        if (accessDeniedTimerRef.current) {
+            clearTimeout(accessDeniedTimerRef.current);
+            accessDeniedTimerRef.current = null;
+        }
+
+        // Небольшая задержка для сброса анимации
+        setTimeout(() => {
+            setAccessDeniedPosition({ x, y });
+            setShowAccessDenied(true);
+
+            // Устанавливаем новый таймер
+            accessDeniedTimerRef.current = setTimeout(() => {
+                setShowAccessDenied(false);
+                accessDeniedTimerRef.current = null;
+            }, 2000);
+        }, 10);
+    };
+
+    const handleLogoClick = (e) => {
+        const demoRole = localStorage.getItem('demoRole');
+        if (demoRole === 'user0') {
+            const rect = e.currentTarget.getBoundingClientRect();
+            showAccessDeniedMessage(rect.left + rect.width / 2, rect.bottom + 10);
+            return;
+        }
         setActiveTab('main');
     };
 
     const handleEventClick = () => {
+        const demoRole = localStorage.getItem('demoRole');
+        if (demoRole === 'user0') {
+            showAccessDeniedMessage(window.innerWidth / 2, window.innerHeight / 2);
+            return;
+        }
         setActiveTab('scheduled');
     };
 
-    console.log('🔧 Rendering App, loading:', loading, 'authenticated:', authenticated);
-    console.log('🔧 Effective roles:', effectiveRoles);
+    const handleTabChange = (tabId, event) => {
+        const demoRole = localStorage.getItem('demoRole');
+
+        // Для пользователя 0 доступна только вкладка help
+        if (demoRole === 'user0' && tabId !== 'help') {
+            if (event) {
+                const rect = event.currentTarget.getBoundingClientRect();
+                showAccessDeniedMessage(rect.left + rect.width / 2, rect.bottom + 10);
+            } else {
+                showAccessDeniedMessage(window.innerWidth / 2, 100);
+            }
+            return;
+        }
+
+        setActiveTab(tabId);
+    };
 
     if (loading) {
-        console.log('🔧 Showing loading screen');
         return <div className="loading-screen">Загрузка...</div>;
     }
 
     if (!authenticated) {
-        console.log('🔧 Showing login button');
         return (
             <div className="loading-screen">
                 <div style={{ textAlign: 'center' }}>
@@ -149,23 +154,26 @@ function App() {
         );
     }
 
-    console.log('🔧 Showing main app interface');
-
     const renderContent = () => {
-        console.log('🔧 Rendering tab:', activeTab);
         switch (activeTab) {
             case 'main':
                 return <MainFeed />;
+            case 'nutrition':
+                return <NutritionFeed />;
             case 'dashboard':
-                return <EventsHub />;
+                return <Dashboard />;
             case 'scheduled':
                 return <ScheduledEvents />;
             case 'archive':
                 return <ArchiveList />;
             case 'chat':
                 return <GeneralChat />;
+            case 'chat-nutrition':
+                return <NutritionChat />;
             case 'help':
                 return <Questions />;
+            case 'profile':
+                return <UserProfile />;
             default:
                 return <MainFeed />;
         }
@@ -174,25 +182,40 @@ function App() {
     return (
         <div className="app">
             <header className="header">
+                <div className="header-spacer"></div>
                 <div className="header-left">
                     <div className="header-info" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
-                        <h1 className="header-logo">Глобальный Проект "Путь Сердца"</h1>
+                        <h1 className="header-logo">Путь Сердца</h1>
                         <span className="header-founder">Основатель - Вячеслав Тимошенко</span>
                     </div>
                 </div>
                 <div className="header-right">
-                    <span className="header-username">{username}</span>
+                    <NotificationBell />
                     <RoleSwitcher />
                     <button className="theme-toggle" onClick={toggleTheme}>
                         {theme === 'light' ? '🌙' : '☀️'}
                     </button>
-                    <button className="header-logout" onClick={handleLogout}>🚪</button>
+                    <button className="header-logout" onClick={() => setActiveTab('profile')} title="Личный кабинет">👤</button>
                 </div>
             </header>
 
-            <NavTabs activeTab={activeTab} onTabChange={setActiveTab} />
+            <NavTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
             <main className="main-content">
+                {showAccessDenied && (
+                    <div
+                        className="access-denied-message"
+                        style={{
+                            position: 'fixed',
+                            left: `${accessDeniedPosition.x}px`,
+                            top: `${accessDeniedPosition.y}px`,
+                            transform: 'translateX(-50%)',
+                            zIndex: 10000
+                        }}
+                    >
+                        Доступ ограничен
+                    </div>
+                )}
                 {renderContent()}
             </main>
 

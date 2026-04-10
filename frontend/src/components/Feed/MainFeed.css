@@ -1,7 +1,7 @@
 /* Основные стили ленты */
 .main-feed {
-    max-width: 800px;
-    margin: 0 auto;
+    width: 100%;
+    margin: 0;
     height: calc(100vh - 180px);
     display: flex;
     flex-direction: column;
@@ -180,6 +180,11 @@
     background: var(--border);
     cursor: pointer;
     -webkit-appearance: none;
+    outline: none;
+}
+
+.inline-seek:focus {
+    outline: none;
 }
 
 .inline-seek::-webkit-slider-thumb {
@@ -210,11 +215,16 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    outline: none;
 }
 
 .inline-play:hover {
     transform: scale(1.05);
     background: var(--accent-hover);
+}
+
+.inline-play:focus {
+    outline: none;
 }
 
 .inline-volume, .inline-speed {
@@ -232,6 +242,11 @@
     height: 4px;
     border-radius: 2px;
     background: var(--border);
+    outline: none;
+}
+
+.inline-volume input:focus {
+    outline: none;
 }
 
 .inline-volume input::-webkit-slider-thumb {
@@ -252,6 +267,11 @@
     cursor: pointer;
     font-size: 12px;
     transition: all 0.2s;
+    outline: none;
+}
+
+.inline-speed select:focus {
+    outline: none;
 }
 
 .inline-speed select:hover {
@@ -264,6 +284,25 @@
     margin-top: 20px;
     padding-top: 20px;
     border-top: 2px solid var(--border);
+}
+
+.create-post-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 28px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.create-post-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .admin-panel {
@@ -529,6 +568,7 @@
     cursor: pointer;
     font-size: 14px;
     transition: all 0.2s;
+    color: var(--text-primary);
 }
 
 .mic-button:hover {

@@ -12,6 +12,14 @@ const Dashboard = () => {
     const [submenuPosition, setSubmenuPosition] = useState({ top: 0, left: 0 });
     const [showAddModal, setShowAddModal] = useState(false);
     const [selectedMenuId, setSelectedMenuId] = useState(null);
+    const [newItemTitle, setNewItemTitle] = useState('');
+    const [newItemDescription, setNewItemDescription] = useState('');
+    const [newItemMediaUrl, setNewItemMediaUrl] = useState('');
+    const [newItemMediaType, setNewItemMediaType] = useState('');
+    const [isRecording, setIsRecording] = useState(false);
+    const [mediaRecorder, setMediaRecorder] = useState(null);
+    const [recordingTime, setRecordingTime] = useState(0);
+    const recordingTimerRef = useRef(null);
     const [menuData, setMenuData] = useState({});
 
     // Состояния для модального окна подтверждения удаления
@@ -131,6 +139,12 @@ const Dashboard = () => {
     const handleAddContent = useCallback((menuId, submenuId = null) => {
         setSelectedMenuId(submenuId || menuId);
         setShowAddModal(true);
+        setNewItemTitle('');
+        setNewItemDescription('');
+        setNewItemMediaUrl('');
+        setNewItemMediaType('');
+        setIsRecording(false);
+        setRecordingTime(0);
         // Мгновенно закрываем всплывающее меню
         setHoveredMenu(null);
         setHoveredSubmenu(null);
@@ -140,13 +154,15 @@ const Dashboard = () => {
         }
     }, [hideTimeout]);
 
-    const handleSaveContent = useCallback((data) => {
+    const handleSaveContent = useCallback(() => {
+        if (!newItemTitle.trim()) return;
+
         const newItem = {
             id: Date.now(),
-            title: data.title,
-            description: data.description,
-            mediaUrl: data.mediaUrl,
-            mediaType: data.mediaType
+            title: newItemTitle,
+            description: newItemDescription,
+            mediaUrl: newItemMediaUrl,
+            mediaType: newItemMediaType
         };
 
         const updatedData = { ...menuData };
@@ -156,9 +172,74 @@ const Dashboard = () => {
         updatedData[selectedMenuId].push(newItem);
         saveMenuData(updatedData);
 
+        setNewItemTitle('');
+        setNewItemDescription('');
+        setNewItemMediaUrl('');
+        setNewItemMediaType('');
+        setIsRecording(false);
+        setRecordingTime(0);
         setShowAddModal(false);
         setSelectedMenuId(null);
-    }, [menuData, selectedMenuId, saveMenuData]);
+    }, [newItemTitle, newItemDescription, newItemMediaUrl, newItemMediaType, menuData, selectedMenuId, saveMenuData]);
+
+    const handleFileUpload = useCallback((e, type) => {
+        const file = e.target.files[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            setNewItemMediaUrl(url);
+            setNewItemMediaType(type);
+        }
+    }, []);
+
+    const startRecording = useCallback(async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream);
+            const chunks = [];
+
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    chunks.push(e.data);
+                }
+            };
+
+            recorder.onstop = () => {
+                const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                setNewItemMediaUrl(audioUrl);
+                setNewItemMediaType('audio');
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            recorder.start();
+            setMediaRecorder(recorder);
+            setIsRecording(true);
+
+            setRecordingTime(0);
+            recordingTimerRef.current = setInterval(() => {
+                setRecordingTime(prev => prev + 1);
+            }, 1000);
+        } catch (err) {
+            console.error('Ошибка доступа к микрофону:', err);
+            alert('Не удалось получить доступ к микрофону');
+        }
+    }, []);
+
+    const stopRecording = useCallback(() => {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+            setIsRecording(false);
+            if (recordingTimerRef.current) {
+                clearInterval(recordingTimerRef.current);
+            }
+        }
+    }, [mediaRecorder, isRecording]);
+
+    const formatRecordingTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
 
     const handleDeleteItem = useCallback((menuId, itemId, itemTitle) => {
         setItemToDelete({ menuId, itemId, itemTitle });
@@ -332,14 +413,118 @@ const Dashboard = () => {
                 </div>
             )}
 
-            <ContentModal
-                isOpen={showAddModal}
-                onClose={() => {
+            {/* Встроенная модалка добавления контента с записью аудио */}
+            {showAddModal && (
+                <div className="modal-overlay" onClick={() => {
                     setShowAddModal(false);
                     setSelectedMenuId(null);
-                }}
-                onSave={handleSaveContent}
-            />
+                    setNewItemTitle('');
+                    setNewItemDescription('');
+                    setNewItemMediaUrl('');
+                    setNewItemMediaType('');
+                    setIsRecording(false);
+                    setRecordingTime(0);
+                }}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <h3>Добавить контент</h3>
+                        <input
+                            type="text"
+                            placeholder="Название"
+                            value={newItemTitle}
+                            onChange={(e) => setNewItemTitle(e.target.value)}
+                            className="modal-input"
+                        />
+                        <textarea
+                            placeholder="Описание"
+                            value={newItemDescription}
+                            onChange={(e) => setNewItemDescription(e.target.value)}
+                            className="modal-textarea"
+                        />
+
+                        <div className="media-controls-dashboard">
+                            <div className="media-buttons-dashboard">
+                                <label className="attach-button-dashboard">
+                                    Фото
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => handleFileUpload(e, 'image')}
+                                        style={{ display: 'none' }}
+                                    />
+                                </label>
+                                <label className="attach-button-dashboard">
+                                    Видео
+                                    <input
+                                        type="file"
+                                        accept="video/*"
+                                        onChange={(e) => handleFileUpload(e, 'video')}
+                                        style={{ display: 'none' }}
+                                    />
+                                </label>
+                                <label className="attach-button-dashboard">
+                                    Аудио
+                                    <input
+                                        type="file"
+                                        accept="audio/*"
+                                        onChange={(e) => handleFileUpload(e, 'audio')}
+                                        style={{ display: 'none' }}
+                                    />
+                                </label>
+                                <button
+                                    className={`mic-button-dashboard ${isRecording ? 'recording' : ''}`}
+                                    onClick={isRecording ? stopRecording : startRecording}
+                                >
+                                    {isRecording ? '⏹️ Остановить' : '🎤 Записать голос'}
+                                </button>
+                            </div>
+
+                            {isRecording && (
+                                <div className="recording-indicator-dashboard">
+                                    <span className="recording-dot">🔴</span>
+                                    <span className="recording-time">{formatRecordingTime(recordingTime)}</span>
+                                </div>
+                            )}
+
+                            {newItemMediaUrl && (
+                                <div className="attached-file-dashboard">
+                                    <span className="file-info">
+                                        {newItemMediaType === 'image' && '📷 Фото прикреплено'}
+                                        {newItemMediaType === 'video' && '🎬 Видео прикреплено'}
+                                        {newItemMediaType === 'audio' && '🎵 Аудио прикреплено'}
+                                    </span>
+                                    <button
+                                        className="remove-file-dashboard"
+                                        onClick={() => {
+                                            setNewItemMediaUrl('');
+                                            setNewItemMediaType('');
+                                        }}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="modal-buttons">
+                            <button className="modal-btn save" onClick={handleSaveContent}>
+                                Сохранить
+                            </button>
+                            <button className="modal-btn cancel" onClick={() => {
+                                setShowAddModal(false);
+                                setSelectedMenuId(null);
+                                setNewItemTitle('');
+                                setNewItemDescription('');
+                                setNewItemMediaUrl('');
+                                setNewItemMediaType('');
+                                setIsRecording(false);
+                                setRecordingTime(0);
+                            }}>
+                                Отмена
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

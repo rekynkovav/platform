@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import Keycloak from 'keycloak-js';
+import React, { useState } from 'react';
 import NavTabs from './components/Navigation/NavTabs';
 import Dashboard from './components/Dashboard/Dashboard';
 import ScheduledEvents from './components/Scheduled/ScheduledEvents';
@@ -9,52 +8,36 @@ import ContactsList from './components/Contacts/ContactsList';
 import HelpCenter from './components/Help/HelpCenter';
 import './App.css';
 
-const keycloak = new Keycloak({
-    url: 'http://localhost:8080',
-    realm: 'platform',
-    clientId: 'platform-frontend'
-});
+// Заглушка вместо Keycloak (без сервера авторизации)
+const keycloakMock = {
+    authenticated: true,
+    tokenParsed: {
+        preferred_username: 'DemoUser',
+        realm_access: { roles: ['user'] }
+    },
+    logout: () => { window.location.reload(); }
+};
 
 function App() {
-    const [authenticated, setAuthenticated] = useState(false);
-    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('dashboard');
-    const [userRoles, setUserRoles] = useState([]);
-
-    useEffect(() => {
-        keycloak.init({ onLoad: 'login-required' })
-            .then((auth) => {
-                setAuthenticated(auth);
-                const roles = keycloak.tokenParsed?.realm_access?.roles || [];
-                setUserRoles(roles);
-                setLoading(false);
-            })
-            .catch((err) => {
-                console.error('Keycloak init failed', err);
-                setLoading(false);
-            });
-    }, []);
-
-    if (loading) {
-        return <div className="loading-screen">Загрузка...</div>;
-    }
+    const userRoles = ['user'];
 
     const renderContent = () => {
         switch (activeTab) {
             case 'dashboard':
-                return <Dashboard userRoles={userRoles} keycloak={keycloak} />;
+                return <Dashboard userRoles={userRoles} keycloak={keycloakMock} />;
             case 'scheduled':
-                return <ScheduledEvents userRoles={userRoles} keycloak={keycloak} />;
+                return <ScheduledEvents userRoles={userRoles} keycloak={keycloakMock} />;
             case 'archive':
                 return <ArchiveList />;
             case 'chat':
-                return <GeneralChat keycloak={keycloak} />;
+                return <GeneralChat keycloak={keycloakMock} />;
             case 'contacts':
-                return <ContactsList keycloak={keycloak} />;
+                return <ContactsList keycloak={keycloakMock} />;
             case 'help':
-                return <HelpCenter keycloak={keycloak} />;
+                return <HelpCenter keycloak={keycloakMock} />;
             default:
-                return <Dashboard userRoles={userRoles} keycloak={keycloak} />;
+                return <Dashboard userRoles={userRoles} keycloak={keycloakMock} />;
         }
     };
 
@@ -65,9 +48,9 @@ function App() {
                     <h1 className="header-logo">PLATFORM</h1>
                 </div>
                 <div className="header-right">
-                    <span className="header-username">{keycloak.tokenParsed?.preferred_username || 'User'}</span>
+                    <span className="header-username">{keycloakMock.tokenParsed?.preferred_username || 'User'}</span>
                     <button className="theme-toggle" onClick={() => {}}>🌙</button>
-                    <button className="header-logout" onClick={() => keycloak.logout()}>🚪</button>
+                    <button className="header-logout" onClick={() => keycloakMock.logout()}>🚪</button>
                 </div>
             </header>
 

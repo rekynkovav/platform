@@ -1,0 +1,33 @@
+# Platform Project — Локальные исключения
+
+# === Секреты ===
+.env
+.env.local
+.env.*.local
+*.pem
+keys/
+*.key
+
+# === Yandex Cloud ===
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.auto.tfvars
+
+# === WebRTC recordings (чувствительные данные) ===
+recordings/
+*.webm
+*.mkv
+screenshots/
+
+# === Логи ===
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === Сборки ===
+frontend/dist/
+frontend/build/
+backend/target/

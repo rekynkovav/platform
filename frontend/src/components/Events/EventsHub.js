@@ -37,7 +37,7 @@ const EventsHub = () => {
 
     // Получаем роль из localStorage
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin';
+    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
     const currentUser = getUsername();
 
     // Загрузка аудио файлов из папки
