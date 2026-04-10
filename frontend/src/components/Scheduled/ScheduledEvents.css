@@ -41,20 +41,107 @@
 
 .admin-controls-events {
     margin-bottom: 24px;
+    display: flex;
+    justify-content: center;
 }
 
 .add-event-button {
-    background: var(--accent);
-    color: white;
+    background: rgba(25, 135, 84, 0.1);
+    color: var(--text-primary);
+    border: 1px solid rgba(25, 135, 84, 0.3);
     padding: 12px 24px;
-    border-radius: var(--radius-sm);
+    border-radius: 12px;
     font-size: 16px;
+    font-weight: 500;
     cursor: pointer;
-    width: 100%;
+    transition: all 0.2s;
 }
 
 .add-event-button:hover {
-    background: var(--accent-hover);
+    background: rgba(25, 135, 84, 0.2);
+    border-color: rgba(25, 135, 84, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Модальное окно для добавления события */
+.add-event-modal {
+    max-width: 500px;
+    width: 90%;
+}
+
+.add-event-modal h3 {
+    margin: 0 0 20px 0;
+    color: var(--text-primary);
+    font-size: 20px;
+}
+
+.add-event-modal input,
+.add-event-modal textarea {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.add-event-modal input:focus,
+.add-event-modal textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.add-event-modal textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.modal-buttons-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.modal-btn-create {
+    width: 100%;
+    padding: 12px;
+    background: rgba(25, 135, 84, 0.1);
+    color: var(--text-primary);
+    border: 1px solid rgba(25, 135, 84, 0.3);
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-btn-create:hover {
+    background: rgba(25, 135, 84, 0.2);
+    border-color: rgba(25, 135, 84, 0.5);
+    transform: translateY(-1px);
+}
+
+.modal-btn-cancel {
+    width: 100%;
+    padding: 12px;
+    background: rgba(220, 53, 69, 0.1);
+    color: var(--text-primary);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-btn-cancel:hover {
+    background: rgba(220, 53, 69, 0.2);
+    border-color: rgba(220, 53, 69, 0.5);
+    transform: translateY(-1px);
 }
 
 .add-event-form {
@@ -99,9 +186,8 @@
 .event-card {
     background: var(--bg-secondary);
     border-radius: var(--radius);
-    overflow: hidden;
-    transition: all 0.3s;
-    cursor: pointer;
+    padding: 16px;
+    transition: all 0.2s;
 }
 
 .event-card:hover {
@@ -219,6 +305,7 @@
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
 .date-time-group {
     display: flex;
     gap: 12px;
@@ -249,31 +336,7 @@
     outline: none;
     border-color: var(--accent);
 }
-.date-time-group {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 12px;
-}
 
-.date-field, .time-field {
-    flex: 1;
-}
-
-.date-field label, .time-field label {
-    display: block;
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
-}
-
-.date-field input, .time-field input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-primary);
-    color: var(--text-primary);
-}
 .delete-notification {
     position: fixed;
     top: 20px;
@@ -319,6 +382,7 @@
         opacity: 1;
     }
 }
+
 /* Модальное окно подтверждения удаления */
 .modal-overlay {
     position: fixed;

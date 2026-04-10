@@ -31,6 +31,16 @@ public class SecurityConfig {
                         // Публичные эндпоинты
                         .requestMatchers("/actuator/**", "/health", "/ws/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+
+                        // Защита медиа контента
+                        .requestMatchers("/api/media/stream/**").hasAnyRole("USER", "PREMIUM", "ADVANCED", "CREATOR", "ADMIN", "MODERATOR", "SPORT_ADMIN", "NUTRITION_ADMIN", "CONSULTANT_ADMIN", "VYACHESLAV", "SUPER_ADMIN")
+                        .requestMatchers("/api/media/key/**").hasAnyRole("USER", "PREMIUM", "ADVANCED", "CREATOR", "ADMIN", "MODERATOR", "SPORT_ADMIN", "NUTRITION_ADMIN", "CONSULTANT_ADMIN", "VYACHESLAV", "SUPER_ADMIN")
+                        .requestMatchers("/api/media/download/**").hasRole("SUPER_ADMIN")
+                        .requestMatchers("/api/media/upload/**").hasAnyRole("CREATOR", "ADMIN", "MODERATOR", "SPORT_ADMIN", "NUTRITION_ADMIN", "CONSULTANT_ADMIN", "VYACHESLAV", "SUPER_ADMIN")
+
+                        // Админка
+                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "MODERATOR", "VYACHESLAV", "SUPER_ADMIN")
+
                         // Защищённые эндпоинты
                         .anyRequest().authenticated()
                 )
@@ -44,10 +54,17 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthorityPrefix("");
+
+        // Keycloak хранит роли в realm_access.roles
+        grantedAuthoritiesConverter.setAuthoritiesClaimName("realm_access.roles");
+        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
 
         JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
         jwtConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+
+        // Извлекаем username из preferred_username
+        jwtConverter.setPrincipalClaimName("preferred_username");
+
         return jwtConverter;
     }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getUsername } from '../../keycloak';
 import './Questions.css';
 
@@ -6,6 +6,8 @@ const Questions = () => {
     const [questions, setQuestions] = useState([]);
     const [newQuestion, setNewQuestion] = useState('');
     const [answerText, setAnswerText] = useState({});
+    const [questionMode, setQuestionMode] = useState('general'); // general, nutrition, vyacheslav
+    const [vyacheslavView, setVyacheslavView] = useState('personal'); // personal, general - для Вячеслава
     const currentUser = getUsername();
 
     // Состояния для модального окна подтверждения удаления одного вопроса
@@ -15,9 +17,75 @@ const Questions = () => {
     // Состояние для массового удаления отвеченных вопросов
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
+    // Состояние для уведомления об отправке вопроса
+    const [showQuestionSent, setShowQuestionSent] = useState(false);
+    const questionSentTimerRef = useRef(null);
+
+    // Состояние для подтверждения полного ответа
+    const [showAnswerConfirm, setShowAnswerConfirm] = useState(false);
+    const [pendingAnswerData, setPendingAnswerData] = useState(null);
+
+    // Миграция данных - выполняется один раз при загрузке компонента
+    useEffect(() => {
+        const migrationKey = 'questions_migration_v2_done';
+        const migrationDone = localStorage.getItem(migrationKey);
+
+        if (!migrationDone) {
+            console.log('Выполняется миграция вопросов...');
+
+            // Очищаем все категории для чистого старта
+            const categories = ['general', 'nutrition', 'vyacheslav'];
+            categories.forEach(cat => {
+                const key = `userQuestions_${cat}`;
+                const questions = JSON.parse(localStorage.getItem(key) || '[]');
+
+                // Фильтруем вопросы по правильной категории
+                const correctQuestions = questions.filter(q => q.mode === cat);
+
+                if (correctQuestions.length !== questions.length) {
+                    console.log(`Категория ${cat}: было ${questions.length}, осталось ${correctQuestions.length}`);
+                    localStorage.setItem(key, JSON.stringify(correctQuestions));
+                }
+            });
+
+            localStorage.setItem(migrationKey, 'true');
+            console.log('Миграция завершена');
+        }
+    }, []);
+
     // Получаем роль из localStorage (от переключателя)
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin';
+
+    // Определяем ID роли (уникальный идентификатор)
+    const getRoleId = (role) => {
+        const roleIds = {
+            'admin-moderator': 'admin-moderator',
+            'admin-consultant': 'admin-consultant',
+            'admin-nutrition': 'admin-nutrition',
+            'admin-sport': 'admin-sport',
+            'vyacheslav': 'vyacheslav',
+            'developer': 'developer',
+            'super-admin': 'super-admin',
+            'user0': 'user0',
+            'user1': 'user1',
+            'user2': 'user2'
+        };
+        return roleIds[role] || role;
+    };
+
+    const currentRoleId = getRoleId(demoRole);
+
+    // Определяем роли четко
+    const isGeneralAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer';
+    const isNutritionAdmin = demoRole === 'admin-nutrition';
+    const isSportAdmin = demoRole === 'admin-sport';
+    const isVyacheslav = demoRole === 'vyacheslav';
+    const isSuperAdmin = demoRole === 'super-admin';
+    const isUser0 = demoRole === 'user0';
+    const isAnyAdmin = isGeneralAdmin || isNutritionAdmin || isSportAdmin || isVyacheslav || isSuperAdmin;
+
+    // Кто может переключать режимы (только пользователи 1 и 2)
+    const canSwitchModes = demoRole === 'user1' || demoRole === 'user2';
 
     // Функция для сортировки вопросов: неотвеченные сверху, отвеченные снизу
     const sortQuestions = (questionsList) => {
@@ -33,67 +101,88 @@ const Questions = () => {
 
     // Загружаем вопросы из localStorage
     useEffect(() => {
-        const savedQuestions = localStorage.getItem('userQuestions');
-        if (savedQuestions) {
-            const allQuestions = JSON.parse(savedQuestions);
-            // Сортируем вопросы
-            const sortedQuestions = sortQuestions(allQuestions);
+        const loadQuestions = () => {
+            // Загружаем ВСЕ вопросы из единого хранилища
+            const allQuestionsKey = 'allQuestions';
+            const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
 
-            // Если не админ - показываем только свои вопросы
-            if (!isAdmin) {
-                const myQuestions = sortedQuestions.filter(q => q.author === currentUser);
-                setQuestions(myQuestions);
-            } else {
-                setQuestions(sortedQuestions);
-            }
-        } else {
-            // Примеры вопросов для демонстрации
-            const initialQuestions = [
-                {
-                    id: 3,
-                    question: 'Когда будут новые тренировки?',
-                    answer: '',
-                    author: 'Елена',
-                    date: '2025-03-22',
-                    isAnswered: false
-                },
-                {
-                    id: 2,
-                    question: 'Где найти записи эфиров?',
-                    answer: 'Все записи эфиров находятся в ленте "Главная" в разделе аудио.',
-                    author: 'Михаил',
-                    date: '2025-03-19',
-                    isAnswered: true,
-                    answeredBy: 'Admin',
-                    answerDate: '2025-03-20'
-                },
-                {
-                    id: 1,
-                    question: 'Как зарегистрироваться на событие?',
-                    answer: 'Перейдите во вкладку "События", выберите интересующее событие и нажмите кнопку "Записаться".',
-                    author: 'Анна',
-                    date: '2025-03-18',
-                    isAnswered: true,
-                    answeredBy: 'Admin',
-                    answerDate: '2025-03-19'
+            let questionsToShow = [];
+
+            if (isNutritionAdmin) {
+                // Админ питания видит ТОЛЬКО вопросы с recipientId = 'admin-nutrition'
+                questionsToShow = allQuestions.filter(q =>
+                    q.recipientId === 'admin-nutrition' && !q.archived
+                );
+                console.log('Админ питания: вопросы с recipientId=admin-nutrition:', questionsToShow.length);
+            } else if (isVyacheslav) {
+                // Вячеслав переключается между личными и общими
+                if (vyacheslavView === 'personal') {
+                    // Личные вопросы: recipientId = 'vyacheslav'
+                    questionsToShow = allQuestions.filter(q =>
+                        q.recipientId === 'vyacheslav' && !q.archived
+                    );
+                    console.log('Вячеслав (личные): вопросы с recipientId=vyacheslav:', questionsToShow.length);
+                } else {
+                    // Общие вопросы: recipientId пустой
+                    questionsToShow = allQuestions.filter(q =>
+                        (!q.recipientId || q.recipientId === '') && !q.archived
+                    );
+                    console.log('Вячеслав (общие): вопросы с пустым recipientId:', questionsToShow.length);
                 }
-            ];
-            const sortedInitial = sortQuestions(initialQuestions);
-            localStorage.setItem('userQuestions', JSON.stringify(sortedInitial));
-
-            if (!isAdmin) {
-                const myQuestions = sortedInitial.filter(q => q.author === currentUser);
-                setQuestions(myQuestions);
-            } else {
-                setQuestions(sortedInitial);
+            } else if (isGeneralAdmin || isSuperAdmin) {
+                // Общие админы и главный админ видят только вопросы с пустым recipientId
+                questionsToShow = allQuestions.filter(q =>
+                    (!q.recipientId || q.recipientId === '') && !q.archived
+                );
+                console.log('Общий/Главный админ: вопросы с пустым recipientId:', questionsToShow.length);
+            } else if (!isAnyAdmin) {
+                // Обычные пользователи видят свои вопросы из текущей категории
+                questionsToShow = allQuestions.filter(q =>
+                    q.authorId === currentRoleId &&
+                    q.mode === questionMode &&
+                    !q.archivedByUser
+                );
+                console.log('Пользователь: свои вопросы в режиме', questionMode, ':', questionsToShow.length);
             }
-        }
-    }, [isAdmin, currentUser]);
 
-    // Сохраняем вопросы при изменении, сохраняя порядок
+            setQuestions(sortQuestions(questionsToShow));
+        };
+
+        loadQuestions();
+
+        // Слушаем изменения в localStorage для синхронизации между вкладками/ролями
+        const handleStorageChange = (e) => {
+            if (e.key === 'allQuestions') {
+                loadQuestions();
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+
+        // Также проверяем изменения каждые 2 секунды (для синхронизации в одной вкладке)
+        const interval = setInterval(loadQuestions, 2000);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            clearInterval(interval);
+        };
+    }, [questionMode, vyacheslavView, isGeneralAdmin, isNutritionAdmin, isVyacheslav, isSuperAdmin, currentRoleId, isAnyAdmin]);
+
+    // Устанавливаем режим по умолчанию для админа питания и Вячеслава
+    useEffect(() => {
+        if (isNutritionAdmin && questionMode !== 'nutrition') {
+            setQuestionMode('nutrition');
+        }
+        if (isVyacheslav && questionMode !== 'vyacheslav' && questionMode !== 'general') {
+            setQuestionMode('vyacheslav');
+        }
+    }, [isNutritionAdmin, isVyacheslav, questionMode]);
+
+    // Сохраняем вопросы при изменении в единое хранилище
     useEffect(() => {
         if (questions.length > 0) {
-            const allQuestions = JSON.parse(localStorage.getItem('userQuestions') || '[]');
+            const allQuestionsKey = 'allQuestions';
+            const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
 
             // Обновляем существующие вопросы
             const updatedQuestions = allQuestions.map(q => {
@@ -108,12 +197,12 @@ const Questions = () => {
             const mergedQuestions = [...newQuestions, ...updatedQuestions];
             const sortedMerged = sortQuestions(mergedQuestions);
 
-            localStorage.setItem('userQuestions', JSON.stringify(sortedMerged));
+            localStorage.setItem(allQuestionsKey, JSON.stringify(sortedMerged));
         }
     }, [questions]);
 
     const handleAskQuestion = () => {
-        if (isAdmin) {
+        if (isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSportAdmin || isSuperAdmin) {
             alert('Администратор не может задавать вопросы, только отвечать на них');
             return;
         }
@@ -128,27 +217,69 @@ const Questions = () => {
             question: newQuestion.trim(),
             answer: '',
             author: currentUser,
+            authorId: currentRoleId,
             date: new Date().toISOString().split('T')[0],
-            isAnswered: false
+            isAnswered: false,
+            mode: questionMode,
+            recipientId: questionMode === 'nutrition' ? 'admin-nutrition' :
+                        questionMode === 'vyacheslav' ? 'vyacheslav' :
+                        '', // Пустая строка для общих вопросов
+            archived: false,
+            archivedByUser: false
         };
 
-        // Получаем все вопросы из localStorage
-        const allQuestions = JSON.parse(localStorage.getItem('userQuestions') || '[]');
+        // Сохраняем ВСЕ вопросы в одно общее хранилище
+        const allQuestionsKey = 'allQuestions';
+        const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
+
         // Добавляем новый вопрос
         const updatedAllQuestions = [question, ...allQuestions];
+
         // Сортируем
         const sortedQuestions = sortQuestions(updatedAllQuestions);
-        localStorage.setItem('userQuestions', JSON.stringify(sortedQuestions));
+        localStorage.setItem(allQuestionsKey, JSON.stringify(sortedQuestions));
 
         // Обновляем состояние с сортировкой
-        setQuestions(sortedQuestions);
+        const myQuestions = sortedQuestions.filter(q => q.authorId === currentRoleId && q.mode === questionMode && !q.archivedByUser);
+        setQuestions(myQuestions);
         setNewQuestion('');
-        alert('Ваш вопрос отправлен! Ответ появится в ближайшее время.');
+
+        // Показываем уведомление об отправке
+        showQuestionSentNotification();
+    };
+
+    const showQuestionSentNotification = () => {
+        // Сначала скрываем, если уже показано
+        setShowQuestionSent(false);
+
+        // Очищаем предыдущий таймер если есть
+        if (questionSentTimerRef.current) {
+            clearTimeout(questionSentTimerRef.current);
+            questionSentTimerRef.current = null;
+        }
+
+        // Небольшая задержка для сброса анимации
+        setTimeout(() => {
+            setShowQuestionSent(true);
+
+            // Устанавливаем новый таймер
+            questionSentTimerRef.current = setTimeout(() => {
+                setShowQuestionSent(false);
+                questionSentTimerRef.current = null;
+            }, 2000);
+        }, 10);
     };
 
     const handleAnswerQuestion = (questionId) => {
-        if (!isAdmin) {
-            alert('Только администратор может отвечать на вопросы');
+        // Проверяем права на ответ
+        const canAnswer = (vyacheslavView === 'general' && isVyacheslav) ||
+                         (vyacheslavView === 'personal' && isVyacheslav) ||
+                         (questionMode === 'general' && isGeneralAdmin) ||
+                         (questionMode === 'general' && isSuperAdmin) ||
+                         (questionMode === 'nutrition' && isNutritionAdmin);
+
+        if (!canAnswer) {
+            alert('У вас нет прав для ответа на вопросы в этом разделе');
             return;
         }
 
@@ -158,35 +289,70 @@ const Questions = () => {
             return;
         }
 
-        // Получаем все вопросы
-        const allQuestions = JSON.parse(localStorage.getItem('userQuestions') || '[]');
+        // Сохраняем данные для подтверждения
+        setPendingAnswerData({ questionId, answer: answer.trim() });
+        setShowAnswerConfirm(true);
+    };
+
+    const confirmAnswer = () => {
+        if (!pendingAnswerData) return;
+
+        const { questionId, answer } = pendingAnswerData;
+
+        // Загружаем все вопросы из единого хранилища
+        const allQuestionsKey = 'allQuestions';
+        const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
 
         // Обновляем ответ у конкретного вопроса
         const updatedAllQuestions = allQuestions.map(q =>
             q.id === questionId
                 ? {
                     ...q,
-                    answer: answer.trim(),
+                    answer: answer,
                     isAnswered: true,
                     answeredBy: currentUser,
-                    answerDate: new Date().toISOString().split('T')[0]
+                    answerDate: new Date().toISOString().split('T')[0],
+                    answerTimestamp: Date.now().toString()
                 }
                 : q
         );
 
         // Сортируем после обновления
         const sortedQuestions = sortQuestions(updatedAllQuestions);
-        localStorage.setItem('userQuestions', JSON.stringify(sortedQuestions));
+        localStorage.setItem(allQuestionsKey, JSON.stringify(sortedQuestions));
 
-        // Обновляем состояние с новой сортировкой
-        setQuestions(sortedQuestions);
+        // Обновляем локальное состояние
+        const updatedLocalQuestions = questions.map(q =>
+            q.id === questionId
+                ? {
+                    ...q,
+                    answer: answer,
+                    isAnswered: true,
+                    answeredBy: currentUser,
+                    answerDate: new Date().toISOString().split('T')[0],
+                    answerTimestamp: Date.now().toString()
+                }
+                : q
+        );
+        setQuestions(sortQuestions(updatedLocalQuestions));
 
         setAnswerText({ ...answerText, [questionId]: '' });
-        alert('Ответ сохранен. Вопрос перемещен в раздел отвеченных.');
+        setShowAnswerConfirm(false);
+        setPendingAnswerData(null);
+    };
+
+    const cancelAnswer = () => {
+        setShowAnswerConfirm(false);
+        setPendingAnswerData(null);
     };
 
     // Функция для открытия модального окна подтверждения удаления одного вопроса
     const confirmDeleteQuestion = (question) => {
+        // Запрещаем удаление неотвеченных вопросов
+        if (!question.isAnswered) {
+            alert('Нельзя удалить неотвеченный вопрос');
+            return;
+        }
         setQuestionToDelete(question);
         setShowDeleteConfirm(true);
     };
@@ -195,20 +361,31 @@ const Questions = () => {
     const executeDeleteQuestion = () => {
         if (!questionToDelete) return;
 
-        const demoRole = localStorage.getItem('demoRole');
-        if (demoRole !== 'admin') {
-            alert('Только администратор может удалять вопросы!');
+        const canDelete = (vyacheslavView === 'general' && isVyacheslav) ||
+                         (vyacheslavView === 'personal' && isVyacheslav) ||
+                         (questionMode === 'general' && isGeneralAdmin) ||
+                         (questionMode === 'nutrition' && isNutritionAdmin);
+
+        if (!canDelete) {
+            alert('У вас нет прав для удаления вопросов в этом разделе!');
             setShowDeleteConfirm(false);
             setQuestionToDelete(null);
             return;
         }
 
-        const allQuestions = JSON.parse(localStorage.getItem('userQuestions') || '[]');
+        // Загружаем все вопросы из единого хранилища
+        const allQuestionsKey = 'allQuestions';
+        const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
+
+        // Удаляем вопрос
         const updatedAllQuestions = allQuestions.filter(q => q.id !== questionToDelete.id);
         const sortedQuestions = sortQuestions(updatedAllQuestions);
-        localStorage.setItem('userQuestions', JSON.stringify(sortedQuestions));
+        localStorage.setItem(allQuestionsKey, JSON.stringify(sortedQuestions));
 
-        setQuestions(sortedQuestions);
+        // Обновляем локальное состояние
+        const updatedLocalQuestions = questions.filter(q => q.id !== questionToDelete.id);
+        setQuestions(sortQuestions(updatedLocalQuestions));
+
         setShowDeleteConfirm(false);
         setQuestionToDelete(null);
     };
@@ -219,33 +396,59 @@ const Questions = () => {
         setQuestionToDelete(null);
     };
 
-    // Функция для открытия модального окна массового удаления отвеченных вопросов
+    // Функция для открытия модального окна очистки отвеченных вопросов
     const confirmBulkDelete = () => {
         const answeredCount = questions.filter(q => q.isAnswered).length;
         if (answeredCount === 0) {
-            alert('Нет отвеченных вопросов для удаления');
+            alert('Нет отвеченных вопросов для очистки');
             return;
         }
         setShowBulkDeleteConfirm(true);
     };
 
-    // Функция для массового удаления отвеченных вопросов
+    // Функция для очистки отвеченных вопросов (архивирование)
     const executeBulkDelete = () => {
-        const demoRole = localStorage.getItem('demoRole');
-        if (demoRole !== 'admin') {
-            alert('Только администратор может удалять вопросы!');
-            setShowBulkDeleteConfirm(false);
-            return;
-        }
+        const isUserRole = !isGeneralAdmin && !isNutritionAdmin && !isVyacheslav && !isSportAdmin && !isSuperAdmin;
 
-        // Оставляем только неотвеченные вопросы
-        const unansweredQuestions = questions.filter(q => !q.isAnswered);
-        const sortedQuestions = sortQuestions(unansweredQuestions);
-        localStorage.setItem('userQuestions', JSON.stringify(sortedQuestions));
+        // Загружаем все вопросы из единого хранилища
+        const allQuestionsKey = 'allQuestions';
+        const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
 
-        setQuestions(sortedQuestions);
+        // Для админов - помечаем как archived, для пользователей - как archivedByUser
+        const updatedQuestions = allQuestions.map(q => {
+            if (isUserRole) {
+                // Пользователь архивирует только свои отвеченные вопросы в текущем режиме
+                if (q.authorId === currentRoleId && q.mode === questionMode && q.isAnswered) {
+                    return { ...q, archivedByUser: true, archivedByUserAt: new Date().toISOString() };
+                }
+            } else {
+                // Админы архивируют отвеченные вопросы в своей области видимости
+                let shouldArchive = false;
+
+                if (isNutritionAdmin && q.recipientId === 'admin-nutrition' && q.isAnswered) {
+                    shouldArchive = true;
+                } else if (isVyacheslav && vyacheslavView === 'personal' && q.recipientId === 'vyacheslav' && q.isAnswered) {
+                    shouldArchive = true;
+                } else if (isVyacheslav && vyacheslavView === 'general' && (!q.recipientId || q.recipientId === '') && q.isAnswered) {
+                    shouldArchive = true;
+                } else if ((isGeneralAdmin || isSuperAdmin) && (!q.recipientId || q.recipientId === '') && q.isAnswered) {
+                    shouldArchive = true;
+                }
+
+                if (shouldArchive) {
+                    return { ...q, archived: true, archivedAt: new Date().toISOString() };
+                }
+            }
+            return q;
+        });
+
+        localStorage.setItem(allQuestionsKey, JSON.stringify(updatedQuestions));
+
+        // Обновляем локальное отображение - убираем заархивированные вопросы
+        const activeQuestions = questions.filter(q => !q.isAnswered);
+        setQuestions(sortQuestions(activeQuestions));
+
         setShowBulkDeleteConfirm(false);
-        alert(`Удалено ${questions.filter(q => q.isAnswered).length} отвеченных вопросов`);
     };
 
     // Функция для отмены массового удаления
@@ -259,6 +462,37 @@ const Questions = () => {
 
     return (
         <div className="help-center">
+            {/* Уведомление об отправке вопроса */}
+            {showQuestionSent && (
+                <div className="question-sent-notification">
+                    Вопрос отправлен
+                </div>
+            )}
+
+            {/* Модальное окно подтверждения полного ответа */}
+            {showAnswerConfirm && (
+                <div className="modal-overlay" onClick={cancelAnswer}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <span className="modal-icon">✅</span>
+                            <h3>Подтверждение ответа</h3>
+                        </div>
+                        <div className="modal-body">
+                            <p>Вы дали полный ответ?</p>
+                            <p className="warning-text">После подтверждения вопрос будет перемещен в раздел отвеченных</p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="modal-btn cancel" onClick={cancelAnswer}>
+                                Отмена
+                            </button>
+                            <button className="modal-btn confirm" onClick={confirmAnswer}>
+                                Да, ответ полный
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Модальное окно подтверждения удаления одного вопроса */}
             {showDeleteConfirm && questionToDelete && (
                 <div className="modal-overlay" onClick={cancelDeleteQuestion}>
@@ -293,33 +527,33 @@ const Questions = () => {
                 </div>
             )}
 
-            {/* Модальное окно подтверждения массового удаления отвеченных вопросов */}
+            {/* Модальное окно подтверждения очистки отвеченных вопросов */}
             {showBulkDeleteConfirm && (
                 <div className="modal-overlay" onClick={cancelBulkDelete}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <span className="modal-icon">🗑️📦</span>
-                            <h3>Массовое удаление</h3>
+                            <span className="modal-icon">🧹</span>
+                            <h3>Очистка списка вопросов</h3>
                         </div>
                         <div className="modal-body">
-                            <p>Вы действительно хотите удалить все отвеченные вопросы?</p>
+                            <p>Вы действительно хотите очистить список отвеченных вопросов?</p>
                             <div className="bulk-preview">
                                 <div className="bulk-count">
                                     <span className="bulk-icon">✅</span>
                                     <strong>{answeredCount} отвеченных вопросов</strong>
                                 </div>
                                 <div className="bulk-warning">
-                                    ⚠️ Будут удалены все вопросы, на которые уже дан ответ
+                                    💾 Вопросы будут скрыты из списка, но история сохранится в базе данных
                                 </div>
                             </div>
-                            <p className="warning-text">Это действие невозможно отменить!</p>
+                            <p className="warning-text">Список станет чище и удобнее для работы</p>
                         </div>
                         <div className="modal-footer">
                             <button className="modal-btn cancel" onClick={cancelBulkDelete}>
                                 ❌ Отмена
                             </button>
                             <button className="modal-btn confirm" onClick={executeBulkDelete}>
-                                ✅ Да, удалить все
+                                🧹 Да, очистить список
                             </button>
                         </div>
                     </div>
@@ -328,20 +562,62 @@ const Questions = () => {
 
             <div className="help-header">
                 <h2>❓ Вопросы и ответы</h2>
-                <p>
-                    {isAdmin
-                        ? `👑 Режим администратора: ${unansweredCount} вопрос${unansweredCount === 1 ? '' : 'ов'} ожидают ответа, ${answeredCount} отвечено`
-                        : '💬 Задайте вопрос администратору. Ответ появится здесь.'
-                    }
-                </p>
+
+                {/* Переключатель для Обычных пользователей */}
+                {canSwitchModes && (
+                    <div className="mode-switcher">
+                        <button
+                            className={`mode-btn ${questionMode === 'general' ? 'active' : ''}`}
+                            onClick={() => setQuestionMode('general')}
+                        >
+                            Общий
+                        </button>
+                        <button
+                            className={`mode-btn ${questionMode === 'nutrition' ? 'active' : ''}`}
+                            onClick={() => setQuestionMode('nutrition')}
+                        >
+                            Питание
+                        </button>
+                        <button
+                            className={`mode-btn ${questionMode === 'vyacheslav' ? 'active' : ''}`}
+                            onClick={() => setQuestionMode('vyacheslav')}
+                        >
+                            Вячеславу
+                        </button>
+                    </div>
+                )}
+
+                {/* Переключатель для Вячеслава между личными и общими вопросами */}
+                {isVyacheslav && (
+                    <div className="mode-switcher">
+                        <button
+                            className={`mode-btn ${vyacheslavView === 'personal' ? 'active' : ''}`}
+                            onClick={() => setVyacheslavView('personal')}
+                        >
+                            Личные вопросы
+                        </button>
+                        <button
+                            className={`mode-btn ${vyacheslavView === 'general' ? 'active' : ''}`}
+                            onClick={() => setVyacheslavView('general')}
+                        >
+                            Общие вопросы
+                        </button>
+                    </div>
+                )}
+
+                {/* Админ питания НЕ видит переключателей - только свои вопросы по питанию */}
             </div>
 
             {/* Секция задания вопроса - показываем только для пользователей (не админов) */}
-            {!isAdmin && (
+            {!isGeneralAdmin && !isNutritionAdmin && !isVyacheslav && !isSportAdmin && !isSuperAdmin && (
                 <div className="ask-section">
                     <h3>💬 Задать вопрос</h3>
                     <div className="ask-description">
-                        <p>Напишите свой вопрос, и администратор ответит вам в ближайшее время.</p>
+                        <p>
+                            {questionMode === 'general' && 'Напишите свой вопрос в общий раздел.'}
+                            {questionMode === 'nutrition' && 'Напишите вопрос по питанию. Ответит администратор питания.'}
+                            {questionMode === 'vyacheslav' && 'Напишите вопрос лично Вячеславу Тимошенко.'}
+                        </p>
                     </div>
 
                     <div className="ask-form">
@@ -365,24 +641,35 @@ const Questions = () => {
             <div className="faq-section">
                 <div className="faq-header-actions">
                     <h3>
-                        {isAdmin
+                        {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin)
                             ? `📋 Все вопросы (${unansweredCount} ожидают ответа, ${answeredCount} отвечено)`
                             : `📋 Мои вопросы (${questions.length})`
                         }
                     </h3>
-                    {isAdmin && answeredCount > 0 && (
+                    {/* Кнопка очистки для админов */}
+                    {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && answeredCount > 0 && (
                         <button
                             className="bulk-delete-btn"
                             onClick={confirmBulkDelete}
-                            title="Удалить все отвеченные вопросы"
+                            title="Очистить список отвеченных вопросов"
                         >
-                            🗑️ Удалить отвеченные ({answeredCount})
+                            🧹 Очистить список ({answeredCount})
+                        </button>
+                    )}
+                    {/* Кнопка очистки для пользователей */}
+                    {!isGeneralAdmin && !isNutritionAdmin && !isVyacheslav && !isSportAdmin && !isSuperAdmin && answeredCount > 0 && (
+                        <button
+                            className="bulk-delete-btn"
+                            onClick={confirmBulkDelete}
+                            title="Очистить мои отвеченные вопросы"
+                        >
+                            🧹 Очистить отвеченные ({answeredCount})
                         </button>
                     )}
                 </div>
 
                 {/* Разделитель для админа - неотвеченные вопросы */}
-                {isAdmin && unansweredCount > 0 && (
+                {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && unansweredCount > 0 && (
                     <div className="section-divider">
                         <span className="divider-title">⏳ Ожидают ответа ({unansweredCount})</span>
                     </div>
@@ -391,8 +678,8 @@ const Questions = () => {
                 <div className="faq-list">
                     {questions.length === 0 ? (
                         <div className="no-questions">
-                            <p>❓ {isAdmin ? 'Пока нет вопросов от пользователей' : 'У вас пока нет вопросов'}</p>
-                            {!isAdmin && <p className="hint-text">Задайте свой первый вопрос выше! ✍️</p>}
+                            <p>❓ {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) ? 'Пока нет вопросов от пользователей' : 'У вас пока нет вопросов'}</p>
+                            {!(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && <p className="hint-text">Задайте свой первый вопрос выше! ✍️</p>}
                         </div>
                     ) : (
                         questions.map((q, index) => (
@@ -407,11 +694,11 @@ const Questions = () => {
                                     <div className="question-header">
                                         <div className="question-title">
                                             <strong>❓ {q.question}</strong>
-                                            {!q.isAnswered && !isAdmin && (
+                                            {!q.isAnswered && !(isGeneralAdmin || isNutritionAdmin || isVyacheslav) && (
                                                 <span className="waiting-badge">⏳ Ожидает ответа</span>
                                             )}
                                         </div>
-                                        {isAdmin && (
+                                        {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && q.isAnswered && (
                                             <button
                                                 className="delete-question-btn"
                                                 onClick={() => confirmDeleteQuestion(q)}
@@ -425,7 +712,7 @@ const Questions = () => {
                                         <span>👤 {q.author}</span>
                                         <span>📅 {q.date}</span>
                                         {q.isAnswered && <span className="answered-badge">✅ Ответ дан</span>}
-                                        {!q.isAnswered && isAdmin && <span className="pending-badge">⏳ Ожидает ответа</span>}
+                                        {!q.isAnswered && (isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && <span className="pending-badge">⏳ Ожидает ответа</span>}
                                     </div>
                                 </div>
 
@@ -439,7 +726,7 @@ const Questions = () => {
                                         </div>
                                     </div>
                                 ) : (
-                                    isAdmin && (
+                                    (isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && (
                                         <div className="answer-form">
                                             <textarea
                                                 className="answer-input"

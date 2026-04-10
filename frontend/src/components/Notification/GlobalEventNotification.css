@@ -1,6 +1,6 @@
 .global-event-notification {
     position: fixed;
-    bottom: 90px;
+    bottom: 20px;
     left: 20px;
     z-index: 2000;
     cursor: pointer;

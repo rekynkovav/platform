@@ -82,4 +82,22 @@ export const adminsApi = {
     sendToAll: (content) => api.post('/api/admins/messages', { content })
 };
 
+// API для архива
+export const archiveApi = {
+    getAll: () => api.get('/api/archive'),
+    getById: (id) => api.get(`/api/archive/${id}`)
+};
+
+// API для чата
+export const chatApi = {
+    getMessages: (roomId = 'general') => api.get(`/api/chat/${roomId}/messages`),
+    sendMessage: (roomId, content) => api.post(`/api/chat/${roomId}/messages`, { content })
+};
+
+// API для контактов
+export const contactsApi = {
+    getList: () => api.get('/api/contacts'),
+    getById: (id) => api.get(`/api/contacts/${id}`)
+};
+
 export default api;

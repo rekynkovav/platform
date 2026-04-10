@@ -18,98 +18,130 @@ export const AudioPlayerProvider = ({ children }) => {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
+    const [isMinimized, setIsMinimized] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
     const audioRef = useRef(null);
+    const videoRef = useRef(null);
     const hideTimeoutRef = useRef(null);
     let animationFrameRef = useRef(null);
 
+    // Отслеживание скролла
     useEffect(() => {
-        if (audioRef.current) {
-            audioRef.current.volume = volume;
-            audioRef.current.playbackRate = playbackRate;
-        }
-    }, [volume, playbackRate]);
+        const handleScroll = () => {
+            const scrolled = window.scrollY > 100;
+            setIsScrolled(scrolled);
+            if (scrolled && currentTrack) {
+                setIsMinimized(true);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [currentTrack]);
+
+    const getMediaRef = () => {
+        return currentTrack?.type === 'video' ? videoRef : audioRef;
+    };
 
     useEffect(() => {
-        if (audioRef.current) {
+        const mediaRef = getMediaRef();
+        if (mediaRef.current) {
+            mediaRef.current.volume = volume;
+            mediaRef.current.playbackRate = playbackRate;
+        }
+    }, [volume, playbackRate, currentTrack]);
+
+    useEffect(() => {
+        const mediaRef = getMediaRef();
+        if (mediaRef.current) {
             const updateTime = () => {
-                setCurrentTime(audioRef.current.currentTime);
+                setCurrentTime(mediaRef.current.currentTime);
                 animationFrameRef.current = requestAnimationFrame(updateTime);
             };
 
-            const updateDuration = () => setDuration(audioRef.current.duration);
+            const updateDuration = () => setDuration(mediaRef.current.duration);
 
-            audioRef.current.addEventListener('loadedmetadata', updateDuration);
-            audioRef.current.addEventListener('ended', () => {
+            mediaRef.current.addEventListener('loadedmetadata', updateDuration);
+            mediaRef.current.addEventListener('ended', () => {
                 setIsPlaying(false);
                 setCurrentTrack(null);
                 setCurrentTime(0);
                 setDuration(0);
+                setIsMinimized(false);
             });
-            audioRef.current.addEventListener('play', () => setIsPlaying(true));
-            audioRef.current.addEventListener('pause', () => setIsPlaying(false));
+            mediaRef.current.addEventListener('play', () => setIsPlaying(true));
+            mediaRef.current.addEventListener('pause', () => setIsPlaying(false));
 
             if (isPlaying) {
                 animationFrameRef.current = requestAnimationFrame(updateTime);
             }
 
             return () => {
-                if (audioRef.current) {
-                    audioRef.current.removeEventListener('loadedmetadata', updateDuration);
+                if (mediaRef.current) {
+                    mediaRef.current.removeEventListener('loadedmetadata', updateDuration);
                 }
                 if (animationFrameRef.current) {
                     cancelAnimationFrame(animationFrameRef.current);
                 }
             };
         }
-    }, [isPlaying]);
+    }, [isPlaying, currentTrack]);
 
     const playTrack = (track) => {
-        if (currentTrack?.id === track.id && audioRef.current) {
-            audioRef.current.play();
+        const mediaRef = getMediaRef();
+        if (currentTrack?.id === track.id && mediaRef.current) {
+            mediaRef.current.play();
         } else {
             setCurrentTrack(track);
             setCurrentTime(0);
             setDuration(0);
+            setIsMinimized(false);
             setTimeout(() => {
-                if (audioRef.current) {
-                    audioRef.current.src = track.url;
-                    audioRef.current.play();
+                const newMediaRef = track.type === 'video' ? videoRef : audioRef;
+                if (newMediaRef.current) {
+                    newMediaRef.current.src = track.url;
+                    newMediaRef.current.play();
                 }
             }, 50);
         }
     };
 
     const pauseTrack = () => {
-        if (audioRef.current) {
-            audioRef.current.pause();
+        const mediaRef = getMediaRef();
+        if (mediaRef.current) {
+            mediaRef.current.pause();
         }
     };
 
     const stopTrack = () => {
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.src = '';
+        const mediaRef = getMediaRef();
+        if (mediaRef.current) {
+            mediaRef.current.pause();
+            mediaRef.current.src = '';
         }
         setCurrentTrack(null);
         setIsPlaying(false);
         setCurrentTime(0);
         setDuration(0);
+        setIsMinimized(false);
     };
 
     const togglePlayPause = () => {
+        const mediaRef = getMediaRef();
         if (isPlaying) {
             pauseTrack();
         } else {
-            if (audioRef.current && currentTrack) {
-                audioRef.current.play();
+            if (mediaRef.current && currentTrack) {
+                mediaRef.current.play();
             }
         }
     };
 
     const seek = (time) => {
+        const mediaRef = getMediaRef();
         setCurrentTime(time);
-        if (audioRef.current) {
-            audioRef.current.currentTime = time;
+        if (mediaRef.current) {
+            mediaRef.current.currentTime = time;
         }
     };
 
@@ -143,6 +175,8 @@ export const AudioPlayerProvider = ({ children }) => {
             currentTime,
             duration,
             isHovered,
+            isMinimized,
+            setIsMinimized,
             playTrack,
             pauseTrack,
             stopTrack,
@@ -156,15 +190,16 @@ export const AudioPlayerProvider = ({ children }) => {
         }}>
             {children}
             <audio ref={audioRef} style={{ display: 'none' }} />
+            <video ref={videoRef} style={{ display: 'none' }} />
             {currentTrack && (
-                <GlobalAudioPlayer />
+                <GlobalMediaPlayer />
             )}
         </AudioPlayerContext.Provider>
     );
 };
 
 // Глобальный компонент плеера
-const GlobalAudioPlayer = () => {
+const GlobalMediaPlayer = () => {
     const {
         currentTrack,
         isPlaying,
@@ -173,6 +208,8 @@ const GlobalAudioPlayer = () => {
         currentTime,
         duration,
         isHovered,
+        isMinimized,
+        setIsMinimized,
         togglePlayPause,
         stopTrack,
         setVolume,
@@ -182,6 +219,9 @@ const GlobalAudioPlayer = () => {
         handleMouseEnter,
         handleMouseLeave
     } = useAudioPlayer();
+
+    const [showControls, setShowControls] = useState(true);
+    const controlsTimeoutRef = useRef(null);
 
     const handleVolumeChange = (e) => {
         setVolume(parseFloat(e.target.value));
@@ -195,15 +235,61 @@ const GlobalAudioPlayer = () => {
         seek(parseFloat(e.target.value));
     };
 
+    const handleVideoMouseMove = () => {
+        setShowControls(true);
+        if (controlsTimeoutRef.current) {
+            clearTimeout(controlsTimeoutRef.current);
+        }
+        controlsTimeoutRef.current = setTimeout(() => {
+            if (isMinimized) {
+                setShowControls(false);
+            }
+        }, 2000);
+    };
+
+    const isVideo = currentTrack?.type === 'video';
+
+    if (isVideo && isMinimized) {
+        return (
+            <div
+                className="global-video-player minimized"
+                onMouseMove={handleVideoMouseMove}
+                onMouseEnter={() => setShowControls(true)}
+                onMouseLeave={() => setShowControls(false)}
+            >
+                <video
+                    src={currentTrack.url}
+                    autoPlay={isPlaying}
+                    className="minimized-video"
+                />
+                {showControls && (
+                    <div className="minimized-video-controls">
+                        <button className="video-control-btn" onClick={togglePlayPause}>
+                            {isPlaying ? '⏸️' : '▶️'}
+                        </button>
+                        <button className="video-control-btn" onClick={() => setIsMinimized(false)} title="Развернуть">
+                            ⬆️
+                        </button>
+                        <button className="video-control-btn close" onClick={stopTrack}>
+                            ✕
+                        </button>
+                    </div>
+                )}
+                <div className="video-return-dot" onClick={() => setIsMinimized(false)} title="Вернуться к видео">
+                    •
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div
-            className="global-audio-player"
+            className={`global-audio-player ${isVideo ? 'video-mode' : ''}`}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
-            {/* Всегда видимый свернутый режим */}
             <div className="player-minimized">
-                <div className="minimized-wave">🎵</div>
+                <div className="minimized-wave">{isVideo ? '🎬' : '🎵'}</div>
                 <div className="minimized-info">
                     <div className="minimized-title">{currentTrack?.title}</div>
                     <div className="minimized-time">{formatTime(currentTime)}</div>
@@ -216,11 +302,10 @@ const GlobalAudioPlayer = () => {
                 </button>
             </div>
 
-            {/* Развернутый режим при наведении */}
             {isHovered && (
                 <div className="player-expanded">
                     <div className="expanded-header">
-                        <div className="expanded-title">🎵 {currentTrack?.title}</div>
+                        <div className="expanded-title">{isVideo ? '🎬' : '🎵'} {currentTrack?.title}</div>
                     </div>
                     <div className="expanded-progress">
                         <span>{formatTime(currentTime)}</span>

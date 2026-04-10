@@ -32,3 +32,6 @@ databaseChangeLog:
   - include:
       file: v2/02-create-updated-at-trigger.yaml
       relativeToChangelogFile: true
+  - include:
+      file: v3/01-create-media-and-payments-tables.yaml
+      relativeToChangelogFile: true

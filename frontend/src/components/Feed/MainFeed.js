@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getUserRoles } from '../../keycloak';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
-import ContentModal from '../Common/ContentModal';
 import './MainFeed.css';
 
 const MainFeed = () => {
@@ -19,8 +18,12 @@ const MainFeed = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [postToDelete, setPostToDelete] = useState(null);
 
-    // Состояние для ContentModal
-    const [showContentModal, setShowContentModal] = useState(false);
+    // Состояния для записи аудио
+    const [isRecording, setIsRecording] = useState(false);
+    const [mediaRecorder, setMediaRecorder] = useState(null);
+    const [audioChunks, setAudioChunks] = useState([]);
+    const [recordingTime, setRecordingTime] = useState(0);
+    const recordingTimerRef = useRef(null);
 
     const {
         playTrack,
@@ -179,16 +182,94 @@ const MainFeed = () => {
             return;
         }
 
-        setShowContentModal(true);
+        setShowAddForm(true);
     };
 
-    const handleSavePost = (data) => {
+    // Функции для записи аудио
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream);
+            const chunks = [];
+
+            recorder.ondataavailable = (e) => {
+                chunks.push(e.data);
+            };
+
+            recorder.onstop = async () => {
+                const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+
+                setNewPost({
+                    ...newPost,
+                    type: 'audio',
+                    url: audioUrl,
+                    title: newPost.title || `Аудиозапись ${new Date().toLocaleString()}`
+                });
+
+                setAudioChunks([]);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            recorder.start();
+            setMediaRecorder(recorder);
+            setIsRecording(true);
+
+            setRecordingTime(0);
+            recordingTimerRef.current = setInterval(() => {
+                setRecordingTime(prev => prev + 1);
+            }, 1000);
+
+        } catch (err) {
+            console.error('Ошибка доступа к микрофону:', err);
+            alert('Не удалось получить доступ к микрофону. Проверьте разрешения.');
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+            setIsRecording(false);
+            if (recordingTimerRef.current) {
+                clearInterval(recordingTimerRef.current);
+            }
+        }
+    };
+
+    const formatRecordingTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Обработка загрузки файла
+    const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const fileType = getFileType(file);
+        const url = URL.createObjectURL(file);
+
+        setNewPost({
+            ...newPost,
+            type: fileType,
+            url: url,
+            title: newPost.title || file.name.replace(/\.[^/.]+$/, '')
+        });
+    };
+
+    const handlePublishPost = () => {
+        if (!newPost.title || (!newPost.content && newPost.type === 'text')) {
+            alert('Заполните заголовок и содержание');
+            return;
+        }
+
         const post = {
             id: Date.now(),
-            type: data.mediaType || 'text',
-            title: data.title,
-            content: data.description,
-            url: data.mediaUrl || '',
+            type: newPost.type,
+            title: newPost.title,
+            content: newPost.content,
+            url: newPost.url || '',
             date: new Date().toISOString().split('T')[0],
             author: 'Admin'
         };
@@ -197,7 +278,10 @@ const MainFeed = () => {
         setPosts(updatedPosts);
         localStorage.setItem('mainFeedPosts', JSON.stringify(updatedPosts));
 
-        setShowContentModal(false);
+        setNewPost({ type: 'text', title: '', content: '', url: '' });
+        setShowAddForm(false);
+        setIsRecording(false);
+        setRecordingTime(0);
 
         setTimeout(() => {
             if (feedEndRef.current) {
@@ -431,20 +515,79 @@ const MainFeed = () => {
 
                 {isAdmin && (
                     <div className="admin-section" ref={addFormRef}>
-                        <div className="admin-panel">
-                            <button className="add-post-btn" onClick={handleAddPost}>
-                                ➕ Создать запись
+                        {!showAddForm && (
+                            <button className="create-post-btn" onClick={handleAddPost}>
+                                📝 Создать запись
                             </button>
-                        </div>
+                        )}
+
+                        {showAddForm && (
+                            <div className="admin-panel-content">
+                                <input
+                                    type="text"
+                                    className="post-title-input"
+                                    placeholder="Заголовок записи"
+                                    value={newPost.title}
+                                    onChange={(e) => setNewPost({...newPost, title: e.target.value})}
+                                />
+                                <textarea
+                                    className="post-content-input"
+                                    placeholder="Текст записи..."
+                                    value={newPost.content}
+                                    onChange={(e) => setNewPost({...newPost, content: e.target.value})}
+                                    rows="4"
+                                />
+
+                                <div className="media-controls">
+                                    <div className="media-buttons">
+                                        <label className="attach-button">
+                                            📎 Прикрепить файл
+                                            <input
+                                                type="file"
+                                                accept="audio/*,video/*"
+                                                onChange={handleFileUpload}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </label>
+
+                                        <button
+                                            className={`mic-button ${isRecording ? 'recording' : ''}`}
+                                            onClick={isRecording ? stopRecording : startRecording}
+                                            type="button"
+                                        >
+                                            {isRecording ? '⏹️ Остановить запись' : '🎤 Записать аудио'}
+                                        </button>
+                                    </div>
+
+                                    {isRecording && (
+                                        <div className="recording-indicator">
+                                            <span className="recording-dot">🔴</span>
+                                            <span className="recording-time">Запись: {formatRecordingTime(recordingTime)}</span>
+                                        </div>
+                                    )}
+
+                                    {newPost.url && (
+                                        <div className="attached-file">
+                                            <span className="file-info">
+                                                {newPost.type === 'audio' ? '🎵 Аудиофайл' : '🎬 Видеофайл'}:
+                                                {newPost.title !== newPost.url && ` ${newPost.title}`}
+                                            </span>
+                                            <button
+                                                className="remove-file"
+                                                onClick={() => setNewPost({...newPost, url: '', type: 'text'})}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button className="publish-btn" onClick={handlePublishPost}>Опубликовать</button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
-
-            <ContentModal
-                isOpen={showContentModal}
-                onClose={() => setShowContentModal(false)}
-                onSave={handleSavePost}
-            />
         </div>
     );
 };
