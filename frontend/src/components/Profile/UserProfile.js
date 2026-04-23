@@ -113,7 +113,6 @@ const UserProfile = () => {
                     <span className="role-badge-icon">{roleInfo.icon}</span>
                     <div className="role-badge-info">
                         <div className="role-badge-name">{roleInfo.name}</div>
-                        <div className="role-badge-description">{roleInfo.description}</div>
                     </div>
                 </div>
 

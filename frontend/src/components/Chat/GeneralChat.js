@@ -5,39 +5,26 @@ const GeneralChat = () => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
-    const [chatRoom, setChatRoom] = useState('user1'); // user1 или user2
+    const [chatRoom, setChatRoom] = useState('user1');
+    const [canSwitchChats, setCanSwitchChats] = useState(false);
 
     useEffect(() => {
-        // Определяем комнату чата на основе роли
         const demoRole = localStorage.getItem('demoRole');
-        if (demoRole === 'user2') {
-            setChatRoom('user2');
-        } else {
+
+        // user1 не может переключать чаты
+        if (demoRole === 'user1') {
             setChatRoom('user1');
+            setCanSwitchChats(false);
+        } else {
+            // user2 и выше могут переключать
+            setChatRoom('user1');
+            setCanSwitchChats(true);
         }
     }, []);
 
-    // Переключатель чата
     const handleChatRoomChange = (room) => {
+        if (!canSwitchChats) return;
         setChatRoom(room);
-        localStorage.setItem('demoRole', room);
-        // Обновляем сообщения для новой комнаты
-        const storageKey = `generalChatMessages_${room}`;
-        const savedMessages = localStorage.getItem(storageKey);
-        if (savedMessages) {
-            setMessages(JSON.parse(savedMessages));
-        } else {
-            const initialMessages = [
-                {
-                    id: 1,
-                    author: 'Админ',
-                    content: `Добро пожаловать в чат для ${room === 'user1' ? 'новичков' : 'продвинутых пользователей'}!`,
-                    timestamp: new Date().toISOString()
-                }
-            ];
-            setMessages(initialMessages);
-            localStorage.setItem(storageKey, JSON.stringify(initialMessages));
-        }
     };
 
     useEffect(() => {
@@ -55,7 +42,7 @@ const GeneralChat = () => {
                 {
                     id: 1,
                     author: 'Админ',
-                    content: `Добро пожаловать в чат для ${chatRoom === 'user1' ? 'новичков' : 'продвинутых пользователей'}!`,
+                    content: `Добро пожаловать в чат ${chatRoom === 'user1' ? 'для новичков' : 'для продвинутых'}!`,
                     timestamp: new Date().toISOString()
                 }
             ];
@@ -105,21 +92,23 @@ const GeneralChat = () => {
 
     return (
         <div className="chat-container">
-            {/* Переключатель чатов */}
-            <div className="chat-room-switcher">
-                <button
-                    className={`chat-room-btn ${chatRoom === 'user1' ? 'active' : ''}`}
-                    onClick={() => handleChatRoomChange('user1')}
-                >
-                    👥 Новички
-                </button>
-                <button
-                    className={`chat-room-btn ${chatRoom === 'user2' ? 'active' : ''}`}
-                    onClick={() => handleChatRoomChange('user2')}
-                >
-                    ⭐ Продвинутые
-                </button>
-            </div>
+            {/* Переключатель чатов - показываем только если разрешено */}
+            {canSwitchChats && (
+                <div className="chat-room-switcher">
+                    <button
+                        className={`chat-room-btn ${chatRoom === 'user1' ? 'active' : ''}`}
+                        onClick={() => handleChatRoomChange('user1')}
+                    >
+                        👥 Новички
+                    </button>
+                    <button
+                        className={`chat-room-btn ${chatRoom === 'user2' ? 'active' : ''}`}
+                        onClick={() => handleChatRoomChange('user2')}
+                    >
+                        ⭐ Продвинутые
+                    </button>
+                </div>
+            )}
 
             <div className="chat-header">
                 <h3 className="chat-title">

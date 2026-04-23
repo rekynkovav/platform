@@ -516,8 +516,8 @@ const MainFeed = () => {
                 {isAdmin && (
                     <div className="admin-section" ref={addFormRef}>
                         {!showAddForm && (
-                            <button className="create-post-btn" onClick={handleAddPost}>
-                                📝 Создать запись
+                            <button className="create-post-btn add-event-style" onClick={handleAddPost}>
+                                + Добавить запись
                             </button>
                         )}
 

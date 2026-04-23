@@ -561,7 +561,7 @@ const Questions = () => {
             )}
 
             <div className="help-header">
-                <h2>❓ Вопросы и ответы</h2>
+                <h2>❔ Вопросы и ответы</h2>
 
                 {/* Переключатель для Обычных пользователей */}
                 {canSwitchModes && (

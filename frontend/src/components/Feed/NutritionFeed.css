@@ -197,3 +197,24 @@
         min-width: 150px;
     }
 }
+
+/* Стиль кнопки в стиле "Добавить событие" */
+.add-post-btn.add-event-style {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.add-post-btn.add-event-style:hover {
+    background: var(--bg-primary);
+    border-color: rgba(25, 135, 84, 0.5);
+    color: #198754;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(25, 135, 84, 0.2);
+}

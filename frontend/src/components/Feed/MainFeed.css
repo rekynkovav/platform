@@ -305,6 +305,26 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+/* Стиль кнопки в стиле "Добавить событие" */
+.create-post-btn.add-event-style {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.create-post-btn.add-event-style:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+}
+
 .admin-panel {
     background: var(--bg-secondary);
     border-radius: 16px;

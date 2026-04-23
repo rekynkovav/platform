@@ -274,7 +274,7 @@ const NutritionFeed = () => {
     };
 
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-nutrition' || demoRole === 'developer' || demoRole === 'super-admin';
+    const isAdmin = demoRole === 'admin-nutrition' || demoRole === 'developer' || demoRole === 'super-admin';
 
     // Загрузка данных меню
     useEffect(() => {
@@ -619,8 +619,8 @@ const NutritionFeed = () => {
                 {isAdmin && (
                     <div className="admin-section" ref={addFormRef}>
                         <div className="admin-panel">
-                            <button className="add-post-btn" onClick={handleAddPost}>
-                                ➕ Создать запись
+                            <button className="add-post-btn add-event-style" onClick={handleAddPost}>
+                                + Добавить запись
                             </button>
                         </div>
                     </div>

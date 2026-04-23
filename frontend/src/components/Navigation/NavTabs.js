@@ -32,6 +32,9 @@ const NavTabs = ({ activeTab, onTabChange }) => {
                 </div>
             );
         } else if (tab.splitType === 'chat') {
+            const demoRole = localStorage.getItem('demoRole');
+            const canSwitchChats = demoRole !== 'user0'; // все кроме user0 могут переключать
+
             return (
                 <div className="nav-tab-split chat-split">
                     <button
@@ -40,12 +43,14 @@ const NavTabs = ({ activeTab, onTabChange }) => {
                     >
                         Основной
                     </button>
-                    <button
-                        className={`nav-tab-half chat-nutrition ${activeTab === 'chat-nutrition' ? 'active' : ''}`}
-                        onClick={(e) => onTabChange('chat-nutrition', e)}
-                    >
-                        Питание
-                    </button>
+                    {canSwitchChats && (
+                        <button
+                            className={`nav-tab-half chat-nutrition ${activeTab === 'chat-nutrition' ? 'active' : ''}`}
+                            onClick={(e) => onTabChange('chat-nutrition', e)}
+                        >
+                            Питание
+                        </button>
+                    )}
                 </div>
             );
         }

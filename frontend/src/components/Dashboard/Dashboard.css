@@ -488,9 +488,9 @@
 .dropdown-add-btn {
     width: 100%;
     padding: 10px 16px;
-    background: var(--accent);
-    color: white;
-    border: none;
+    background: rgba(25, 135, 84, 0.15);
+    color: #198754;
+    border: 1px solid rgba(25, 135, 84, 0.3);
     border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
@@ -499,7 +499,8 @@
 }
 
 .dropdown-add-btn:hover {
-    background: var(--accent-hover);
+    background: rgba(25, 135, 84, 0.25);
+    border-color: rgba(25, 135, 84, 0.5);
     transform: translateY(-1px);
 }
 

@@ -29,7 +29,7 @@ const Dashboard = () => {
     const demoRole = localStorage.getItem('demoRole');
     const isAdmin = useMemo(() =>
         demoRole === 'admin' || demoRole === 'admin-moderator' ||
-        demoRole === 'admin-consultant' || demoRole === 'admin-nutrition' ||
+        demoRole === 'admin-consultant' ||
         demoRole === 'admin-sport' || demoRole === 'developer' ||
         demoRole === 'super-admin'
     , [demoRole]);
@@ -268,6 +268,20 @@ const Dashboard = () => {
         setItemToDelete(null);
     }, [itemToDelete, menuData, saveMenuData]);
 
+    const handleItemClick = useCallback((item) => {
+        // Если в description есть ссылка, открываем её
+        if (item.description && item.description.trim()) {
+            const url = item.description.trim();
+            // Проверяем, начинается ли с http:// или https://
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                window.open(url, '_blank');
+            } else {
+                // Если нет протокола, добавляем https://
+                window.open('https://' + url, '_blank');
+            }
+        }
+    }, []);
+
     const cancelDeleteItem = useCallback(() => {
         setShowDeleteConfirm(false);
         setItemToDelete(null);
@@ -318,6 +332,8 @@ const Dashboard = () => {
                                             handleSubmenuEnter('broadcasts-guests', e);
                                         }
                                     }}
+                                    onClick={() => !item.hasSubmenu && handleItemClick(item)}
+                                    style={{ cursor: !item.hasSubmenu ? 'pointer' : 'default' }}
                                 >
                                     <div className="menu-item-content">
                                         <div>
@@ -361,7 +377,12 @@ const Dashboard = () => {
                             </div>
                         )}
                         {(menuData['broadcasts-guests'] || []).map((item) => (
-                            <div key={item.id} className="menu-dropdown-item">
+                            <div
+                                key={item.id}
+                                className="menu-dropdown-item"
+                                onClick={() => handleItemClick(item)}
+                                style={{ cursor: 'pointer' }}
+                            >
                                 <div className="menu-item-content">
                                     <div>
                                         <div className="menu-item-title">{item.title}</div>
@@ -429,13 +450,13 @@ const Dashboard = () => {
                         <h3>Добавить контент</h3>
                         <input
                             type="text"
-                            placeholder="Название"
+                            placeholder="Как будет отображаться"
                             value={newItemTitle}
                             onChange={(e) => setNewItemTitle(e.target.value)}
                             className="modal-input"
                         />
                         <textarea
-                            placeholder="Описание"
+                            placeholder="Сюда вставить ссылку"
                             value={newItemDescription}
                             onChange={(e) => setNewItemDescription(e.target.value)}
                             className="modal-textarea"
@@ -443,39 +464,101 @@ const Dashboard = () => {
 
                         <div className="media-controls-dashboard">
                             <div className="media-buttons-dashboard">
-                                <label className="attach-button-dashboard">
-                                    Фото
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => handleFileUpload(e, 'image')}
-                                        style={{ display: 'none' }}
-                                    />
-                                </label>
-                                <label className="attach-button-dashboard">
-                                    Видео
-                                    <input
-                                        type="file"
-                                        accept="video/*"
-                                        onChange={(e) => handleFileUpload(e, 'video')}
-                                        style={{ display: 'none' }}
-                                    />
-                                </label>
-                                <label className="attach-button-dashboard">
-                                    Аудио
-                                    <input
-                                        type="file"
-                                        accept="audio/*"
-                                        onChange={(e) => handleFileUpload(e, 'audio')}
-                                        style={{ display: 'none' }}
-                                    />
-                                </label>
-                                <button
-                                    className={`mic-button-dashboard ${isRecording ? 'recording' : ''}`}
-                                    onClick={isRecording ? stopRecording : startRecording}
-                                >
-                                    {isRecording ? '⏹️ Остановить' : '🎤 Записать голос'}
-                                </button>
+                                {/* Для раздела Эфиры показываем только Аудио и Видео */}
+                                {selectedMenuId === 'broadcasts' || selectedMenuId === 'broadcasts-guests' ? (
+                                    <>
+                                        <label className="attach-button-dashboard">
+                                            Видео
+                                            <input
+                                                type="file"
+                                                accept="video/*"
+                                                onChange={(e) => handleFileUpload(e, 'video')}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </label>
+                                        <label className="attach-button-dashboard">
+                                            Аудио
+                                            <input
+                                                type="file"
+                                                accept="audio/*"
+                                                onChange={(e) => handleFileUpload(e, 'audio')}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </label>
+                                        <button
+                                            className={`mic-button-dashboard ${isRecording ? 'recording' : ''}`}
+                                            onClick={isRecording ? stopRecording : startRecording}
+                                        >
+                                            {isRecording ? '⏹️ Остановить' : '🎤 Записать голос'}
+                                        </button>
+                                    </>
+                                ) : selectedMenuId === 'music' ? (
+                                    /* Для раздела Музыка только Аудио */
+                                    <>
+                                        <label className="attach-button-dashboard">
+                                            Аудио
+                                            <input
+                                                type="file"
+                                                accept="audio/*"
+                                                onChange={(e) => handleFileUpload(e, 'audio')}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </label>
+                                        <button
+                                            className={`mic-button-dashboard ${isRecording ? 'recording' : ''}`}
+                                            onClick={isRecording ? stopRecording : startRecording}
+                                        >
+                                            {isRecording ? '⏹️ Остановить' : '🎤 Записать голос'}
+                                        </button>
+                                    </>
+                                ) : selectedMenuId === 'movies' ? (
+                                    /* Для раздела Фильмы только Видео */
+                                    <label className="attach-button-dashboard">
+                                        Видео
+                                        <input
+                                            type="file"
+                                            accept="video/*"
+                                            onChange={(e) => handleFileUpload(e, 'video')}
+                                            style={{ display: 'none' }}
+                                        />
+                                    </label>
+                                ) : (
+                                    <>
+                                        <label className="attach-button-dashboard">
+                                            Фото
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => handleFileUpload(e, 'image')}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </label>
+                                        <label className="attach-button-dashboard">
+                                            Видео
+                                            <input
+                                                type="file"
+                                                accept="video/*"
+                                                onChange={(e) => handleFileUpload(e, 'video')}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </label>
+                                        <label className="attach-button-dashboard">
+                                            Аудио
+                                            <input
+                                                type="file"
+                                                accept="audio/*"
+                                                onChange={(e) => handleFileUpload(e, 'audio')}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </label>
+                                        <button
+                                            className={`mic-button-dashboard ${isRecording ? 'recording' : ''}`}
+                                            onClick={isRecording ? stopRecording : startRecording}
+                                        >
+                                            {isRecording ? '⏹️ Остановить' : '🎤 Записать голос'}
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
                             {isRecording && (

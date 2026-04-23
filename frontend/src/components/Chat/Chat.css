@@ -21,15 +21,15 @@
 }
 
 .chat-room-btn:hover {
-    background: var(--bg-tertiary, rgba(0,0,0,0.05));
-    border-color: var(--accent);
+    background: var(--bg-tertiary, rgba(0,0,0,0.02));
+    border-color: rgba(139, 92, 246, 0.3);
 }
 
 .chat-room-btn.active {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--accent);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 1px 4px rgba(139, 92, 246, 0.1);
 }
 
 .chat-container {
