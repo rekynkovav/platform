@@ -20,6 +20,9 @@ const NutritionFeed = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [postToDelete, setPostToDelete] = useState(null);
 
+    // Состояния для редактирования
+    const [editingPost, setEditingPost] = useState(null);
+
     // Состояние для ContentModal
     const [showContentModal, setShowContentModal] = useState(false);
 
@@ -56,7 +59,7 @@ const NutritionFeed = () => {
         const demoRole = localStorage.getItem('demoRole');
         let roles = [];
 
-        if (demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'admin-nutrition' || demoRole === 'developer' || demoRole === 'super-admin') {
+        if (demoRole === 'admin-moderator' || demoRole === 'consultant-nutrition' || demoRole === 'developer' || demoRole === 'super-admin') {
             roles = ['admin', 'user'];
         } else if (demoRole === 'user1' || demoRole === 'user2') {
             roles = ['user'];
@@ -150,38 +153,14 @@ const NutritionFeed = () => {
 
     const handleAddPost = () => {
         const demoRole = localStorage.getItem('demoRole');
-        const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-nutrition' || demoRole === 'developer' || demoRole === 'super-admin';
+        const isNutritionConsultant = demoRole === 'consultant-nutrition';
 
-        if (!isAdmin) {
-            alert('Только администратор питания может добавлять записи');
+        if (!isNutritionConsultant) {
+            alert('Только консультант питания может добавлять записи');
             return;
         }
 
         setShowContentModal(true);
-    };
-
-    const handleSavePost = (data) => {
-        const post = {
-            id: Date.now(),
-            type: data.mediaType || 'text',
-            title: data.title,
-            content: data.description,
-            url: data.mediaUrl || '',
-            date: new Date().toISOString().split('T')[0],
-            author: 'Admin'
-        };
-
-        const updatedPosts = [...posts, post];
-        setPosts(updatedPosts);
-        localStorage.setItem('nutritionFeedPosts', JSON.stringify(updatedPosts));
-
-        setShowContentModal(false);
-
-        setTimeout(() => {
-            if (feedEndRef.current) {
-                feedEndRef.current.scrollIntoView({ behavior: 'smooth' });
-            }
-        }, 100);
     };
 
     // Функция для открытия модального окна подтверждения
@@ -195,10 +174,10 @@ const NutritionFeed = () => {
         if (!postToDelete) return;
 
         const demoRole = localStorage.getItem('demoRole');
-        const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-nutrition' || demoRole === 'developer' || demoRole === 'super-admin';
+        const isNutritionConsultant = demoRole === 'consultant-nutrition';
 
-        if (!isAdmin) {
-            alert('Только администратор питания может удалять записи!');
+        if (!isNutritionConsultant) {
+            alert('Только консультант питания может удалять записи');
             setShowDeleteConfirm(false);
             setPostToDelete(null);
             return;
@@ -221,6 +200,105 @@ const NutritionFeed = () => {
     const cancelDeletePost = () => {
         setShowDeleteConfirm(false);
         setPostToDelete(null);
+    };
+
+    // Функция для начала редактирования поста
+    const handleEditPost = (post) => {
+        const demoRole = localStorage.getItem('demoRole');
+        const isNutritionConsultant = demoRole === 'consultant-nutrition';
+
+        if (!isNutritionConsultant) {
+            alert('Только консультант питания может редактировать записи');
+            return;
+        }
+
+        setEditingPost(post);
+        setShowContentModal(true);
+    };
+
+    // Обновляем handleSavePost для поддержки редактирования
+    const handleSavePost = (data) => {
+        if (editingPost) {
+            // Редактирование существующего поста
+            const updatedPosts = posts.map(post =>
+                post.id === editingPost.id
+                    ? {
+                        ...post,
+                        type: data.mediaType || 'text',
+                        title: data.title,
+                        content: data.description,
+                        url: data.mediaUrl || '',
+                        editedAt: new Date().toISOString()
+                    }
+                    : post
+            );
+            setPosts(updatedPosts);
+            localStorage.setItem('nutritionFeedPosts', JSON.stringify(updatedPosts));
+            setEditingPost(null);
+        } else {
+            // Создание нового поста
+            const post = {
+                id: Date.now(),
+                type: data.mediaType || 'text',
+                title: data.title,
+                content: data.description,
+                url: data.mediaUrl || '',
+                date: new Date().toISOString().split('T')[0],
+                author: 'Admin'
+            };
+
+            const updatedPosts = [...posts, post];
+            setPosts(updatedPosts);
+            localStorage.setItem('nutritionFeedPosts', JSON.stringify(updatedPosts));
+        }
+
+        setShowContentModal(false);
+
+        setTimeout(() => {
+            if (feedEndRef.current) {
+                feedEndRef.current.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 100);
+    };
+
+    // Функция для скачивания материала (только для super-admin)
+    const handleDownloadPost = async (post) => {
+        const demoRole = localStorage.getItem('demoRole');
+        const isSuperAdmin = demoRole === 'super-admin';
+
+        if (!isSuperAdmin) {
+            alert('Только главный админ может скачивать материалы');
+            return;
+        }
+
+        try {
+            if (post.type === 'audio' || post.type === 'video') {
+                const response = await fetch(post.url);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${post.title}.${post.type === 'audio' ? 'mp3' : 'mp4'}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                const content = `${post.title}\n\n${post.content}\n\nДата: ${post.date}\nАвтор: ${post.author}`;
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${post.title}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }
+        } catch (error) {
+            console.error('Ошибка при скачивании:', error);
+            alert('Не удалось скачать файл');
+        }
     };
 
     const handlePlayAudio = (post) => {
@@ -274,7 +352,7 @@ const NutritionFeed = () => {
     };
 
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin-nutrition' || demoRole === 'developer' || demoRole === 'super-admin';
+    const isNutritionConsultant = demoRole === 'consultant-nutrition';
 
     // Загрузка данных меню
     useEffect(() => {
@@ -448,7 +526,7 @@ const NutritionFeed = () => {
                         onMouseEnter={handleDropdownEnter}
                         onMouseLeave={handleDropdownLeave}
                     >
-                        {isAdmin && (
+                        {isNutritionConsultant && (
                             <div className="dropdown-add-section">
                                 <button
                                     className="dropdown-add-btn"
@@ -466,7 +544,7 @@ const NutritionFeed = () => {
                                             <div className="menu-item-title">{item.title}</div>
                                             <div className="menu-item-description">{item.description}</div>
                                         </div>
-                                        {isAdmin && (
+                                        {isNutritionConsultant && (
                                             <button
                                                 className="delete-item-btn"
                                                 onClick={() => handleDeleteItem(hoveredMenu, item.id, item.title)}
@@ -479,7 +557,7 @@ const NutritionFeed = () => {
                                 </div>
                             ))
                         ) : (
-                            !isAdmin && <div className="empty-dropdown">Контент пока не добавлен</div>
+                            !isNutritionConsultant && <div className="empty-dropdown">Контент пока не добавлен</div>
                         )}
                     </div>
                 )}
@@ -533,14 +611,32 @@ const NutritionFeed = () => {
                         <div key={post.id} className="feed-post">
                             <div className="post-header">
                                 <div className="post-title">{post.title}</div>
-                                {isAdmin && (
-                                    <button
-                                        className="delete-post"
-                                        onClick={() => confirmDeletePost(post)}
-                                        title="Удалить запись"
-                                    >
-                                        🗑️
-                                    </button>
+                                {isNutritionConsultant && (
+                                    <div className="post-actions">
+                                        {demoRole === 'super-admin' && (
+                                            <button
+                                                className="download-post"
+                                                onClick={() => handleDownloadPost(post)}
+                                                title="Скачать материал"
+                                            >
+                                                📥
+                                            </button>
+                                        )}
+                                        <button
+                                            className="edit-post"
+                                            onClick={() => handleEditPost(post)}
+                                            title="Редактировать запись"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            className="delete-post"
+                                            onClick={() => confirmDeletePost(post)}
+                                            title="Удалить запись"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                             <div className="post-date">{post.date}</div>
@@ -616,7 +712,7 @@ const NutritionFeed = () => {
                     <div ref={feedEndRef} className="feed-end-marker" />
                 </div>
 
-                {isAdmin && (
+                {isNutritionConsultant && (
                     <div className="admin-section" ref={addFormRef}>
                         <div className="admin-panel">
                             <button className="add-post-btn add-event-style" onClick={handleAddPost}>
@@ -629,8 +725,18 @@ const NutritionFeed = () => {
 
             <ContentModal
                 isOpen={showContentModal}
-                onClose={() => setShowContentModal(false)}
+                onClose={() => {
+                    setShowContentModal(false);
+                    setEditingPost(null);
+                }}
                 onSave={handleSavePost}
+                initialData={editingPost ? {
+                    title: editingPost.title,
+                    description: editingPost.content,
+                    mediaUrl: editingPost.url,
+                    mediaType: editingPost.type
+                } : null}
+                isEditing={!!editingPost}
             />
 
             {/* Модальное окно для добавления контента в меню */}

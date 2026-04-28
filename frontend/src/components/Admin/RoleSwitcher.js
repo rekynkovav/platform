@@ -10,15 +10,14 @@ const RoleSwitcher = ({ onRoleChange }) => {
 
     const roles = [
         { id: 'user0', label: 'Пользователь 0', icon: '👁️', description: 'Просмотр сайта' },
-        { id: 'user1', label: 'Пользователь 1', icon: '🌱', description: 'Новички + Чат 1' },
-        { id: 'user2', label: 'Пользователь 2', icon: '⭐', description: 'Продвинутые + Чат 2' },
+        { id: 'user1', label: 'Пользователь 1', icon: '🌱', description: 'Чат 1' },
+        { id: 'user2', label: 'Пользователь 2', icon: '⭐', description: 'Чат 2' },
         { id: 'admin-moderator', label: 'Админ (модератор)', icon: '🛡️', description: 'Ответы + контент' },
-        { id: 'admin-consultant', label: 'Админ (консультации)', icon: '💼', description: 'Консультации' },
-        { id: 'admin-nutrition', label: 'Админ (питание)', icon: '🥗', description: 'Лента питания' },
-        { id: 'admin-sport', label: 'Админ (спорт)', icon: '⚽', description: 'Спортивный контент' },
+        { id: 'consultant-nutrition', label: 'Консультант (питание)', icon: '🥗', description: 'Лента питания' },
+        { id: 'consultant-sport', label: 'Консультант (спорт)', icon: '⚽', description: 'Спортивный контент' },
         { id: 'developer', label: 'Разработчик', icon: '💻', description: 'Разработка' },
         { id: 'vyacheslav', label: 'Вячеслав', icon: '👑', description: 'Владелец' },
-        { id: 'super-admin', label: 'Главный Админ', icon: '🔱', description: 'Скачивание оригиналов' }
+        { id: 'super-admin', label: 'Главный Админ', icon: '🔱', description: 'Полный доступ' }
     ];
 
     useEffect(() => {
@@ -42,7 +41,11 @@ const RoleSwitcher = ({ onRoleChange }) => {
         localStorage.setItem('demoRole', roleId);
 
         if (window.keycloakMock) {
-            const isAdmin = roleId.includes('admin') || roleId === 'developer' || roleId === 'vyacheslav' || roleId === 'super-admin';
+            const isAdmin = roleId.includes('admin') ||
+                           roleId.includes('consultant') ||
+                           roleId === 'developer' ||
+                           roleId === 'vyacheslav' ||
+                           roleId === 'super-admin';
             window.keycloakMock.roles = isAdmin ? ['admin', 'user'] : ['user'];
         }
 

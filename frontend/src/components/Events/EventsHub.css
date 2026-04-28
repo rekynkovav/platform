@@ -200,8 +200,8 @@
 .publish-btn {
     width: 100%;
     padding: 12px;
-    background: var(--accent);
-    color: white;
+    background: #86efac;
+    color: #166534;
     border: none;
     border-radius: 8px;
     font-size: 14px;
@@ -212,7 +212,7 @@
 }
 
 .publish-btn:hover {
-    opacity: 0.9;
+    background: #6ee7b7;
     transform: translateY(-1px);
 }
 
@@ -440,4 +440,80 @@
     .mic-button {
         justify-content: center;
     }
+}
+/* Кнопки редактирования и удаления */
+.material-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.material-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.edit-btn,
+.delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+    opacity: 0.7;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.edit-btn:hover,
+.delete-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.delete-btn:hover {
+    filter: brightness(1.2);
+}
+
+/* Модальное окно подтверждения удаления */
+.delete-confirm {
+    max-width: 400px;
+}
+
+.confirm-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.cancel-btn,
+.delete-confirm-btn {
+    flex: 1;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.cancel-btn {
+    background: #fca5a5;
+    color: #991b1b;
+    border: 1px solid #f87171;
+}
+
+.cancel-btn:hover {
+    background: #f87171;
+}
+
+.delete-confirm-btn {
+    background: #ef4444;
+    color: white;
+}
+
+.delete-confirm-btn:hover {
+    background: #dc2626;
 }

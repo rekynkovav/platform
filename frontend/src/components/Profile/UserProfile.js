@@ -88,12 +88,11 @@ const UserProfile = () => {
             case 'user1': return { icon: '🌱', name: 'Пользователь 1', description: 'Новички + Чат 1', color: '#28a745' };
             case 'user2': return { icon: '⭐', name: 'Пользователь 2', description: 'Продвинутые + Чат 2', color: '#ffc107' };
             case 'admin-moderator': return { icon: '🛡️', name: 'Админ (модератор)', description: 'Модерация', color: '#0d6efd' };
-            case 'admin-consultant': return { icon: '💼', name: 'Админ (консультации)', description: 'Консультации', color: '#0d6efd' };
-            case 'admin-nutrition': return { icon: '🥗', name: 'Админ (питание)', description: 'Питание', color: '#0d6efd' };
-            case 'admin-sport': return { icon: '⚽', name: 'Админ (спорт)', description: 'Спортивный контент', color: '#0d6efd' };
+            case 'consultant-nutrition': return { icon: '🥗', name: 'Консультант (питание)', description: 'Питание', color: '#0d6efd' };
+            case 'consultant-sport': return { icon: '⚽', name: 'Консультант (спорт)', description: 'Спортивный контент', color: '#0d6efd' };
             case 'developer': return { icon: '💻', name: 'Разработчик', description: 'Разработка', color: '#6f42c1' };
-            case 'owner': return { icon: '👑', name: 'Владелец', description: 'Полный доступ', color: '#dc3545' };
-            case 'super-admin': return { icon: '🔱', name: 'Главный Админ', description: 'Скачивание оригиналов', color: '#dc3545' };
+            case 'vyacheslav': return { icon: '👑', name: 'Вячеслав', description: 'Владелец', color: '#dc3545' };
+            case 'super-admin': return { icon: '🔱', name: 'Главный Админ', description: 'Полный доступ', color: '#dc3545' };
             default: return { icon: '👤', name: 'Пользователь', description: '', color: '#6c757d' };
         }
     };

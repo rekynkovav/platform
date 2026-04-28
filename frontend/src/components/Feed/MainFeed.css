@@ -81,17 +81,29 @@
     color: var(--text-primary);
 }
 
+.post-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.download-post,
+.edit-post,
 .delete-post {
     background: none;
     border: none;
-    font-size: 18px;
+    font-size: 22px;
     cursor: pointer;
-    opacity: 0.5;
-    transition: opacity 0.2s;
+    opacity: 0.6;
+    transition: all 0.2s;
+    padding: 4px;
 }
 
+.download-post:hover,
+.edit-post:hover,
 .delete-post:hover {
     opacity: 1;
+    transform: scale(1.1);
 }
 
 .post-date {

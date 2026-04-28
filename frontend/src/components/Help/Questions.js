@@ -60,9 +60,8 @@ const Questions = () => {
     const getRoleId = (role) => {
         const roleIds = {
             'admin-moderator': 'admin-moderator',
-            'admin-consultant': 'admin-consultant',
-            'admin-nutrition': 'admin-nutrition',
-            'admin-sport': 'admin-sport',
+            'consultant-nutrition': 'consultant-nutrition',
+            'consultant-sport': 'consultant-sport',
             'vyacheslav': 'vyacheslav',
             'developer': 'developer',
             'super-admin': 'super-admin',
@@ -76,13 +75,13 @@ const Questions = () => {
     const currentRoleId = getRoleId(demoRole);
 
     // Определяем роли четко
-    const isGeneralAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer';
-    const isNutritionAdmin = demoRole === 'admin-nutrition';
-    const isSportAdmin = demoRole === 'admin-sport';
+    const isGeneralAdmin = demoRole === 'admin-moderator' || demoRole === 'developer';
+    const isNutritionConsultant = demoRole === 'consultant-nutrition';
+    const isSportConsultant = demoRole === 'consultant-sport';
     const isVyacheslav = demoRole === 'vyacheslav';
     const isSuperAdmin = demoRole === 'super-admin';
     const isUser0 = demoRole === 'user0';
-    const isAnyAdmin = isGeneralAdmin || isNutritionAdmin || isSportAdmin || isVyacheslav || isSuperAdmin;
+    const isAnyAdmin = isGeneralAdmin || isNutritionConsultant || isSportConsultant || isVyacheslav || isSuperAdmin;
 
     // Кто может переключать режимы (только пользователи 1 и 2)
     const canSwitchModes = demoRole === 'user1' || demoRole === 'user2';
@@ -108,12 +107,12 @@ const Questions = () => {
 
             let questionsToShow = [];
 
-            if (isNutritionAdmin) {
-                // Админ питания видит ТОЛЬКО вопросы с recipientId = 'admin-nutrition'
+            if (isNutritionConsultant) {
+                // Консультант питания видит ТОЛЬКО вопросы с recipientId = 'consultant-nutrition'
                 questionsToShow = allQuestions.filter(q =>
-                    q.recipientId === 'admin-nutrition' && !q.archived
+                    q.recipientId === 'consultant-nutrition' && !q.archived
                 );
-                console.log('Админ питания: вопросы с recipientId=admin-nutrition:', questionsToShow.length);
+                console.log('Консультант питания: вопросы с recipientId=consultant-nutrition:', questionsToShow.length);
             } else if (isVyacheslav) {
                 // Вячеслав переключается между личными и общими
                 if (vyacheslavView === 'personal') {
@@ -166,17 +165,17 @@ const Questions = () => {
             window.removeEventListener('storage', handleStorageChange);
             clearInterval(interval);
         };
-    }, [questionMode, vyacheslavView, isGeneralAdmin, isNutritionAdmin, isVyacheslav, isSuperAdmin, currentRoleId, isAnyAdmin]);
+    }, [questionMode, vyacheslavView, isGeneralAdmin, isNutritionConsultant, isVyacheslav, isSuperAdmin, currentRoleId, isAnyAdmin]);
 
     // Устанавливаем режим по умолчанию для админа питания и Вячеслава
     useEffect(() => {
-        if (isNutritionAdmin && questionMode !== 'nutrition') {
+        if (isNutritionConsultant && questionMode !== 'nutrition') {
             setQuestionMode('nutrition');
         }
         if (isVyacheslav && questionMode !== 'vyacheslav' && questionMode !== 'general') {
             setQuestionMode('vyacheslav');
         }
-    }, [isNutritionAdmin, isVyacheslav, questionMode]);
+    }, [isNutritionConsultant, isVyacheslav, questionMode]);
 
     // Сохраняем вопросы при изменении в единое хранилище
     useEffect(() => {
@@ -202,7 +201,7 @@ const Questions = () => {
     }, [questions]);
 
     const handleAskQuestion = () => {
-        if (isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSportAdmin || isSuperAdmin) {
+        if (isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSportConsultant || isSuperAdmin) {
             alert('Администратор не может задавать вопросы, только отвечать на них');
             return;
         }
@@ -221,7 +220,7 @@ const Questions = () => {
             date: new Date().toISOString().split('T')[0],
             isAnswered: false,
             mode: questionMode,
-            recipientId: questionMode === 'nutrition' ? 'admin-nutrition' :
+            recipientId: questionMode === 'nutrition' ? 'consultant-nutrition' :
                         questionMode === 'vyacheslav' ? 'vyacheslav' :
                         '', // Пустая строка для общих вопросов
             archived: false,
@@ -276,7 +275,7 @@ const Questions = () => {
                          (vyacheslavView === 'personal' && isVyacheslav) ||
                          (questionMode === 'general' && isGeneralAdmin) ||
                          (questionMode === 'general' && isSuperAdmin) ||
-                         (questionMode === 'nutrition' && isNutritionAdmin);
+                         (questionMode === 'nutrition' && isNutritionConsultant);
 
         if (!canAnswer) {
             alert('У вас нет прав для ответа на вопросы в этом разделе');
@@ -364,7 +363,7 @@ const Questions = () => {
         const canDelete = (vyacheslavView === 'general' && isVyacheslav) ||
                          (vyacheslavView === 'personal' && isVyacheslav) ||
                          (questionMode === 'general' && isGeneralAdmin) ||
-                         (questionMode === 'nutrition' && isNutritionAdmin);
+                         (questionMode === 'nutrition' && isNutritionConsultant);
 
         if (!canDelete) {
             alert('У вас нет прав для удаления вопросов в этом разделе!');
@@ -408,7 +407,7 @@ const Questions = () => {
 
     // Функция для очистки отвеченных вопросов (архивирование)
     const executeBulkDelete = () => {
-        const isUserRole = !isGeneralAdmin && !isNutritionAdmin && !isVyacheslav && !isSportAdmin && !isSuperAdmin;
+        const isUserRole = !isGeneralAdmin && !isNutritionConsultant && !isVyacheslav && !isSportConsultant && !isSuperAdmin;
 
         // Загружаем все вопросы из единого хранилища
         const allQuestionsKey = 'allQuestions';
@@ -425,7 +424,7 @@ const Questions = () => {
                 // Админы архивируют отвеченные вопросы в своей области видимости
                 let shouldArchive = false;
 
-                if (isNutritionAdmin && q.recipientId === 'admin-nutrition' && q.isAnswered) {
+                if (isNutritionConsultant && q.recipientId === 'consultant-nutrition' && q.isAnswered) {
                     shouldArchive = true;
                 } else if (isVyacheslav && vyacheslavView === 'personal' && q.recipientId === 'vyacheslav' && q.isAnswered) {
                     shouldArchive = true;
@@ -561,7 +560,7 @@ const Questions = () => {
             )}
 
             <div className="help-header">
-                <h2>❔ Вопросы и ответы</h2>
+                <h2>Вопросы и ответы</h2>
 
                 {/* Переключатель для Обычных пользователей */}
                 {canSwitchModes && (
@@ -609,7 +608,7 @@ const Questions = () => {
             </div>
 
             {/* Секция задания вопроса - показываем только для пользователей (не админов) */}
-            {!isGeneralAdmin && !isNutritionAdmin && !isVyacheslav && !isSportAdmin && !isSuperAdmin && (
+            {!isGeneralAdmin && !isNutritionConsultant && !isVyacheslav && !isSportConsultant && !isSuperAdmin && (
                 <div className="ask-section">
                     <h3>💬 Задать вопрос</h3>
                     <div className="ask-description">
@@ -641,13 +640,13 @@ const Questions = () => {
             <div className="faq-section">
                 <div className="faq-header-actions">
                     <h3>
-                        {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin)
+                        {(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin)
                             ? `📋 Все вопросы (${unansweredCount} ожидают ответа, ${answeredCount} отвечено)`
                             : `📋 Мои вопросы (${questions.length})`
                         }
                     </h3>
                     {/* Кнопка очистки для админов */}
-                    {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && answeredCount > 0 && (
+                    {(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && answeredCount > 0 && (
                         <button
                             className="bulk-delete-btn"
                             onClick={confirmBulkDelete}
@@ -657,7 +656,7 @@ const Questions = () => {
                         </button>
                     )}
                     {/* Кнопка очистки для пользователей */}
-                    {!isGeneralAdmin && !isNutritionAdmin && !isVyacheslav && !isSportAdmin && !isSuperAdmin && answeredCount > 0 && (
+                    {!isGeneralAdmin && !isNutritionConsultant && !isVyacheslav && !isSportConsultant && !isSuperAdmin && answeredCount > 0 && (
                         <button
                             className="bulk-delete-btn"
                             onClick={confirmBulkDelete}
@@ -669,7 +668,7 @@ const Questions = () => {
                 </div>
 
                 {/* Разделитель для админа - неотвеченные вопросы */}
-                {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && unansweredCount > 0 && (
+                {(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && unansweredCount > 0 && (
                     <div className="section-divider">
                         <span className="divider-title">⏳ Ожидают ответа ({unansweredCount})</span>
                     </div>
@@ -678,8 +677,8 @@ const Questions = () => {
                 <div className="faq-list">
                     {questions.length === 0 ? (
                         <div className="no-questions">
-                            <p>❓ {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) ? 'Пока нет вопросов от пользователей' : 'У вас пока нет вопросов'}</p>
-                            {!(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && <p className="hint-text">Задайте свой первый вопрос выше! ✍️</p>}
+                            <p>❓ {(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) ? 'Пока нет вопросов от пользователей' : 'У вас пока нет вопросов'}</p>
+                            {!(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && <p className="hint-text">Задайте свой первый вопрос выше! ✍️</p>}
                         </div>
                     ) : (
                         questions.map((q, index) => (
@@ -694,11 +693,11 @@ const Questions = () => {
                                     <div className="question-header">
                                         <div className="question-title">
                                             <strong>❓ {q.question}</strong>
-                                            {!q.isAnswered && !(isGeneralAdmin || isNutritionAdmin || isVyacheslav) && (
+                                            {!q.isAnswered && !(isGeneralAdmin || isNutritionConsultant || isVyacheslav) && (
                                                 <span className="waiting-badge">⏳ Ожидает ответа</span>
                                             )}
                                         </div>
-                                        {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && q.isAnswered && (
+                                        {(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && q.isAnswered && (
                                             <button
                                                 className="delete-question-btn"
                                                 onClick={() => confirmDeleteQuestion(q)}
@@ -712,7 +711,7 @@ const Questions = () => {
                                         <span>👤 {q.author}</span>
                                         <span>📅 {q.date}</span>
                                         {q.isAnswered && <span className="answered-badge">✅ Ответ дан</span>}
-                                        {!q.isAnswered && (isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && <span className="pending-badge">⏳ Ожидает ответа</span>}
+                                        {!q.isAnswered && (isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && <span className="pending-badge">⏳ Ожидает ответа</span>}
                                     </div>
                                 </div>
 
@@ -726,7 +725,7 @@ const Questions = () => {
                                         </div>
                                     </div>
                                 ) : (
-                                    (isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && (
+                                    (isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && (
                                         <div className="answer-form">
                                             <textarea
                                                 className="answer-input"
