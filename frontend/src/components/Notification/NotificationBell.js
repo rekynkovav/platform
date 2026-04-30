@@ -151,8 +151,8 @@ const NotificationBell = () => {
     const checkQuestionNotifications = () => {
         const demoRole = localStorage.getItem('demoRole');
 
-        const isGeneralAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer';
-        const isNutritionAdmin = demoRole === 'admin-nutrition';
+        const isGeneralAdmin = demoRole === 'admin-moderator' || demoRole === 'developer';
+        const isNutritionConsultant = demoRole === 'consultant-nutrition';
         const isVyacheslav = demoRole === 'vyacheslav';
         const isSuperAdmin = demoRole === 'super-admin';
         const isUser = demoRole === 'user0' || demoRole === 'user1' || demoRole === 'user2';
@@ -163,12 +163,12 @@ const NotificationBell = () => {
         const allQuestionsKey = 'allQuestions';
         const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
 
-        if (isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) {
+        if (isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) {
             let myUnansweredQuestions = [];
 
-            if (isNutritionAdmin) {
+            if (isNutritionConsultant) {
                 myUnansweredQuestions = allQuestions.filter(q =>
-                    q.recipientId === 'admin-nutrition' && !q.isAnswered && !q.archived
+                    q.recipientId === 'consultant-nutrition' && !q.isAnswered && !q.archived
                 );
             } else if (isVyacheslav) {
                 myUnansweredQuestions = allQuestions.filter(q =>

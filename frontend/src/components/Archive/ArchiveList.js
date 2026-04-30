@@ -18,17 +18,80 @@ const ArchiveList = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [broadcastToDelete, setBroadcastToDelete] = useState(null);
 
+    // Состояния для редактирования
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingBroadcast, setEditingBroadcast] = useState(null);
+    const [editStreamType, setEditStreamType] = useState('audio');
+
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'owner';
+    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin';
+    const canEdit = demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin';
+
+    // Отладка
+    console.log('[ArchiveList] demoRole:', demoRole);
+    console.log('[ArchiveList] isAdmin:', isAdmin);
+    console.log('[ArchiveList] canEdit:', canEdit);
 
     useEffect(() => {
         loadBroadcasts();
     }, []);
 
+    // Проверка, прошла ли трансляция
+    const isBroadcastPast = (broadcast) => {
+        const broadcastDateTime = new Date(`${broadcast.date}T${broadcast.time}`);
+        const now = new Date();
+        return broadcastDateTime < now;
+    };
+
+    // Перенос прошедших трансляций в Dashboard
+    const moveCompletedBroadcastsToDashboard = (broadcastsList) => {
+        const dashboardData = JSON.parse(localStorage.getItem('dashboardMenuData') || '{}');
+        const currentBroadcasts = dashboardData['broadcasts'] || [];
+
+        broadcastsList.forEach(broadcast => {
+            if (isBroadcastPast(broadcast) && broadcast.status === 'scheduled') {
+                // Обновляем статус трансляции
+                broadcast.status = 'completed';
+
+                // Проверяем, не добавлена ли уже эта трансляция в Dashboard
+                const alreadyExists = currentBroadcasts.some(item => item.broadcastId === broadcast.id);
+
+                if (!alreadyExists) {
+                    // Добавляем в Dashboard
+                    const dashboardItem = {
+                        id: Date.now() + Math.random(),
+                        broadcastId: broadcast.id,
+                        title: broadcast.title,
+                        description: broadcast.description,
+                        mediaUrl: broadcast.mediaUrl || '',
+                        mediaType: broadcast.type,
+                        createdAt: new Date().toISOString()
+                    };
+                    currentBroadcasts.push(dashboardItem);
+                }
+            }
+        });
+
+        dashboardData['broadcasts'] = currentBroadcasts;
+        localStorage.setItem('dashboardMenuData', JSON.stringify(dashboardData));
+    };
+
     const loadBroadcasts = () => {
         const saved = localStorage.getItem('broadcasts');
         if (saved) {
-            setBroadcasts(JSON.parse(saved));
+            const broadcastsList = JSON.parse(saved);
+
+            // Проверяем и переносим прошедшие трансляции
+            moveCompletedBroadcastsToDashboard(broadcastsList);
+
+            // Обновляем статусы
+            const updatedBroadcasts = broadcastsList.map(b => ({
+                ...b,
+                status: isBroadcastPast(b) ? 'completed' : b.status
+            }));
+
+            setBroadcasts(updatedBroadcasts);
+            localStorage.setItem('broadcasts', JSON.stringify(updatedBroadcasts));
         } else {
             const initial = [
                 {
@@ -96,8 +159,55 @@ const ArchiveList = () => {
     };
 
     const confirmDeleteBroadcast = (broadcast) => {
+        if (!canEdit) {
+            alert('У вас нет прав на удаление');
+            return;
+        }
         setBroadcastToDelete(broadcast);
         setShowDeleteConfirm(true);
+    };
+
+    const handleEditBroadcast = (broadcast) => {
+        if (!canEdit) {
+            alert('У вас нет прав на редактирование');
+            return;
+        }
+        setEditingBroadcast(broadcast);
+        setNewBroadcast({
+            title: broadcast.title,
+            description: broadcast.description,
+            date: broadcast.date,
+            time: broadcast.time,
+            type: broadcast.type
+        });
+        setEditStreamType(broadcast.type);
+        setShowEditModal(true);
+    };
+
+    const handleSaveEdit = () => {
+        if (!newBroadcast.title || !newBroadcast.date || !newBroadcast.time) {
+            alert('Заполните название, дату и время');
+            return;
+        }
+
+        const updated = broadcasts.map(b =>
+            b.id === editingBroadcast.id
+                ? { ...b, ...newBroadcast, type: editStreamType, edited: true }
+                : b
+        );
+
+        setBroadcasts(updated);
+        localStorage.setItem('broadcasts', JSON.stringify(updated));
+
+        setNewBroadcast({ title: '', description: '', date: '', time: '', type: 'audio' });
+        setEditingBroadcast(null);
+        setShowEditModal(false);
+    };
+
+    const handleCancelEdit = () => {
+        setNewBroadcast({ title: '', description: '', date: '', time: '', type: 'audio' });
+        setEditingBroadcast(null);
+        setShowEditModal(false);
     };
 
     const executeDeleteBroadcast = () => {
@@ -214,16 +324,28 @@ const ArchiveList = () => {
                             <div className="broadcast-type-badge">
                                 {broadcast.type === 'audio' ? '🎙️ Аудио' : '🎥 Видео'}
                             </div>
-                            {isAdmin && (
-                                <button
-                                    className="delete-broadcast-btn"
-                                    onClick={() => confirmDeleteBroadcast(broadcast)}
-                                    title="Удалить трансляцию"
-                                >
-                                    🗑️
-                                </button>
+                            {canEdit && (
+                                <div className="broadcast-actions">
+                                    <button
+                                        className="edit-broadcast-btn"
+                                        onClick={() => handleEditBroadcast(broadcast)}
+                                        title="Редактировать трансляцию"
+                                    >
+                                        ✏️
+                                    </button>
+                                    <button
+                                        className="delete-broadcast-btn"
+                                        onClick={() => confirmDeleteBroadcast(broadcast)}
+                                        title="Удалить трансляцию"
+                                    >
+                                        🗑️
+                                    </button>
+                                </div>
                             )}
-                            <h3 className="broadcast-title">{broadcast.title}</h3>
+                            <h3 className="broadcast-title">
+                                {broadcast.title}
+                                {broadcast.edited && <span className="edited-badge-broadcast"> (изменено)</span>}
+                            </h3>
                             <p className="broadcast-description">{broadcast.description}</p>
                             <div className="broadcast-datetime">
                                 <span>📅 {formatDate(broadcast.date)}</span>
@@ -236,6 +358,78 @@ const ArchiveList = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Модальное окно редактирования */}
+            {showEditModal && editingBroadcast && (
+                <div className="modal-overlay" onClick={handleCancelEdit}>
+                    <div className="modal-content create-broadcast-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <span className="modal-icon">✏️</span>
+                            <h3>Редактировать трансляцию</h3>
+                        </div>
+
+                        <div className="stream-type-toggle">
+                            <span className="toggle-label">Тип трансляции:</span>
+                            <div className="toggle-switch">
+                                <button
+                                    className={`toggle-option ${editStreamType === 'audio' ? 'active' : ''}`}
+                                    onClick={() => setEditStreamType('audio')}
+                                >
+                                    🎙️ Аудио
+                                </button>
+                                <button
+                                    className={`toggle-option ${editStreamType === 'video' ? 'active' : ''}`}
+                                    onClick={() => setEditStreamType('video')}
+                                >
+                                    🎥 Видео
+                                </button>
+                            </div>
+                        </div>
+
+                        <input
+                            type="text"
+                            placeholder="Название трансляции"
+                            value={newBroadcast.title}
+                            onChange={(e) => setNewBroadcast({...newBroadcast, title: e.target.value})}
+                        />
+
+                        <textarea
+                            placeholder="Описание трансляции"
+                            value={newBroadcast.description}
+                            onChange={(e) => setNewBroadcast({...newBroadcast, description: e.target.value})}
+                            rows="3"
+                        />
+
+                        <div className="date-time-group">
+                            <div className="date-field">
+                                <label>📅 Дата</label>
+                                <input
+                                    type="date"
+                                    value={newBroadcast.date}
+                                    onChange={(e) => setNewBroadcast({...newBroadcast, date: e.target.value})}
+                                />
+                            </div>
+                            <div className="time-field">
+                                <label>⏰ Время</label>
+                                <input
+                                    type="time"
+                                    value={newBroadcast.time}
+                                    onChange={(e) => setNewBroadcast({...newBroadcast, time: e.target.value})}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="modal-footer">
+                            <button className="modal-btn cancel" onClick={handleCancelEdit}>
+                                Отмена
+                            </button>
+                            <button className="modal-btn confirm" onClick={handleSaveEdit}>
+                                Сохранить
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 

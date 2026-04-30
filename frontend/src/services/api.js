@@ -127,4 +127,11 @@ export const adminsApi = {
     sendToAll: (content) => api.post('/api/admins/messages', { content })
 };
 
+// API для пользователей
+export const usersApi = {
+    getCurrentUser: () => api.get('/api/users/me'),
+    updateCurrentUser: (data) => api.put('/api/users/me', data),
+    getUserById: (userId) => api.get(`/api/users/${userId}`)
+};
+
 export default api;

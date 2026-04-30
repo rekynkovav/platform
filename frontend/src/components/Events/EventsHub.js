@@ -11,6 +11,9 @@ const EventsHub = () => {
     const [showFeedbackForm, setShowFeedbackForm] = useState(false);
     const [feedbackText, setFeedbackText] = useState('');
     const [audioFiles, setAudioFiles] = useState([]);
+    const [editingMaterial, setEditingMaterial] = useState(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [materialToDelete, setMaterialToDelete] = useState(null);
 
     // Состояния для записи аудио
     const [isRecording, setIsRecording] = useState(false);
@@ -37,8 +40,12 @@ const EventsHub = () => {
 
     // Получаем роль из localStorage
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
+    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin';
     const currentUser = getUsername();
+
+    // Отладка: выводим роль и статус админа
+    console.log('[EventsHub] demoRole:', demoRole);
+    console.log('[EventsHub] isAdmin:', isAdmin);
 
     // Загрузка аудио файлов из папки
     useEffect(() => {
@@ -213,24 +220,84 @@ const EventsHub = () => {
         const savedArchive = localStorage.getItem('archiveMaterials');
         let archive = savedArchive ? JSON.parse(savedArchive) : [];
 
-        const material = {
-            id: Date.now(),
-            ...newMaterial,
-            date: new Date().toISOString().split('T')[0],
-            time: new Date().toLocaleTimeString(),
-            author: 'Admin',
-            menuId: activeMenu
-        };
+        if (editingMaterial) {
+            // Редактирование существующего материала
+            archive = archive.map(m =>
+                m.id === editingMaterial.id
+                    ? {
+                        ...m,
+                        ...newMaterial,
+                        editedAt: new Date().toISOString()
+                    }
+                    : m
+            );
+            setNotification('Материал обновлён!');
+            setEditingMaterial(null);
+        } else {
+            // Создание нового материала
+            const material = {
+                id: Date.now(),
+                ...newMaterial,
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toLocaleTimeString(),
+                author: 'Admin',
+                menuId: activeMenu
+            };
+            archive.unshift(material);
+            setNotification('Материал добавлен в архив!');
+        }
 
-        archive.unshift(material);
         localStorage.setItem('archiveMaterials', JSON.stringify(archive));
-
-        setNotification(`Материал добавлен в архив!`);
         setTimeout(() => setNotification(null), 3000);
 
         setNewMaterial({ type: 'text', title: '', content: '', url: '' });
         setShowAddForm(false);
         setActiveMenu(null);
+    };
+
+    const handleEditMaterial = (material) => {
+        if (!isAdmin) {
+            alert('Только администратор может редактировать материалы');
+            return;
+        }
+
+        setEditingMaterial(material);
+        setNewMaterial({
+            type: material.type,
+            title: material.title,
+            content: material.content || '',
+            url: material.url || ''
+        });
+        setShowAddForm(true);
+    };
+
+    const handleDeleteMaterial = (material) => {
+        if (!isAdmin) {
+            alert('Только администратор может удалять материалы');
+            return;
+        }
+
+        setMaterialToDelete(material);
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDeleteMaterial = () => {
+        const savedArchive = localStorage.getItem('archiveMaterials');
+        let archive = savedArchive ? JSON.parse(savedArchive) : [];
+
+        archive = archive.filter(m => m.id !== materialToDelete.id);
+        localStorage.setItem('archiveMaterials', JSON.stringify(archive));
+
+        setNotification('Материал удалён!');
+        setTimeout(() => setNotification(null), 3000);
+
+        setShowDeleteConfirm(false);
+        setMaterialToDelete(null);
+    };
+
+    const cancelDeleteMaterial = () => {
+        setShowDeleteConfirm(false);
+        setMaterialToDelete(null);
     };
 
     // Получение материалов для текущего раздела
@@ -257,10 +324,12 @@ const EventsHub = () => {
                 <div className="add-material-modal">
                     <div className="modal-container">
                         <div className="modal-header">
-                            <h3>Добавить материал в раздел "{menuItems.find(m => m.id === activeMenu)?.title}"</h3>
+                            <h3>{editingMaterial ? 'Редактировать материал' : `Добавить материал в раздел "${menuItems.find(m => m.id === activeMenu)?.title}"`}</h3>
                             <button className="modal-close" onClick={() => {
                                 setShowAddForm(false);
                                 setActiveMenu(null);
+                                setEditingMaterial(null);
+                                setNewMaterial({ type: 'text', title: '', content: '', url: '' });
                             }}>✕</button>
                         </div>
                         <div className="modal-body">
@@ -440,7 +509,27 @@ const EventsHub = () => {
                                                     <div key={material.id} className="material-item">
                                                         <div className="material-header">
                                                             <span className="material-title">{material.title}</span>
-                                                            <span className="material-date">{material.date}</span>
+                                                            <div className="material-actions">
+                                                                <span className="material-date">{material.date}</span>
+                                                                {isAdmin && (
+                                                                    <>
+                                                                        <button
+                                                                            className="edit-btn"
+                                                                            onClick={() => handleEditMaterial(material)}
+                                                                            title="Редактировать"
+                                                                        >
+                                                                            ✏️
+                                                                        </button>
+                                                                        <button
+                                                                            className="delete-btn"
+                                                                            onClick={() => handleDeleteMaterial(material)}
+                                                                            title="Удалить"
+                                                                        >
+                                                                            🗑️
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         {material.content && (
                                                             <p className="material-description">{material.content}</p>
@@ -481,6 +570,28 @@ const EventsHub = () => {
                     ))}
                 </div>
             </div>
+
+            {/* Модальное окно подтверждения удаления */}
+            {showDeleteConfirm && (
+                <div className="add-material-modal">
+                    <div className="modal-container delete-confirm">
+                        <div className="modal-header">
+                            <h3>Подтверждение удаления</h3>
+                        </div>
+                        <div className="modal-body">
+                            <p>Вы уверены, что хотите удалить материал "{materialToDelete?.title}"?</p>
+                            <div className="confirm-buttons">
+                                <button className="cancel-btn" onClick={cancelDeleteMaterial}>
+                                    Отмена
+                                </button>
+                                <button className="delete-confirm-btn" onClick={confirmDeleteMaterial}>
+                                    Удалить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

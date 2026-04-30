@@ -1,6 +1,7 @@
 package com.platform.service;
 
 import com.platform.model.User;
+import com.platform.model.dto.UserDto;
 import com.platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,5 +72,19 @@ public class UserService {
             user.setLastActiveAt(LocalDateTime.now());
             userRepository.save(user);
         });
+    }
+
+    @Transactional
+    public Optional<User> updateUserProfile(String userId, UserDto.UpdateRequest request) {
+        return userRepository.findById(userId)
+                .map(user -> {
+                    if (request.getUsername() != null) user.setUsername(request.getUsername());
+                    if (request.getEmail() != null) user.setEmail(request.getEmail());
+                    if (request.getPhone() != null) user.setPhone(request.getPhone());
+                    if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl());
+                    if (request.getBio() != null) user.setBio(request.getBio());
+                    user.setLastActiveAt(LocalDateTime.now());
+                    return userRepository.save(user);
+                });
     }
 }

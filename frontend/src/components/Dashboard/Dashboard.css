@@ -530,15 +530,37 @@
 
 .menu-dropdown-positioned {
     position: absolute;
-    min-width: 300px;
-    max-width: 500px;
+    min-width: 400px;
+    max-width: min(800px, 90vw);
+    width: auto;
+    max-height: min(500px, 70vh);
+    overflow-y: auto;
+    overflow-x: hidden;
     background: var(--bg-primary);
     border: 2px solid var(--accent);
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     z-index: 99999;
     animation: slideDown 0.2s ease;
-    overflow: hidden;
+    word-wrap: break-word;
+}
+
+.menu-dropdown-positioned::-webkit-scrollbar {
+    width: 8px;
+}
+
+.menu-dropdown-positioned::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.menu-dropdown-positioned::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.menu-dropdown-positioned::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
 }
 
 @keyframes slideDown {
@@ -553,9 +575,11 @@
 }
 
 .menu-dropdown-item {
-    padding: 12px 16px;
+    padding: 14px 18px;
     border-bottom: 1px solid var(--border);
     transition: background 0.2s;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .menu-dropdown-item:last-child {
@@ -567,16 +591,29 @@
 }
 
 .menu-item-title {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.edited-badge {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: normal;
+    font-style: italic;
+    opacity: 0.7;
 }
 
 .menu-item-description {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-secondary);
-    line-height: 1.4;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
 }
 
 .menu-item-content {
@@ -587,24 +624,42 @@
     width: 100%;
 }
 
-.delete-item-btn {
-    background: var(--danger);
-    color: white;
-    border: none;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 14px;
+.menu-item-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
+}
+
+.download-item-btn,
+.edit-item-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    opacity: 0.7;
+    transition: opacity 0.2s, transform 0.2s;
     flex-shrink: 0;
+}
+
+.download-item-btn:hover,
+.edit-item-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.delete-item-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    opacity: 0.6;
     transition: all 0.2s;
+    padding: 4px;
 }
 
 .delete-item-btn:hover {
-    background: #c82333;
+    opacity: 1;
     transform: scale(1.1);
 }
 
@@ -616,15 +671,37 @@
 
 .menu-submenu-positioned {
     position: absolute;
-    min-width: 300px;
-    max-width: 500px;
+    min-width: 400px;
+    max-width: min(800px, 90vw);
+    width: auto;
+    max-height: min(500px, 70vh);
+    overflow-y: auto;
+    overflow-x: hidden;
     background: var(--bg-primary);
     border: 2px solid var(--accent);
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     z-index: 100000;
     animation: slideDown 0.2s ease;
-    overflow: hidden;
+    word-wrap: break-word;
+}
+
+.menu-submenu-positioned::-webkit-scrollbar {
+    width: 8px;
+}
+
+.menu-submenu-positioned::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.menu-submenu-positioned::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.menu-submenu-positioned::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
 }
 
 .submenu-add-section {
@@ -635,18 +712,20 @@
 
 .submenu-add-btn {
     width: 100%;
-    padding: 8px 16px;
-    background: var(--accent);
-    color: white;
-    border: none;
+    padding: 10px 16px;
+    background: rgba(25, 135, 84, 0.15);
+    color: #198754;
+    border: 1px solid rgba(25, 135, 84, 0.3);
     border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
+    font-weight: 600;
     transition: all 0.2s;
 }
 
 .submenu-add-btn:hover {
-    background: var(--accent-hover);
+    background: rgba(25, 135, 84, 0.25);
+    border-color: rgba(25, 135, 84, 0.5);
     transform: translateY(-1px);
 }
 
@@ -726,23 +805,24 @@
 }
 
 .modal-btn.save {
-    background: var(--success);
-    color: white;
+    background: #86efac;
+    color: #166534;
 }
 
 .modal-btn.save:hover {
-    opacity: 0.9;
+    background: #6ee7b7;
     transform: translateY(-1px);
 }
 
 .modal-btn.cancel {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 2px solid var(--border);
+    background: #fca5a5;
+    color: #991b1b;
+    border: 2px solid #f87171;
 }
 
 .modal-btn.cancel:hover {
-    border-color: var(--accent);
+    background: #f87171;
+    border-color: #ef4444;
 }
 
 .media-controls-dashboard {

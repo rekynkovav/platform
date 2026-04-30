@@ -5,8 +5,8 @@ const QuestionNotification = () => {
     const [notifications, setNotifications] = useState([]);
     const demoRole = localStorage.getItem('demoRole');
 
-    const isGeneralAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer';
-    const isNutritionAdmin = demoRole === 'admin-nutrition';
+    const isGeneralAdmin = demoRole === 'admin-moderator' || demoRole === 'developer';
+    const isNutritionConsultant = demoRole === 'consultant-nutrition';
     const isVyacheslav = demoRole === 'vyacheslav';
     const isUser = demoRole === 'user0' || demoRole === 'user1' || demoRole === 'user2';
 
@@ -22,7 +22,7 @@ const QuestionNotification = () => {
         const lastCheck = localStorage.getItem(`lastNotificationCheck_${demoRole}`) || '0';
         const currentTime = Date.now();
 
-        if (isGeneralAdmin || isNutritionAdmin || isVyacheslav) {
+        if (isGeneralAdmin || isNutritionConsultant || isVyacheslav) {
             checkNewQuestions(lastCheck);
         }
 
@@ -36,7 +36,7 @@ const QuestionNotification = () => {
     const checkNewQuestions = (lastCheck) => {
         const modes = [];
         if (isGeneralAdmin) modes.push('general');
-        if (isNutritionAdmin) modes.push('nutrition');
+        if (isNutritionConsultant) modes.push('nutrition');
         if (isVyacheslav) modes.push('vyacheslav');
 
         modes.forEach(mode => {

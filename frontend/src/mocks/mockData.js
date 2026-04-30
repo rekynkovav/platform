@@ -1,7 +1,7 @@
 // Моковые данные для фронта
 export const mockUser = {
     username: 'Тестовый Пользователь',
-    roles: ['user', 'admin'],
+    roles: ['user_2'],
     id: 'mock-user-123'
 };
 

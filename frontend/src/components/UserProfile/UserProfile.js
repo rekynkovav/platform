@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import { usersApi } from '../../services/api';
 import './UserProfile.css';
 
 const UserProfile = () => {
-    const [selectedPeriod, setSelectedPeriod] = useState(1);
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [editing, setEditing] = useState(false);
+    const [formData, setFormData] = useState({
+        username: '',
+        email: '',
+        phone: '',
+        bio: ''
+    });
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState(null);
     const [paymentId, setPaymentId] = useState(null);
     const [qrCodeUrl, setQrCodeUrl] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const demoRole = localStorage.getItem('demoRole') || 'user0';
+    const [showPayment, setShowPayment] = useState(false);
 
     const periods = [
         { months: 1, price: 10000, label: '1 месяц', pricePerMonth: 10000 },
@@ -14,6 +24,8 @@ const UserProfile = () => {
         { months: 6, price: 48000, label: '6 месяцев', discount: '20%', pricePerMonth: 8000, savings: 12000 },
         { months: 12, price: 84000, label: '12 месяцев', discount: '30%', pricePerMonth: 7000, savings: 36000 }
     ];
+
+    const [selectedPeriod, setSelectedPeriod] = useState(1);
 
     const bankDetails = {
         name: 'БФАДД',
@@ -23,6 +35,43 @@ const UserProfile = () => {
         bank: 'ВОЛОГОДСКОЕ ОТДЕЛЕНИЕ N8638 ПАО СБЕРБАНК г. Вологда',
         corrAccount: '30101810900000000644',
         bik: '041909644'
+    };
+
+    useEffect(() => {
+        loadUser();
+    }, []);
+
+    const loadUser = async () => {
+        try {
+            setLoading(true);
+            const response = await usersApi.getCurrentUser();
+            setUser(response.data);
+            setFormData({
+                username: response.data.username || '',
+                email: response.data.email || '',
+                phone: response.data.phone || '',
+                bio: response.data.bio || ''
+            });
+        } catch (err) {
+            console.error('Ошибка загрузки пользователя:', err);
+            setError('Не удалось загрузить профиль');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async () => {
+        try {
+            setSaving(true);
+            const response = await usersApi.updateCurrentUser(formData);
+            setUser(response.data);
+            setEditing(false);
+        } catch (err) {
+            console.error('Ошибка сохранения:', err);
+            alert('Не удалось сохранить профиль');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handlePayment = async () => {
@@ -58,34 +107,42 @@ const UserProfile = () => {
         return `ST00012|Name=${recipientName}|PersonalAcc=${bankAccount}|BankName=${bankDetails.bank}|BIC=${bankDetails.bik}|CorrespAcc=${bankDetails.corrAccount}|Sum=${amount * 100}|Purpose=${purpose}|PayeeINN=${bankDetails.inn}|KPP=${bankDetails.kpp}`;
     };
 
-    const checkPaymentStatus = () => {
-        alert('Проверка статуса платежа...\n\nВ реальной системе здесь будет автоматическая проверка через банковский API.');
-    };
-
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text);
         alert('Скопировано в буфер обмена!');
     };
 
-    const getRoleInfo = () => {
-        switch(demoRole) {
-            case 'user0': return { icon: '👁️', name: 'Пользователь 0', description: 'Просмотр сайта', color: '#6c757d' };
-            case 'user1': return { icon: '🌱', name: 'Пользователь 1', description: 'Новички + Чат 1', color: '#28a745' };
-            case 'user2': return { icon: '⭐', name: 'Пользователь 2', description: 'Продвинутые + Чат 2', color: '#ffc107' };
-            case 'admin-moderator': return { icon: '🛡️', name: 'Админ (модератор)', description: 'Модерация', color: '#0d6efd' };
-            case 'admin-consultant': return { icon: '💼', name: 'Админ (консультации)', description: 'Консультации', color: '#0d6efd' };
-            case 'admin-nutrition': return { icon: '🥗', name: 'Админ (питание)', description: 'Питание', color: '#0d6efd' };
-            case 'admin-sport': return { icon: '⚽', name: 'Админ (спорт)', description: 'Спортивный контент', color: '#0d6efd' };
-            case 'developer': return { icon: '💻', name: 'Разработчик', description: 'Разработка', color: '#6f42c1' };
-            case 'owner': return { icon: '👑', name: 'Владелец', description: 'Полный доступ', color: '#dc3545' };
-            case 'super-admin': return { icon: '🔱', name: 'Главный Админ', description: 'Скачивание оригиналов', color: '#dc3545' };
-            default: return { icon: '👤', name: 'Пользователь', description: '', color: '#6c757d' };
-        }
+    const getRoleInfo = (role) => {
+        const roleMap = {
+            'user_0': { icon: '👁️', name: 'Пользователь 0', color: '#6c757d' },
+            'user_1': { icon: '🌱', name: 'Пользователь 1', color: '#28a745' },
+            'user_2': { icon: '⭐', name: 'Пользователь 2', color: '#ffc107' },
+            'moderator_admin': { icon: '🛡️', name: 'Модератор/Админ', color: '#0d6efd' },
+            'super_admin': { icon: '🔱', name: 'Главный Админ', color: '#dc3545' },
+            'consultant_pitanie': { icon: '🥗', name: 'Консультант Питание', color: '#fd7e14' },
+            'consultant_sport': { icon: '⚽', name: 'Консультант Спорт', color: '#20c997' },
+            'developer': { icon: '💻', name: 'Разработчик', color: '#6f42c1' },
+            'vyacheslav': { icon: '👑', name: 'Вячеслав', color: '#dc3545' }
+        };
+        return roleMap[role?.toLowerCase()] || { icon: '👤', name: role || 'Пользователь', color: '#6c757d' };
     };
 
-    const roleInfo = getRoleInfo();
-    const needsPayment = demoRole === 'user0';
+    const isPaidRole = (role) => {
+        return ['user_1', 'user_2', 'moderator_admin', 'super_admin', 'consultant_pitanie', 'consultant_sport', 'developer', 'vyacheslav'].includes(role?.toLowerCase());
+    };
+
     const selectedPeriodData = periods.find(p => p.months === selectedPeriod) || periods[0];
+
+    if (loading && !user) {
+        return <div className="user-profile"><div className="loading">Загрузка...</div></div>;
+    }
+
+    if (error) {
+        return <div className="user-profile"><div className="error">{error}</div></div>;
+    }
+
+    const roleInfo = getRoleInfo(user?.role);
+    const needsPayment = !isPaidRole(user?.role);
 
     return (
         <div className="user-profile">
@@ -98,7 +155,7 @@ const UserProfile = () => {
                     <span className="role-badge-icon">{roleInfo.icon}</span>
                     <div className="role-badge-info">
                         <div className="role-badge-name">{roleInfo.name}</div>
-                        <div className="role-badge-description">{roleInfo.description}</div>
+                        <div className="role-badge-description">Роль: {user?.role || 'user'}</div>
                     </div>
                 </div>
 
@@ -109,7 +166,101 @@ const UserProfile = () => {
                 )}
             </div>
 
-            {needsPayment && !paymentId && (
+            {!showPayment && (
+                <div className="profile-edit-section">
+                    <div className="section-header">
+                        <h3>📝 Профиль</h3>
+                        {!editing && (
+                            <button className="edit-btn" onClick={() => setEditing(true)}>Редактировать</button>
+                        )}
+                    </div>
+
+                    <div className="profile-fields">
+                        <div className="profile-field">
+                            <label>Никнейм:</label>
+                            {editing ? (
+                                <input
+                                    type="text"
+                                    value={formData.username}
+                                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                />
+                            ) : (
+                                <span>{user?.username || 'Не указан'}</span>
+                            )}
+                        </div>
+
+                        <div className="profile-field">
+                            <label>Email:</label>
+                            {editing ? (
+                                <input
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                />
+                            ) : (
+                                <span>{user?.email || 'Не указан'}</span>
+                            )}
+                        </div>
+
+                        <div className="profile-field">
+                            <label>Телефон:</label>
+                            {editing ? (
+                                <input
+                                    type="tel"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                />
+                            ) : (
+                                <span>{user?.phone || 'Не указан'}</span>
+                            )}
+                        </div>
+
+                        <div className="profile-field bio-field">
+                            <label>О себе:</label>
+                            {editing ? (
+                                <textarea
+                                    value={formData.bio}
+                                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                                    rows={4}
+                                />
+                            ) : (
+                                <span>{user?.bio || 'Ничего не рассказал о себе'}</span>
+                            )}
+                        </div>
+
+                        <div className="profile-field">
+                            <label>Дата регистрации:</label>
+                            <span>{user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : '-'}</span>
+                        </div>
+
+                        <div className="profile-field">
+                            <label>Последняя активность:</label>
+                            <span>{user?.lastActiveAt ? new Date(user.lastActiveAt).toLocaleString('ru-RU') : '-'}</span>
+                        </div>
+                    </div>
+
+                    {editing && (
+                        <div className="edit-actions">
+                            <button className="save-btn" onClick={handleSave} disabled={saving}>
+                                {saving ? 'Сохранение...' : '💾 Сохранить'}
+                            </button>
+                            <button className="cancel-btn" onClick={() => {
+                                setEditing(false);
+                                setFormData({
+                                    username: user?.username || '',
+                                    email: user?.email || '',
+                                    phone: user?.phone || '',
+                                    bio: user?.bio || ''
+                                });
+                            }}>
+                                Отмена
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {needsPayment && !showPayment && !paymentId && (
                 <div className="payment-section">
                     <h3>💳 Оформление подписки</h3>
                     <p className="payment-description">Выберите период подписки</p>
@@ -136,11 +287,7 @@ const UserProfile = () => {
                         ))}
                     </div>
 
-                    <button
-                        className="payment-button"
-                        onClick={handlePayment}
-                        disabled={loading}
-                    >
+                    <button className="payment-button" onClick={handlePayment}>
                         {loading ? '⏳ Генерация QR-кода...' : `💳 Оплатить ${selectedPeriodData.price.toLocaleString('ru-RU')} ₽`}
                     </button>
                 </div>
@@ -163,7 +310,7 @@ const UserProfile = () => {
                             <span className="info-label">ID платежа:</span>
                             <span className="info-value payment-id">
                                 {paymentId}
-                                <button className="copy-btn" onClick={() => copyToClipboard(paymentId)} title="Скопировать">📋</button>
+                                <button className="copy-btn" onClick={() => copyToClipboard(paymentId)} title="Копировать">📋</button>
                             </span>
                         </div>
                     </div>
@@ -195,43 +342,31 @@ const UserProfile = () => {
                         <div className="bank-details-grid">
                             <div className="bank-detail-item">
                                 <span className="detail-label">Получатель:</span>
-                                <span className="detail-value">{bankDetails.name} <button className="copy-btn-small" onClick={() => copyToClipboard(bankDetails.name)}>📋</button></span>
+                                <span className="detail-value">{bankDetails.name}</span>
                             </div>
                             <div className="bank-detail-item">
                                 <span className="detail-label">ИНН:</span>
-                                <span className="detail-value">{bankDetails.inn} <button className="copy-btn-small" onClick={() => copyToClipboard(bankDetails.inn)}>📋</button></span>
+                                <span className="detail-value">{bankDetails.inn}</span>
                             </div>
                             <div className="bank-detail-item">
                                 <span className="detail-label">КПП:</span>
-                                <span className="detail-value">{bankDetails.kpp} <button className="copy-btn-small" onClick={() => copyToClipboard(bankDetails.kpp)}>📋</button></span>
+                                <span className="detail-value">{bankDetails.kpp}</span>
                             </div>
-                            <div className="bank-detail-item">
+                            <div className="bank-detail-item full-width">
                                 <span className="detail-label">Расчетный счет:</span>
-                                <span className="detail-value">{bankDetails.account} <button className="copy-btn-small" onClick={() => copyToClipboard(bankDetails.account)}>📋</button></span>
+                                <span className="detail-value">{bankDetails.account}</span>
                             </div>
                             <div className="bank-detail-item full-width">
                                 <span className="detail-label">Банк:</span>
                                 <span className="detail-value">{bankDetails.bank}</span>
                             </div>
-                            <div className="bank-detail-item">
-                                <span className="detail-label">Корр. счет:</span>
-                                <span className="detail-value">{bankDetails.corrAccount} <button className="copy-btn-small" onClick={() => copyToClipboard(bankDetails.corrAccount)}>📋</button></span>
-                            </div>
-                            <div className="bank-detail-item">
-                                <span className="detail-label">БИК:</span>
-                                <span className="detail-value">{bankDetails.bik} <button className="copy-btn-small" onClick={() => copyToClipboard(bankDetails.bik)}>📋</button></span>
-                            </div>
                         </div>
                     </div>
 
                     <div className="payment-actions">
-                        <button className="check-payment-btn" onClick={checkPaymentStatus}>🔄 Проверить статус платежа</button>
-                        <button className="back-btn" onClick={() => { setPaymentId(null); setQrCodeUrl(null); }}>← Выбрать другой тариф</button>
-                    </div>
-
-                    <div className="payment-help">
-                        <p>💡 После оплаты статус обновится автоматически в течение 1-2 минут</p>
-                        <p>❓ Возникли проблемы? Свяжитесь с поддержкой, указав ID платежа: <strong>{paymentId}</strong></p>
+                        <button className="back-btn" onClick={() => { setPaymentId(null); setQrCodeUrl(null); }}>
+                            ← Выбрать другой тариф
+                        </button>
                     </div>
                 </div>
             )}

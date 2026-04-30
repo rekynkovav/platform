@@ -18,6 +18,10 @@ const MainFeed = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [postToDelete, setPostToDelete] = useState(null);
 
+    // Состояния для редактирования
+    const [editingPost, setEditingPost] = useState(null);
+    const [showEditForm, setShowEditForm] = useState(false);
+
     // Состояния для записи аудио
     const [isRecording, setIsRecording] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState(null);
@@ -46,7 +50,7 @@ const MainFeed = () => {
         const demoRole = localStorage.getItem('demoRole');
         let roles = [];
 
-        if (demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin') {
+        if (demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin') {
             roles = ['admin', 'user'];
         } else if (demoRole === 'user1' || demoRole === 'user2') {
             roles = ['user'];
@@ -329,6 +333,107 @@ const MainFeed = () => {
         setPostToDelete(null);
     };
 
+    // Функция для начала редактирования поста
+    const handleEditPost = (post) => {
+        const demoRole = localStorage.getItem('demoRole');
+        const isAdmin = demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin';
+
+        if (!isAdmin) {
+            alert('Только администратор может редактировать записи');
+            return;
+        }
+
+        setEditingPost(post);
+        setNewPost({
+            type: post.type,
+            title: post.title,
+            content: post.content,
+            url: post.url || ''
+        });
+        setShowEditForm(true);
+    };
+
+    // Функция для сохранения отредактированного поста
+    const handleSaveEditedPost = () => {
+        if (!newPost.title || (!newPost.content && newPost.type === 'text')) {
+            alert('Заполните заголовок и содержание');
+            return;
+        }
+
+        const updatedPosts = posts.map(post =>
+            post.id === editingPost.id
+                ? {
+                    ...post,
+                    type: newPost.type,
+                    title: newPost.title,
+                    content: newPost.content,
+                    url: newPost.url || '',
+                    editedAt: new Date().toISOString()
+                }
+                : post
+        );
+
+        setPosts(updatedPosts);
+        localStorage.setItem('mainFeedPosts', JSON.stringify(updatedPosts));
+
+        setNewPost({ type: 'text', title: '', content: '', url: '' });
+        setShowEditForm(false);
+        setEditingPost(null);
+        setIsRecording(false);
+        setRecordingTime(0);
+    };
+
+    // Функция для отмены редактирования
+    const handleCancelEdit = () => {
+        setShowEditForm(false);
+        setEditingPost(null);
+        setNewPost({ type: 'text', title: '', content: '', url: '' });
+        setIsRecording(false);
+        setRecordingTime(0);
+    };
+
+    // Функция для скачивания материала (только для главного админа)
+    const handleDownloadPost = async (post) => {
+        const demoRole = localStorage.getItem('demoRole');
+        const isSuperAdmin = demoRole === 'super-admin';
+
+        if (!isSuperAdmin) {
+            alert('Только главный админ может скачивать материалы');
+            return;
+        }
+
+        try {
+            if (post.type === 'audio' || post.type === 'video') {
+                // Скачивание медиа файлов
+                const response = await fetch(post.url);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${post.title}.${post.type === 'audio' ? 'mp3' : 'mp4'}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                // Скачивание текстового контента
+                const content = `${post.title}\n\n${post.content}\n\nДата: ${post.date}\nАвтор: ${post.author}`;
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${post.title}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }
+        } catch (error) {
+            console.error('Ошибка при скачивании:', error);
+            alert('Не удалось скачать файл');
+        }
+    };
+
     const handlePlayAudio = (post) => {
         if (activeAudioPostId === post.id && currentTrack?.id === post.id && isPlaying) {
             pauseTrack();
@@ -381,6 +486,7 @@ const MainFeed = () => {
 
     const demoRole = localStorage.getItem('demoRole');
     const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
+    const isSuperAdmin = demoRole === 'super-admin';
 
     return (
         <div className="main-feed">
@@ -431,13 +537,31 @@ const MainFeed = () => {
                             <div className="post-header">
                                 <div className="post-title">{post.title}</div>
                                 {isAdmin && (
-                                    <button
-                                        className="delete-post"
-                                        onClick={() => confirmDeletePost(post)}
-                                        title="Удалить запись"
-                                    >
-                                        🗑️
-                                    </button>
+                                    <div className="post-actions">
+                                        {isSuperAdmin && (
+                                            <button
+                                                className="download-post"
+                                                onClick={() => handleDownloadPost(post)}
+                                                title="Скачать материал"
+                                            >
+                                                ⬇️
+                                            </button>
+                                        )}
+                                        <button
+                                            className="edit-post"
+                                            onClick={() => handleEditPost(post)}
+                                            title="Редактировать запись"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            className="delete-post"
+                                            onClick={() => confirmDeletePost(post)}
+                                            title="Удалить запись"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                             <div className="post-date">{post.date}</div>
@@ -515,14 +639,15 @@ const MainFeed = () => {
 
                 {isAdmin && (
                     <div className="admin-section" ref={addFormRef}>
-                        {!showAddForm && (
+                        {!showAddForm && !showEditForm && (
                             <button className="create-post-btn add-event-style" onClick={handleAddPost}>
                                 + Добавить запись
                             </button>
                         )}
 
-                        {showAddForm && (
+                        {(showAddForm || showEditForm) && (
                             <div className="admin-panel-content">
+                                <h3>{showEditForm ? 'Редактирование записи' : 'Новая запись'}</h3>
                                 <input
                                     type="text"
                                     className="post-title-input"
@@ -582,7 +707,16 @@ const MainFeed = () => {
                                     )}
                                 </div>
 
-                                <button className="publish-btn" onClick={handlePublishPost}>Опубликовать</button>
+                                <div className="form-actions">
+                                    {showEditForm ? (
+                                        <>
+                                            <button className="publish-btn" onClick={handleSaveEditedPost}>Сохранить изменения</button>
+                                            <button className="cancel-btn" onClick={handleCancelEdit}>Отмена</button>
+                                        </>
+                                    ) : (
+                                        <button className="publish-btn" onClick={handlePublishPost}>Опубликовать</button>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>

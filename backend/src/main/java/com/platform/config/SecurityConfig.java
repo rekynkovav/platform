@@ -33,13 +33,16 @@ public class SecurityConfig {
                         .requestMatchers("/api/public/**").permitAll()
 
                         // Защита медиа контента
-                        .requestMatchers("/api/media/stream/**").hasAnyRole("USER", "PREMIUM", "ADVANCED", "CREATOR", "ADMIN", "MODERATOR", "SPORT_ADMIN", "NUTRITION_ADMIN", "CONSULTANT_ADMIN", "VYACHESLAV", "SUPER_ADMIN")
-                        .requestMatchers("/api/media/key/**").hasAnyRole("USER", "PREMIUM", "ADVANCED", "CREATOR", "ADMIN", "MODERATOR", "SPORT_ADMIN", "NUTRITION_ADMIN", "CONSULTANT_ADMIN", "VYACHESLAV", "SUPER_ADMIN")
+                        .requestMatchers("/api/media/stream/**").hasAnyRole("USER_0", "USER_1", "USER_2", "MODERATOR_ADMIN", "SUPER_ADMIN", "CONSULTANT_PITANIE", "CONSULTANT_SPORT", "DEVELOPER", "VYACHESLAV")
+                        .requestMatchers("/api/media/key/**").hasAnyRole("USER_0", "USER_1", "USER_2", "MODERATOR_ADMIN", "SUPER_ADMIN", "CONSULTANT_PITANIE", "CONSULTANT_SPORT", "DEVELOPER", "VYACHESLAV")
                         .requestMatchers("/api/media/download/**").hasRole("SUPER_ADMIN")
-                        .requestMatchers("/api/media/upload/**").hasAnyRole("CREATOR", "ADMIN", "MODERATOR", "SPORT_ADMIN", "NUTRITION_ADMIN", "CONSULTANT_ADMIN", "VYACHESLAV", "SUPER_ADMIN")
+                        .requestMatchers("/api/media/upload/**").hasAnyRole("USER_2", "MODERATOR_ADMIN", "SUPER_ADMIN", "CONSULTANT_PITANIE", "CONSULTANT_SPORT", "DEVELOPER", "VYACHESLAV")
 
                         // Админка
-                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "MODERATOR", "VYACHESLAV", "SUPER_ADMIN")
+                        .requestMatchers("/api/admin/**").hasAnyRole("MODERATOR_ADMIN", "SUPER_ADMIN", "VYACHESLAV")
+
+                        // Пользователи
+                        .requestMatchers("/api/users/**").authenticated()
 
                         // Защищённые эндпоинты
                         .anyRequest().authenticated()
