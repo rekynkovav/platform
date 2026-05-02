@@ -40,7 +40,7 @@ const EventsHub = () => {
 
     // Получаем роль из localStorage
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin';
+    const isAdmin = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
     const currentUser = getUsername();
 
     // Отладка: выводим роль и статус админа

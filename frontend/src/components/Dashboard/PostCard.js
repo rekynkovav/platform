@@ -22,7 +22,7 @@ const PostCard = ({ post, isAdmin, onPostUpdated, onPostDeleted, index }) => {
 
     // Проверка прав на редактирование и удаление
     const demoRole = localStorage.getItem('demoRole');
-    const canEdit = demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin';
+    const canEdit = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
 
     // Отладка
     console.log('[PostCard] demoRole:', demoRole);

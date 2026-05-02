@@ -63,7 +63,7 @@ const ScheduledEvents = () => {
         const demoRole = localStorage.getItem('demoRole');
         let roles = [];
 
-        if (demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin') {
+        if (demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin') {
             roles = ['admin', 'user'];
         } else if (demoRole === 'user') {
             roles = ['user'];
@@ -82,8 +82,8 @@ const ScheduledEvents = () => {
 
     // Проверяем роль из localStorage напрямую
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin';
-    const canEdit = demoRole === 'admin-moderator' || demoRole === 'super-admin';
+    const isAdmin = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
+    const canEdit = demoRole === 'admin_moderator' || demoRole === 'super_admin';
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -195,7 +195,7 @@ const ScheduledEvents = () => {
         if (!eventToDelete) return;
 
         const demoRole = localStorage.getItem('demoRole');
-        const canDelete = demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin';
+        const canDelete = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
         if (!canDelete) {
             alert('Только администратор может удалять события!');
             setShowDeleteConfirm(false);
@@ -384,7 +384,7 @@ const ScheduledEvents = () => {
                                     <span className="event-date">{formatDate(event.date)} {event.time}</span>
                                 </div>
                                 <div className="event-actions">
-                                    {/* Кнопка редактирования - только для admin-moderator и super-admin */}
+                                    {/* Кнопка редактирования - только для admin_moderator и super_admin */}
                                     {canEdit && (
                                         <button
                                             className="edit-event-btn"
@@ -397,7 +397,7 @@ const ScheduledEvents = () => {
                                             ✏️
                                         </button>
                                     )}
-                                    {/* Кнопка удаления - только для admin-moderator и super-admin */}
+                                    {/* Кнопка удаления - только для admin_moderator и super_admin */}
                                     {canEdit && (
                                         <button
                                             className="delete-event-btn"

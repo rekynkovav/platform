@@ -280,7 +280,7 @@ public class SecureMediaService {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
         if (roles == null) return "user";
 
-        if (roles.contains("super-admin")) return "super-admin";
+        if (roles.contains("super_admin")) return "super_admin";
         if (roles.contains("vyacheslav")) return "vyacheslav";
         if (roles.contains("admin")) return "admin";
         if (roles.contains("moderator")) return "moderator";
@@ -296,13 +296,13 @@ public class SecureMediaService {
 
     private boolean isAdmin(String role) {
         return "admin".equals(role) || "moderator".equals(role) ||
-               "super-admin".equals(role) || "vyacheslav".equals(role) ||
+               "super_admin".equals(role) || "vyacheslav".equals(role) ||
                "sport-admin".equals(role) || "nutrition-admin".equals(role) ||
                "consultant-admin".equals(role);
     }
 
     private boolean canDownloadOriginal(String role) {
-        return "super-admin".equals(role);
+        return "super_admin".equals(role);
     }
 
     private boolean hasPremiumAccess(Jwt jwt) {

@@ -31,7 +31,8 @@ public class ChatController {
             @RequestBody MessageDto.SendRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        return ResponseEntity.ok(chatService.sendToGeneralChat(jwt.getSubject(), request.getContent()));
+        return ResponseEntity.ok(chatService.sendToGeneralChat(jwt.getSubject(),
+                request.getContent(), request.getMediaId()));
     }
 
     @GetMapping("/admin-group")
@@ -48,7 +49,8 @@ public class ChatController {
             @RequestBody MessageDto.SendRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        return ResponseEntity.ok(chatService.sendToAdminGroup(jwt.getSubject(), request.getContent()));
+        return ResponseEntity.ok(chatService.sendToAdminGroup(jwt.getSubject(),
+                request.getContent(), request.getMediaId()));
     }
 
     @GetMapping("/private/{userId}")
@@ -67,7 +69,8 @@ public class ChatController {
             @RequestBody MessageDto.SendRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        return ResponseEntity.ok(chatService.sendPrivateMessage(jwt.getSubject(), userId, request.getContent()));
+        return ResponseEntity.ok(chatService.sendPrivateMessage(jwt.getSubject(),
+                userId, request.getContent(), request.getMediaId()));
     }
 
     @GetMapping("/unread")

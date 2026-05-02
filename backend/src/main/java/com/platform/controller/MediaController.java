@@ -25,7 +25,7 @@ public class MediaController {
     private final SecureMediaService secureMediaService;
 
     @PostMapping("/upload")
-    @PreAuthorize("hasAnyRole('CREATOR', 'ADMIN', 'MODERATOR')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<MediaFile> uploadMedia(
             @RequestParam("file") MultipartFile file,
             @RequestParam("type") String type,

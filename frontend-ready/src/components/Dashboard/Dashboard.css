@@ -77,3 +77,66 @@
         font-size: 24px;
     }
 }
+
+/* Event Card (mock) */
+.event-card {
+    padding: 20px;
+}
+
+.event-date {
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.event-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.event-location, .event-description {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+/* Admin Post Creator (mock) */
+.admin-post-creator {
+    padding: 20px;
+}
+
+.admin-post-creator h3 {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+/* Post Card (mock) */
+.post-card {
+    padding: 16px;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+}
+
+.post-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.post-content {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.post-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}

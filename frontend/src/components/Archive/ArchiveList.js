@@ -24,8 +24,8 @@ const ArchiveList = () => {
     const [editStreamType, setEditStreamType] = useState('audio');
 
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin';
-    const canEdit = demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin';
+    const isAdmin = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
+    const canEdit = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
 
     // Отладка
     console.log('[ArchiveList] demoRole:', demoRole);

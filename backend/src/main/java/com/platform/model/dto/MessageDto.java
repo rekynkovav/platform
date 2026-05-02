@@ -25,6 +25,12 @@ public class MessageDto {
     private Boolean isRead;
     private LocalDateTime createdAt;
 
+    // Медиа поля
+    private String mediaId;
+    private String mediaType;
+    private String fileName;
+    private String mediaUrl;
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -33,5 +39,6 @@ public class MessageDto {
         private String content;
         private String recipientId;
         private String chatType;
+        private String mediaId;
     }
 }

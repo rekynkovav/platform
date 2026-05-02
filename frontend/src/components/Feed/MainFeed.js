@@ -50,7 +50,7 @@ const MainFeed = () => {
         const demoRole = localStorage.getItem('demoRole');
         let roles = [];
 
-        if (demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin') {
+        if (demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin') {
             roles = ['admin', 'user'];
         } else if (demoRole === 'user1' || demoRole === 'user2') {
             roles = ['user'];
@@ -179,7 +179,7 @@ const MainFeed = () => {
 
     const handleAddPost = () => {
         const demoRole = localStorage.getItem('demoRole');
-        const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
+        const isAdmin = demoRole === 'admin_moderator' || demoRole === 'admin_consultant' || demoRole === 'developer' || demoRole === 'super_admin';
 
         if (!isAdmin) {
             alert('Только администратор может добавлять записи');
@@ -305,7 +305,7 @@ const MainFeed = () => {
         if (!postToDelete) return;
 
         const demoRole = localStorage.getItem('demoRole');
-        const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
+        const isAdmin = demoRole === 'admin_moderator' || demoRole === 'admin_consultant' || demoRole === 'developer' || demoRole === 'super_admin';
 
         if (!isAdmin) {
             alert('Только администратор может удалять записи!');
@@ -336,7 +336,7 @@ const MainFeed = () => {
     // Функция для начала редактирования поста
     const handleEditPost = (post) => {
         const demoRole = localStorage.getItem('demoRole');
-        const isAdmin = demoRole === 'admin-moderator' || demoRole === 'developer' || demoRole === 'super-admin';
+        const isAdmin = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
 
         if (!isAdmin) {
             alert('Только администратор может редактировать записи');
@@ -395,7 +395,7 @@ const MainFeed = () => {
     // Функция для скачивания материала (только для главного админа)
     const handleDownloadPost = async (post) => {
         const demoRole = localStorage.getItem('demoRole');
-        const isSuperAdmin = demoRole === 'super-admin';
+        const isSuperAdmin = demoRole === 'super_admin';
 
         if (!isSuperAdmin) {
             alert('Только главный админ может скачивать материалы');
@@ -485,8 +485,8 @@ const MainFeed = () => {
     };
 
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
-    const isSuperAdmin = demoRole === 'super-admin';
+    const isAdmin = demoRole === 'admin_moderator' || demoRole === 'admin_consultant' || demoRole === 'developer' || demoRole === 'super_admin';
+    const isSuperAdmin = demoRole === 'super_admin';
 
     return (
         <div className="main-feed">

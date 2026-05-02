@@ -14,6 +14,7 @@ import NotificationBell from './components/Notification/NotificationBell';
 import RoleSwitcher from './components/Admin/RoleSwitcher';
 import UserProfile from './components/UserProfile/UserProfile';
 import { useTheme } from './hooks/useTheme';
+import { AudioPlayerProvider } from './context/AudioPlayerContext';
 import './App.css';
 import ScheduledEvents from "./components/Scheduled/ScheduledEvents";
 
@@ -47,7 +48,7 @@ function App() {
 
                 // Для пользователя 0 устанавливаем вкладку help по умолчанию
                 const demoRole = localStorage.getItem('demoRole');
-                if (demoRole === 'user0') {
+                if (demoRole === 'user_0') {
                     setActiveTab('help');
                 }
             })
@@ -91,7 +92,7 @@ function App() {
 
     const handleLogoClick = (e) => {
         const demoRole = localStorage.getItem('demoRole');
-        if (demoRole === 'user0') {
+        if (demoRole === 'user_0') {
             const rect = e.currentTarget.getBoundingClientRect();
             showAccessDeniedMessage(rect.left + rect.width / 2, rect.bottom + 10);
             return;
@@ -101,7 +102,7 @@ function App() {
 
     const handleEventClick = () => {
         const demoRole = localStorage.getItem('demoRole');
-        if (demoRole === 'user0') {
+        if (demoRole === 'user_0') {
             showAccessDeniedMessage(window.innerWidth / 2, window.innerHeight / 2);
             return;
         }
@@ -111,8 +112,8 @@ function App() {
     const handleTabChange = (tabId, event) => {
         const demoRole = localStorage.getItem('demoRole');
 
-        // Для пользователя 0 доступна только вкладка help
-        if (demoRole === 'user0' && tabId !== 'help') {
+        // Для пользователя 0 доступны только help и profile
+        if (demoRole === 'user_0' && tabId !== 'help' && tabId !== 'profile') {
             if (event) {
                 const rect = event.currentTarget.getBoundingClientRect();
                 showAccessDeniedMessage(rect.left + rect.width / 2, rect.bottom + 10);
@@ -166,10 +167,22 @@ function App() {
                 return <ScheduledEvents />;
             case 'archive':
                 return <ArchiveList />;
-            case 'chat':
+            case 'chat': {
+                const demoRole = localStorage.getItem('demoRole');
+                // user_0 заблокирован в handleTabChange
+                if (demoRole === 'user_0') {
+                    return <div className="access-denied-message">Доступ запрещён</div>;
+                }
+                // Все видят GeneralChat (с переключателем внутри)
                 return <GeneralChat />;
-            case 'chat-nutrition':
+            }
+            case 'chat-nutrition': {
+                const demoRole = localStorage.getItem('demoRole');
+                if (demoRole === 'user_0') {
+                    return <div className="access-denied-message">Доступ запрещён</div>;
+                }
                 return <NutritionChat />;
+            }
             case 'help':
                 return <Questions />;
             case 'profile':
@@ -180,6 +193,7 @@ function App() {
     };
 
     return (
+        <AudioPlayerProvider>
         <div className="app">
             <header className="header">
                 <div className="header-spacer"></div>
@@ -222,6 +236,7 @@ function App() {
             {/* Глобальное уведомление о событии для всех пользователей */}
             <GlobalEventNotification onEventClick={handleEventClick} />
         </div>
+        </AudioPlayerProvider>
     );
 }
 

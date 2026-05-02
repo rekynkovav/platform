@@ -5,8 +5,8 @@ const QuestionNotification = () => {
     const [notifications, setNotifications] = useState([]);
     const demoRole = localStorage.getItem('demoRole');
 
-    const isGeneralAdmin = demoRole === 'admin-moderator' || demoRole === 'developer';
-    const isNutritionConsultant = demoRole === 'consultant-nutrition';
+    const isGeneralAdmin = demoRole === 'admin_moderator' || demoRole === 'developer';
+    const isNutritionConsultant = demoRole === 'consultant_nutrition';
     const isVyacheslav = demoRole === 'vyacheslav';
     const isUser = demoRole === 'user0' || demoRole === 'user1' || demoRole === 'user2';
 

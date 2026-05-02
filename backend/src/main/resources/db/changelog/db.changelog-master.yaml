@@ -35,3 +35,6 @@ databaseChangeLog:
   - include:
       file: v3/01-create-media-and-payments-tables.yaml
       relativeToChangelogFile: true
+  - include:
+      file: v4/01-add-media-to-messages.yaml
+      relativeToChangelogFile: true

@@ -39,6 +39,15 @@ public class Message {
     @Column(name = "is_read")
     private Boolean isRead = false;
 
+    @Column(name = "media_id")
+    private String mediaId;
+
+    @Column(name = "media_type")
+    private String mediaType;
+
+    @Column(name = "file_name")
+    private String fileName;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

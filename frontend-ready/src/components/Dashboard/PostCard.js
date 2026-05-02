@@ -1,7 +1,7 @@
 // components/Dashboard/PostCard.js
 import React, { useState } from 'react';
 import Comments from './Comments';
-import { reactionsApi } from '../../services/api';
+import { reactionsApi, postsApi } from '../../services/api';
 import './PostCard.css';
 
 const PostCard = ({ post, isAdmin, onPostUpdated, onPostDeleted, index }) => {

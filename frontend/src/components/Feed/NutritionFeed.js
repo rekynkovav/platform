@@ -5,6 +5,145 @@ import ContentModal from '../Common/ContentModal';
 import './MainFeed.css';
 import './NutritionFeed.css';
 
+// Генератор тестовых постов для меню питания
+const generateTestPosts = (menuId, count) => {
+    const posts = [];
+    const titles = {
+        nutrition: [
+            'Белковый завтрак', 'Углеводное окно', 'Жиры в рационе', 'Вода и пищеварение', 'Витамин D',
+            'Железо и энергия', 'Клетчатка', 'Омега-3', 'Антиоксиданты', 'Микроэлементы',
+            'Кислотно-щелочной баланс', 'Гликемический индекс', 'Инсулиновый отклик', 'Метаболизм', 'Детокс',
+            'Пищевые добавки', 'Завтрак чемпионов', 'Правильный ужин', 'Перекусы', 'Режим питания',
+            'Размер порций', 'Калорийность', 'Макросы', 'Сбалансированность', 'Сезонные продукты',
+            'Органические продукты', 'ГМО', 'Пищевая ценность', 'Энергетический баланс', 'Питание и сон'
+        ],
+        recipes: [
+            'Салат Цезарь', 'Окрошка', 'Борщ', 'Пельмени', 'Рагу',
+            'Запеканка', 'Суп-пюре', 'Стейк', 'Ризотто', 'Паста',
+            'Греческий салат', 'Винегрет', 'Щи', 'Уха', 'Котлеты',
+            'Тефтели', 'Голубцы', 'Ленивые вареники', 'Сырники', 'Омлет',
+            'Яичница', 'Блины', 'Оладьи', 'Вареники', 'Пирог',
+            'Шарлотка', 'Торт', 'Пирожные', 'Мороженое', 'Компот'
+        ],
+        'living-kitchen': [
+            'Сыроедение', 'Веганство', 'Кето-диета', 'Палео', 'Интервальное голодание',
+            'Монодиеты', 'Раздельное питание', 'Дробное питание', 'Смузи', 'Соки',
+            'Фреши', 'Зеленые коктейли', 'Проростки', 'Ферментация', 'Квашение',
+            'Маринование', 'Засолка', 'Сушка', 'Замораживание', 'Консервирование',
+            'Термообработка', 'Пароварка', 'Мультиварка', 'Аэрогриль', 'Тандыр',
+            'Мангал', 'Барбекю', 'Традиционная кухня', 'Авторские блюда', 'Фьюжн'
+        ]
+    };
+
+    const descriptions = {
+        nutrition: [
+            'Важный элемент здорового рациона. Рекомендуется употреблять ежедневно для поддержания энергии.',
+            'Помогает восстановить силы после физических нагрузок. Оптимальное время приёма - 30 минут после тренировки.',
+            'Незаменимые жирные кислоты для работы мозга и сердечно-сосудистой системы.',
+            'Основа жизни. Рекомендуется пить не менее 2 литров в день.',
+            'Солнечный витамин. Особенно важен в зимний период для жителей северных широт.',
+            'Отвечает за транспорт кислорода. Часто встречается дефицит у вегетарианцев.',
+            'Пищевые волокна для здорового пищеварения и очищения организма.',
+            'Полиненасыщенные жирные кислоты. Содержатся в жирной рыбе и льняном масле.',
+            'Защищают клетки от окисления. Больше всего в ягодах и тёмном шоколаде.',
+            'Цинк, магний, калий - важные микроэлементы для работы нервной системы.',
+            'Баланс pH в организме. Нарушение может приводить к различным заболеваниям.',
+            'Показатель скорости повышения сахара в крови после приёма пищи.',
+            'Важен для контроля аппетита и профилактики диабета 2 типа.',
+            'Ускорение обмена веществ. С возрастом замедляется, но можно поддерживать.',
+            'Естественное очищение организма от токсинов и шлаков.',
+            'Биологически активные добавки. Помогают восполнить дефицит нутриентов.',
+            'Зарядит энергией на весь день. Идеально для активных людей.',
+            'Лёгкий ужин способствует качественному сну и восстановлению.',
+            'Полезные перекусы между основными приёмами пищи.',
+            'Регулярность приёмов пищи влияет на метаболизм и самочувствие.',
+            'Контроль порций помогает избежать переедания и лишнего веса.',
+            'Подсчёт калорий - основа контроля питания.',
+            'Белки, жиры, углеводы - три кита сбалансированного рациона.',
+            'Баланс нутриентов обеспечивает нормальное функционирование организма.',
+            'Сезонные продукты содержат максимум полезных веществ.',
+            'Выращенные без химии продукты безопаснее и вкуснее.',
+            'Генетически модифицированные организмы - за и против.',
+            'Белки, жиры, углеводы, витамины - всё, что нужно знать о составе.',
+            'Баланс между потреблением и расходом энергии.',
+            'Правильное питание улучшает качество сна и общее самочувствие.'
+        ],
+        recipes: [
+            'Классический салат с курицей, сыром пармезан и соусом цезарь.',
+            'Освежающий холодный суп на кефире с овощами и зеленью.',
+            'Традиционный украин��кий суп со свеклой и сметаной.',
+            'Аппетитные пельмени с мясом - любимое блюдо многих.',
+            'Тушёные овощи с мясом в духовке - полезно и вкусно.',
+            'Запеканка из творога или картофеля - простое семейное блюдо.',
+            'Нежный крем-суп из овощей или грибов.',
+            'Сочный стейк из говядины или рыбы на гриле.',
+            'Итальянское блюдо из риса с овощами и сыром.',
+            'Паста с различными соусами - быстро и сытно.',
+            'Свежий салат с огурцами, помидорами, оливками и фетой.',
+            'Свёкла с морковью и картофелем под маслом.',
+            'Щи из свежей капусты - традиционное русское блюдо.',
+            'Рыбный суп из речной или морской рыбы.',
+            'Котлеты из фарша с хлебом и луком - классика.',
+            'Шарики из фарша с рисом в томатном соусе.',
+            'Ленивые голубцы с капустой и мясом.',
+            'Творожные вареники - вкусный десерт или завтрак.',
+            'Творожные оладьи на завтрак - любят и взрослые, и дети.',
+            'Омлет с зеленью и овощами - идеальный завтрак.',
+            'Яичница с беконом, помидорами или грибами.',
+            'Тонкие блины на молоке или кефире.',
+            'Пышные оладьи на дрожжах или кефире.',
+            'Вареники с вишней или картошкой - традиционное блюдо.',
+            'Яблочный пирог из дрожжевого или песочного теста.',
+            'Пирог с яблоками и корицей - ароматный десерт.',
+            'Торт на день рождения - бисквит с кремом.',
+            'Пирожные эклеры, макаруны, картошка.',
+            'Домашнее мороженое из сливок и мороженого.',
+            'Напиток из сухофруктов - полезный и вкусный.'
+        ],
+        'living-kitchen': [
+            'Питание без термической обработки сохраняет все ферменты и витамины.',
+            'Отказ от продуктов животного происхождения - тренд современности.',
+            'Диета с высоким содержанием жиров и низким содержанием углеводов.',
+            'Питание как у древних людей - мясо, овощи, фрукты.',
+            'Чередование периодов еды и голода - новый подход к питанию.',
+            'Монодиеты на одном продукте - быстрый результат, но не для всех.',
+            'Раздельное употребление белков и углеводов для лучшего пищеварения.',
+            'Частые приёмы пищи небольшими порциями.',
+            'Напитки из фруктов и овощей - коктейли здоровья.',
+            'Свежевыжатые соки - концентрированная польза.',
+            'Фреши из зелени и овощей - детокс-напитки.',
+            'Зелёные коктейли с шпинатом, сельдереем и фруктами.',
+            'Проростки семян - концентрированная энергия жизни.',
+            'Квашеная капуста, кимчи - ферментированные продукты.',
+            'Квашение - древний способ консервации и обогащения витаминами.',
+            'Маринованные овощи - вкусно и полезно.',
+            'Засолка рыбы и мяса - традиционный метод консервации.',
+            'Сушка овощей, фруктов, грибов на зиму.',
+            'Быстрая заморозка сохраняет максимум полезных веществ.',
+            'Консервирование в банках - запасы на зиму.',
+            'Минимальная обработка сохраняет питательную ценность.',
+            'Приготовление на пару - здоровый способ термообработки.',
+            'Умный помощник на кухне - готовит без масла.',
+            'Готовим без жира на горячем воздухе.',
+            'Традиционная восточная печь для выпечки хлеба и мяса.',
+            'Приготовление мяса и овощей на углях.',
+            'Американский метод приготовления на открытом огне.',
+            'Народные рецепты разных стран мира.',
+            'Авторские рецепты шеф-поваров.',
+            'Смешение кухонь разных народов - кулинарное искусство.'
+        ]
+    };
+
+    for (let i = 0; i < count; i++) {
+        posts.push({
+            id: Date.now() + i,
+            title: titles[menuId][i] || `Пункт ${i + 1}`,
+            description: descriptions[menuId][i] || 'Описание пункта меню'
+        });
+    }
+    return posts;
+};
+
 const NutritionFeed = () => {
     const [posts, setPosts] = useState([]);
     const [newPost, setNewPost] = useState({ type: 'text', title: '', content: '', url: '' });
@@ -22,6 +161,7 @@ const NutritionFeed = () => {
 
     // Состояния для редактирования
     const [editingPost, setEditingPost] = useState(null);
+    const [editingMenuItem, setEditingMenuItem] = useState(null);
 
     // Состояние для ContentModal
     const [showContentModal, setShowContentModal] = useState(false);
@@ -59,7 +199,7 @@ const NutritionFeed = () => {
         const demoRole = localStorage.getItem('demoRole');
         let roles = [];
 
-        if (demoRole === 'admin-moderator' || demoRole === 'consultant-nutrition' || demoRole === 'developer' || demoRole === 'super-admin') {
+        if (demoRole === 'admin_moderator' || demoRole === 'consultant_nutrition' || demoRole === 'developer' || demoRole === 'super_admin') {
             roles = ['admin', 'user'];
         } else if (demoRole === 'user1' || demoRole === 'user2') {
             roles = ['user'];
@@ -153,7 +293,7 @@ const NutritionFeed = () => {
 
     const handleAddPost = () => {
         const demoRole = localStorage.getItem('demoRole');
-        const isNutritionConsultant = demoRole === 'consultant-nutrition';
+        const isNutritionConsultant = demoRole === 'consultant_nutrition';
 
         if (!isNutritionConsultant) {
             alert('Только консультант питания может добавлять записи');
@@ -174,7 +314,7 @@ const NutritionFeed = () => {
         if (!postToDelete) return;
 
         const demoRole = localStorage.getItem('demoRole');
-        const isNutritionConsultant = demoRole === 'consultant-nutrition';
+        const isNutritionConsultant = demoRole === 'consultant_nutrition';
 
         if (!isNutritionConsultant) {
             alert('Только консультант питания может удалять записи');
@@ -205,7 +345,7 @@ const NutritionFeed = () => {
     // Функция для начала редактирования поста
     const handleEditPost = (post) => {
         const demoRole = localStorage.getItem('demoRole');
-        const isNutritionConsultant = demoRole === 'consultant-nutrition';
+        const isNutritionConsultant = demoRole === 'consultant_nutrition';
 
         if (!isNutritionConsultant) {
             alert('Только консультант питания может редактировать записи');
@@ -261,10 +401,10 @@ const NutritionFeed = () => {
         }, 100);
     };
 
-    // Функция для скачивания материала (только для super-admin)
+    // Функция для скачивания материала (только для super_admin)
     const handleDownloadPost = async (post) => {
         const demoRole = localStorage.getItem('demoRole');
-        const isSuperAdmin = demoRole === 'super-admin';
+        const isSuperAdmin = demoRole === 'super_admin';
 
         if (!isSuperAdmin) {
             alert('Только главный админ может скачивать материалы');
@@ -352,13 +492,34 @@ const NutritionFeed = () => {
     };
 
     const demoRole = localStorage.getItem('demoRole');
-    const isNutritionConsultant = demoRole === 'consultant-nutrition';
+    const isNutritionConsultant = demoRole === 'consultant_nutrition';
 
     // Загрузка данных меню
     useEffect(() => {
         const savedData = localStorage.getItem('dashboardMenuData');
         if (savedData) {
-            setMenuData(JSON.parse(savedData));
+            const parsed = JSON.parse(savedData);
+            // Если данных мало - добавляем тестовые
+            if (!parsed.nutrition || parsed.nutrition.length < 30) {
+                const initialData = {
+                    nutrition: generateTestPosts('nutrition', 30),
+                    recipes: generateTestPosts('recipes', 30),
+                    'living-kitchen': generateTestPosts('living-kitchen', 30)
+                };
+                setMenuData(initialData);
+                localStorage.setItem('dashboardMenuData', JSON.stringify(initialData));
+            } else {
+                setMenuData(parsed);
+            }
+        } else {
+            // Первая загрузка - создаём тестовые данные
+            const initialData = {
+                nutrition: generateTestPosts('nutrition', 30),
+                recipes: generateTestPosts('recipes', 30),
+                'living-kitchen': generateTestPosts('living-kitchen', 30)
+            };
+            setMenuData(initialData);
+            localStorage.setItem('dashboardMenuData', JSON.stringify(initialData));
         }
     }, []);
 
@@ -383,9 +544,23 @@ const NutritionFeed = () => {
             setHideTimeout(null);
         }
         const rect = event.currentTarget.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+
+        // Вычисляем позицию с учетом ширины меню (1200px)
+        let leftPos = rect.left + window.scrollX - 320;
+
+        // Если меню выходит за правый край - выравниваем по правому краю
+        if (leftPos + 1200 > windowWidth - 20) {
+            leftPos = windowWidth - 1200 - 20;
+        }
+        // Если меню выходит за левый край - выравниваем по левому краю
+        if (leftPos < 20) {
+            leftPos = 20;
+        }
+
         setMenuPosition({
             top: rect.top + window.scrollY,
-            left: rect.left + window.scrollX - 320
+            left: leftPos
         });
         setHoveredMenu(menuId);
         setIsOverCard(true);
@@ -428,24 +603,38 @@ const NutritionFeed = () => {
     }, [hideTimeout]);
 
     const handleSaveContent = useCallback((data) => {
-        const newItem = {
-            id: Date.now(),
-            title: data.title,
-            description: data.description,
-            mediaUrl: data.mediaUrl,
-            mediaType: data.mediaType
-        };
-
         const updatedData = { ...menuData };
-        if (!updatedData[selectedMenuId]) {
-            updatedData[selectedMenuId] = [];
+
+        if (editingMenuItem) {
+            // Редактирование существующего элемента меню
+            const menuId = editingMenuItem.type || selectedMenuId;
+            if (updatedData[menuId]) {
+                updatedData[menuId] = updatedData[menuId].map(item =>
+                    item.id === editingMenuItem.id
+                        ? { ...item, title: data.title, description: data.description, mediaUrl: data.mediaUrl, mediaType: data.mediaType }
+                        : item
+                );
+            }
+            setEditingMenuItem(null);
+        } else {
+            // Добавление нового элемента
+            if (!updatedData[selectedMenuId]) {
+                updatedData[selectedMenuId] = [];
+            }
+            updatedData[selectedMenuId].push({
+                id: Date.now(),
+                title: data.title,
+                description: data.description,
+                mediaUrl: data.mediaUrl,
+                mediaType: data.mediaType
+            });
         }
-        updatedData[selectedMenuId].push(newItem);
+
         saveMenuData(updatedData);
 
         setShowAddModal(false);
         setSelectedMenuId(null);
-    }, [menuData, selectedMenuId, saveMenuData]);
+    }, [menuData, selectedMenuId, saveMenuData, editingMenuItem]);
 
     const handleDeleteItem = useCallback((menuId, itemId, itemTitle) => {
         setItemToDelete({ menuId, itemId, itemTitle });
@@ -545,13 +734,26 @@ const NutritionFeed = () => {
                                             <div className="menu-item-description">{item.description}</div>
                                         </div>
                                         {isNutritionConsultant && (
-                                            <button
-                                                className="delete-item-btn"
-                                                onClick={() => handleDeleteItem(hoveredMenu, item.id, item.title)}
-                                                title="Удалить"
-                                            >
-                                                ✕
-                                            </button>
+                                                <div className="menu-item-actions">
+                                                <button
+                                                    className="edit-item-btn"
+                                                    onClick={() => {
+                                                        setEditingMenuItem({ ...item, type: hoveredMenu });
+                                                        setShowAddModal(true);
+                                                        setHoveredMenu(null);
+                                                    }}
+                                                    title="Редактировать"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    className="delete-item-btn"
+                                                    onClick={() => handleDeleteItem(hoveredMenu, item.id, item.title)}
+                                                    title="Удалить"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -613,7 +815,7 @@ const NutritionFeed = () => {
                                 <div className="post-title">{post.title}</div>
                                 {isNutritionConsultant && (
                                     <div className="post-actions">
-                                        {demoRole === 'super-admin' && (
+                                        {demoRole === 'super_admin' && (
                                             <button
                                                 className="download-post"
                                                 onClick={() => handleDownloadPost(post)}
@@ -745,8 +947,16 @@ const NutritionFeed = () => {
                 onClose={() => {
                     setShowAddModal(false);
                     setSelectedMenuId(null);
+                    setEditingMenuItem(null);
                 }}
                 onSave={handleSaveContent}
+                initialData={editingMenuItem ? {
+                    title: editingMenuItem.title,
+                    description: editingMenuItem.description,
+                    mediaUrl: editingMenuItem.mediaUrl,
+                    mediaType: editingMenuItem.mediaType
+                } : null}
+                isEditing={!!editingMenuItem}
             />
             </div>
         </div>

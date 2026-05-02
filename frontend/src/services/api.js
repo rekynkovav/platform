@@ -78,24 +78,78 @@ export const chatApi = {
         const params = before ? { limit, before } : { limit };
         return api.get('/api/chat/general', { params });
     },
-    sendMessage: (content) => api.post('/api/chat/general', { content }),
+    sendMessage: (content, mediaId = null) => {
+        const payload = { content };
+        if (mediaId) payload.mediaId = mediaId;
+        return api.post('/api/chat/general', payload);
+    },
     getGeneralMessages: (limit = 50, before = null) => {
         const params = before ? { limit, before } : { limit };
         return api.get('/api/chat/general', { params });
     },
-    sendToGeneralChat: (content) => api.post('/api/chat/general', { content }),
+    sendToGeneralChat: (content, mediaId = null) => {
+        const payload = { content };
+        if (mediaId) payload.mediaId = mediaId;
+        return api.post('/api/chat/general', payload);
+    },
     getAdminGroupMessages: (limit = 50, before = null) => {
         const params = before ? { limit, before } : { limit };
         return api.get('/api/chat/admin-group', { params });
     },
-    sendToAdminGroup: (content) => api.post('/api/chat/admin-group', { content }),
+    sendToAdminGroup: (content, mediaId = null) => {
+        const payload = { content };
+        if (mediaId) payload.mediaId = mediaId;
+        return api.post('/api/chat/admin-group', payload);
+    },
     getPrivateMessages: (userId, limit = 50, before = null) => {
         const params = before ? { limit, before } : { limit };
         return api.get(`/api/chat/private/${userId}`, { params });
     },
-    sendPrivateMessage: (userId, content) => api.post(`/api/chat/private/${userId}`, { content }),
+    sendPrivateMessage: (userId, content, mediaId = null) => {
+        const payload = { content };
+        if (mediaId) payload.mediaId = mediaId;
+        return api.post(`/api/chat/private/${userId}`, payload);
+    },
     getUnreadCount: () => api.get('/api/chat/unread'),
     markAsRead: (messageId) => api.put(`/api/chat/messages/${messageId}/read`)
+};
+
+// API для медиа
+export const mediaApi = {
+    // Загрузка файла
+    upload: (file, type) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', type);
+        return api.post('/api/media/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+
+    // Получение потокового URL (presigned)
+    getStreamUrl: (fileId) => api.get(`/api/media/stream/${fileId}`),
+
+    // Получение ключа шифрования (для расшифровки на клиенте)
+    getEncryptionKey: (fileId) => api.get(`/api/media/key/${fileId}`, {
+        responseType: 'arraybuffer'
+    }),
+
+    // Информация о файле
+    getInfo: (fileId) => api.get(`/api/media/${fileId}`),
+
+    // Скачивание
+    download: (fileId) => api.get(`/api/media/download/${fileId}`, {
+        responseType: 'arraybuffer'
+    }),
+
+    // HLS плейлист для видео
+    getHLSPlaylist: (fileId) => api.get(`/api/media/hls/${fileId}/playlist.m3u8`),
+
+    // Список моих файлов
+    getMyFiles: () => api.get('/api/media/my-files'),
+
+    // Удаление
+    delete: (fileId) => api.delete(`/api/media/${fileId}`)
 };
 
 // API для архива

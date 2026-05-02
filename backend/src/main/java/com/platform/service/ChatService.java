@@ -1,8 +1,10 @@
 package com.platform.service;
 
 import com.platform.exception.ResourceNotFoundException;
+import com.platform.model.MediaFile;
 import com.platform.model.Message;
 import com.platform.model.dto.MessageDto;
+import com.platform.repository.MediaFileRepository;
 import com.platform.repository.MessageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -24,6 +27,7 @@ public class ChatService {
 
     private final MessageRepository messageRepository;
     private final UserService userService;
+    private final MediaFileRepository mediaFileRepository;
 
     public List<MessageDto> getGeneralMessages(int limit, String before) {
         Pageable pageable = PageRequest.of(0, limit);
@@ -74,8 +78,11 @@ public class ChatService {
     }
 
     @Transactional
-    public MessageDto sendToGeneralChat(String userId, String content) {
+    public MessageDto sendToGeneralChat(String userId, String content, String mediaId) {
         String userName = userService.getUserName(userId);
+
+        // Получаем медиа данные заранее
+        Optional<MediaFile> mediaOpt = getMediaFile(mediaId);
 
         Message message = Message.builder()
                 .id(UUID.randomUUID().toString())
@@ -85,17 +92,27 @@ public class ChatService {
                 .chatType("general")
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
+                .mediaId(mediaOpt.map(m -> mediaId).orElse(null))
+                .mediaType(mediaOpt.map(MediaFile::getFileType).orElse(null))
+                .fileName(mediaOpt.map(MediaFile::getOriginalFilename).orElse(null))
                 .build();
 
         message = messageRepository.save(message);
-        log.info("Message sent to general chat: {} by {}", message.getId(), userId);
+        log.info("Message sent to general chat: {} by {}, mediaId: {}", message.getId(), userId, mediaId);
 
         return toDto(message);
     }
 
+    // Совместимость со старым API
+    public MessageDto sendToGeneralChat(String userId, String content) {
+        return sendToGeneralChat(userId, content, null);
+    }
+
     @Transactional
-    public MessageDto sendToAdminGroup(String userId, String content) {
+    public MessageDto sendToAdminGroup(String userId, String content, String mediaId) {
         String userName = userService.getUserName(userId);
+
+        Optional<MediaFile> mediaOpt = getMediaFile(mediaId);
 
         Message message = Message.builder()
                 .id(UUID.randomUUID().toString())
@@ -105,18 +122,28 @@ public class ChatService {
                 .chatType("admin_group")
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
+                .mediaId(mediaOpt.map(m -> mediaId).orElse(null))
+                .mediaType(mediaOpt.map(MediaFile::getFileType).orElse(null))
+                .fileName(mediaOpt.map(MediaFile::getOriginalFilename).orElse(null))
                 .build();
 
         message = messageRepository.save(message);
-        log.info("Message sent to admin group: {} by {}", message.getId(), userId);
+        log.info("Message sent to admin group: {} by {}, mediaId: {}", message.getId(), userId, mediaId);
 
         return toDto(message);
     }
 
+    // Совместимость со старым API
+    public MessageDto sendToAdminGroup(String userId, String content) {
+        return sendToAdminGroup(userId, content, null);
+    }
+
     @Transactional
-    public MessageDto sendPrivateMessage(String fromUserId, String toUserId, String content) {
+    public MessageDto sendPrivateMessage(String fromUserId, String toUserId, String content, String mediaId) {
         String fromUserName = userService.getUserName(fromUserId);
         String toUserName = userService.getUserName(toUserId);
+
+        Optional<MediaFile> mediaOpt = getMediaFile(mediaId);
 
         Message message = Message.builder()
                 .id(UUID.randomUUID().toString())
@@ -127,12 +154,27 @@ public class ChatService {
                 .chatType("private")
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
+                .mediaId(mediaOpt.map(m -> mediaId).orElse(null))
+                .mediaType(mediaOpt.map(MediaFile::getFileType).orElse(null))
+                .fileName(mediaOpt.map(MediaFile::getOriginalFilename).orElse(null))
                 .build();
 
         message = messageRepository.save(message);
-        log.info("Private message sent: {} -> {}", fromUserId, toUserId);
+        log.info("Private message sent: {} -> {}, mediaId: {}", fromUserId, toUserId, mediaId);
 
         return toDto(message);
+    }
+
+    // Совместимость со старым API
+    public MessageDto sendPrivateMessage(String fromUserId, String toUserId, String content) {
+        return sendPrivateMessage(fromUserId, toUserId, content, null);
+    }
+
+    private Optional<MediaFile> getMediaFile(String mediaId) {
+        if (mediaId == null || mediaId.isEmpty()) {
+            return Optional.empty();
+        }
+        return mediaFileRepository.findById(mediaId);
     }
 
     @Transactional
@@ -161,6 +203,9 @@ public class ChatService {
                 .recipientId(message.getRecipientId())
                 .isRead(message.getIsRead())
                 .createdAt(message.getCreatedAt())
+                .mediaId(message.getMediaId())
+                .mediaType(message.getMediaType())
+                .fileName(message.getFileName())
                 .build();
     }
 }

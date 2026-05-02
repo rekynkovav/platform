@@ -33,8 +33,9 @@ const NavTabs = ({ activeTab, onTabChange }) => {
             );
         } else if (tab.splitType === 'chat') {
             const demoRole = localStorage.getItem('demoRole');
-            const canSwitchChats = demoRole !== 'user0'; // все кроме user0 могут переключать
+            const canSwitchChats = demoRole !== 'user_0';
 
+            // Все видят Основной + Питание
             return (
                 <div className="nav-tab-split chat-split">
                     <button

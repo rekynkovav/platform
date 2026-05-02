@@ -54,18 +54,18 @@ const Dashboard = () => {
 
     const demoRole = localStorage.getItem('demoRole');
     const isAdmin = useMemo(() =>
-        demoRole === 'admin-moderator' ||
+        demoRole === 'admin_moderator' ||
         demoRole === 'developer' ||
-        demoRole === 'super-admin'
+        demoRole === 'super_admin'
     , [demoRole]);
 
     const canEdit = useMemo(() =>
-        demoRole === 'admin-moderator' ||
-        demoRole === 'super-admin'
+        demoRole === 'admin_moderator' ||
+        demoRole === 'super_admin'
     , [demoRole]);
 
     const isSuperAdmin = useMemo(() =>
-        demoRole === 'super-admin'
+        demoRole === 'super_admin'
     , [demoRole]);
 
     // Отладка: выводим роль и статус админа

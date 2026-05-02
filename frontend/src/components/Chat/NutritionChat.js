@@ -1,313 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import './Chat.css';
+import useChat from './useChat';
+import ChatRoom from './ChatRoom';
 
 const NutritionChat = () => {
-    const [messages, setMessages] = useState([]);
-    const [newMessage, setNewMessage] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [editingMessageId, setEditingMessageId] = useState(null);
-    const [editingContent, setEditingContent] = useState('');
-    const [currentUserAuthor, setCurrentUserAuthor] = useState('');
-    const [isRecording, setIsRecording] = useState(false);
-    const [mediaRecorder, setMediaRecorder] = useState(null);
-    const [recordingTime, setRecordingTime] = useState(0);
-    const [recordingInterval, setRecordingInterval] = useState(null);
+    // Одна комната - без переключения
+    const availableRooms = [];
 
-    useEffect(() => {
-        const demoRole = localStorage.getItem('demoRole');
-
-        // Определяем имя автора для текущего пользователя
-        let author = 'Пользователь';
-        if (demoRole === 'admin-moderator' || demoRole === 'consultant-nutrition' || demoRole === 'developer' || demoRole === 'super-admin') {
-            author = 'Админ';
-        } else if (demoRole === 'user1') {
-            author = 'Пользователь 1';
-        } else if (demoRole === 'user2') {
-            author = 'Пользователь 2';
-        }
-        setCurrentUserAuthor(author);
-
-        loadMessages();
-    }, []);
-
-    const loadMessages = () => {
-        const savedMessages = localStorage.getItem('nutritionChatMessages');
-        if (savedMessages) {
-            setMessages(JSON.parse(savedMessages));
-        } else {
-            const initialMessages = [
-                {
-                    id: 1,
-                    author: 'Админ',
-                    content: 'Добро пожаловать в чат по питанию! Здесь можно обсудить рецепты, диеты и здоровое питание.',
-                    timestamp: new Date().toISOString()
-                }
-            ];
-            setMessages(initialMessages);
-            localStorage.setItem('nutritionChatMessages', JSON.stringify(initialMessages));
-        }
-        setLoading(false);
+    // Название комнаты
+    const roomTitles = {
+        nutrition: 'Чат Питание'
     };
 
-    const handleSend = () => {
-        if (!newMessage.trim()) return;
-
-        const demoRole = localStorage.getItem('demoRole');
-        let author = 'Пользователь';
-
-        if (demoRole === 'admin-moderator' || demoRole === 'consultant-nutrition' || demoRole === 'developer' || demoRole === 'owner') {
-            author = 'Админ';
-        } else if (demoRole === 'user1') {
-            author = 'Пользователь 1';
-        } else if (demoRole === 'user2') {
-            author = 'Пользователь 2';
-        }
-
-        const message = {
-            id: Date.now(),
-            author: author,
-            content: newMessage,
-            timestamp: new Date().toISOString()
-        };
-
-        const updatedMessages = [...messages, message];
-        setMessages(updatedMessages);
-        localStorage.setItem('nutritionChatMessages', JSON.stringify(updatedMessages));
-        setNewMessage('');
-    };
-
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
-
-    const handleEditMessage = (msg) => {
-        if (msg.author !== currentUserAuthor) return;
-        setEditingMessageId(msg.id);
-        setEditingContent(msg.content);
-    };
-
-    const handleSaveEdit = (msgId) => {
-        if (!editingContent.trim()) return;
-
-        const updatedMessages = messages.map(msg =>
-            msg.id === msgId
-                ? { ...msg, content: editingContent, edited: true }
-                : msg
-        );
-        setMessages(updatedMessages);
-        localStorage.setItem('nutritionChatMessages', JSON.stringify(updatedMessages));
-
-        setEditingMessageId(null);
-        setEditingContent('');
-    };
-
-    const handleCancelEdit = () => {
-        setEditingMessageId(null);
-        setEditingContent('');
-    };
-
-    const handleDeleteMessage = (msgId) => {
-        // Проверяем, что пользователь может удалить только своё сообщение
-        const messageToDelete = messages.find(msg => msg.id === msgId);
-        if (!messageToDelete || messageToDelete.author !== currentUserAuthor) {
-            alert('Вы можете удалять только свои сообщения');
-            return;
-        }
-
-        if (!window.confirm('Удалить это сообщение?')) return;
-
-        const updatedMessages = messages.filter(msg => msg.id !== msgId);
-        setMessages(updatedMessages);
-        localStorage.setItem('nutritionChatMessages', JSON.stringify(updatedMessages));
-    };
-
-    const handleFileUpload = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const message = {
-                id: Date.now(),
-                author: currentUserAuthor,
-                content: file.name,
-                fileUrl: event.target.result,
-                fileType: file.type,
-                fileName: file.name,
-                timestamp: new Date().toISOString(),
-                type: 'file'
-            };
-
-            const updatedMessages = [...messages, message];
-            setMessages(updatedMessages);
-            localStorage.setItem('nutritionChatMessages', JSON.stringify(updatedMessages));
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const startRecording = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
-            const chunks = [];
-
-            recorder.ondataavailable = (e) => {
-                chunks.push(e.data);
-            };
-
-            recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const message = {
-                        id: Date.now(),
-                        author: currentUserAuthor,
-                        content: 'Голосовое сообщение',
-                        fileUrl: event.target.result,
-                        fileType: 'audio/webm',
-                        timestamp: new Date().toISOString(),
-                        type: 'voice'
-                    };
-
-                    const updatedMessages = [...messages, message];
-                    setMessages(updatedMessages);
-                    localStorage.setItem('nutritionChatMessages', JSON.stringify(updatedMessages));
-                };
-                reader.readAsDataURL(blob);
-
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            recorder.start();
-            setMediaRecorder(recorder);
-            setIsRecording(true);
-            setRecordingTime(0);
-
-            const interval = setInterval(() => {
-                setRecordingTime(prev => prev + 1);
-            }, 1000);
-            setRecordingInterval(interval);
-        } catch (error) {
-            console.error('Ошибка доступа к микрофону:', error);
-            alert('Не удалось получить доступ к микрофону');
-        }
-    };
-
-    const stopRecording = () => {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
-            setIsRecording(false);
-            if (recordingInterval) {
-                clearInterval(recordingInterval);
-                setRecordingInterval(null);
-            }
-        }
-    };
-
-    const formatRecordingTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
+    const {
+        messages,
+        loading,
+        currentRoom,
+        canSwitch,
+        currentUserAuthor,
+        isRecording,
+        recordingTime,
+        sendMessage,
+        editMessage,
+        deleteMessage,
+        uploadFile,
+        startRecording,
+        stopRecording
+    } = useChat('nutrition', {
+        storageKeyPrefix: 'nutritionChatMessages',
+        canSwitchRooms: false,
+        availableRooms
+    });
 
     if (loading) return <div className="loading">Загрузка чата...</div>;
 
     return (
-        <div className="chat-container">
-            <div className="chat-messages">
-                {messages.map(msg => (
-                    <div key={msg.id} className="chat-message">
-                        <div className="message-header">
-                            <strong>{msg.author}</strong>
-                            <span className="timestamp">
-                                {new Date(msg.timestamp).toLocaleTimeString()}
-                                {msg.edited && <span className="edited-label"> (изменено)</span>}
-                            </span>
-                            {msg.author === currentUserAuthor && (
-                                <div className="message-actions">
-                                    <button
-                                        className="edit-message-btn"
-                                        onClick={() => handleEditMessage(msg)}
-                                        title="Редактировать"
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        className="delete-message-btn"
-                                        onClick={() => handleDeleteMessage(msg.id)}
-                                        title="Удалить"
-                                    >
-                                        🗑️
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                        {editingMessageId === msg.id ? (
-                            <div className="edit-message-form">
-                                <textarea
-                                    value={editingContent}
-                                    onChange={(e) => setEditingContent(e.target.value)}
-                                    rows="2"
-                                />
-                                <div className="edit-actions">
-                                    <button onClick={() => handleSaveEdit(msg.id)}>Сохранить</button>
-                                    <button onClick={handleCancelEdit}>Отмена</button>
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                <p>{msg.content}</p>
-                                {msg.type === 'file' && msg.fileUrl && (
-                                    <div className="message-file">
-                                        <a href={msg.fileUrl} download={msg.fileName} className="file-download-link">
-                                            📎 {msg.fileName}
-                                        </a>
-                                    </div>
-                                )}
-                                {msg.type === 'voice' && msg.fileUrl && (
-                                    <div className="message-voice">
-                                        <audio controls src={msg.fileUrl} />
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-                ))}
-            </div>
-            <div className="chat-input">
-                <div className="chat-input-controls">
-                    <label className="attach-file-btn" title="Прикрепить файл">
-                        📎
-                        <input
-                            type="file"
-                            onChange={handleFileUpload}
-                            style={{ display: 'none' }}
-                        />
-                    </label>
-                    <button
-                        className={`voice-record-btn ${isRecording ? 'recording' : ''}`}
-                        onClick={isRecording ? stopRecording : startRecording}
-                        title={isRecording ? 'Остановить запись' : 'Записать голосовое сообщение'}
-                    >
-                        {isRecording ? '⏹️' : '🎤'}
-                    </button>
-                    {isRecording && (
-                        <span className="recording-time">{formatRecordingTime(recordingTime)}</span>
-                    )}
-                </div>
-                <textarea
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Введите сообщение..."
-                    rows="1"
-                />
-                <button onClick={handleSend}>Отправить</button>
-            </div>
-        </div>
+        <ChatRoom
+            messages={messages}
+            currentUserAuthor={currentUserAuthor}
+            currentRoom={currentRoom}
+            canSwitch={canSwitch}
+            availableRooms={availableRooms}
+            roomTitles={roomTitles}
+            onSendMessage={sendMessage}
+            onEditMessage={editMessage}
+            onDeleteMessage={deleteMessage}
+            onFileUpload={uploadFile}
+            onStartRecording={startRecording}
+            onStopRecording={stopRecording}
+            isRecording={isRecording}
+            recordingTime={recordingTime}
+        />
     );
 };
 

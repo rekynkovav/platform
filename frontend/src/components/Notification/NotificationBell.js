@@ -151,10 +151,10 @@ const NotificationBell = () => {
     const checkQuestionNotifications = () => {
         const demoRole = localStorage.getItem('demoRole');
 
-        const isGeneralAdmin = demoRole === 'admin-moderator' || demoRole === 'developer';
-        const isNutritionConsultant = demoRole === 'consultant-nutrition';
+        const isGeneralAdmin = demoRole === 'admin_moderator' || demoRole === 'developer';
+        const isNutritionConsultant = demoRole === 'consultant_nutrition';
         const isVyacheslav = demoRole === 'vyacheslav';
-        const isSuperAdmin = demoRole === 'super-admin';
+        const isSuperAdmin = demoRole === 'super_admin';
         const isUser = demoRole === 'user0' || demoRole === 'user1' || demoRole === 'user2';
 
         const saved = localStorage.getItem('userNotifications');
@@ -168,7 +168,7 @@ const NotificationBell = () => {
 
             if (isNutritionConsultant) {
                 myUnansweredQuestions = allQuestions.filter(q =>
-                    q.recipientId === 'consultant-nutrition' && !q.isAnswered && !q.archived
+                    q.recipientId === 'consultant_nutrition' && !q.isAnswered && !q.archived
                 );
             } else if (isVyacheslav) {
                 myUnansweredQuestions = allQuestions.filter(q =>
