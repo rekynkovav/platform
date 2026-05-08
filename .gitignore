@@ -61,4 +61,14 @@ terraform.tfvars
 recordings/
 *.webm
 *.mkv
- 
+
+ # Frontend cache (53+ МБ) — никогда не коммитим
+frontend/node_modules/.cache/
+frontend/.next/
+frontend/.nuxt/
+frontend/dist/
+*.pack
+
+# Yarn / npm cache
+.yarn/cache/
+.pnpm-store/
