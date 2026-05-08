@@ -30,7 +30,7 @@ function App() {
     const { theme, toggleTheme } = useTheme();
 
     const demoRole = localStorage.getItem('demoRole');
-    const effectiveRoles = demoRole === 'admin' ? ['admin', 'user'] : (demoRole === 'user' ? ['user'] : userRoles);
+    const effectiveRoles = demoRole ? [demoRole] : userRoles;
 
     useEffect(() => {
         if (initStartedRef.current) return;
@@ -45,9 +45,9 @@ function App() {
                 }
                 setLoading(false);
 
-                // Для пользователя 0 устанавливаем вкладку help по умолчанию
+                // Для пользователя с ролью ROLE_USER устанавливаем вкладку help по умолчанию
                 const demoRole = localStorage.getItem('demoRole');
-                if (demoRole === 'user0') {
+                if (demoRole === 'ROLE_USER') {
                     setActiveTab('help');
                 }
             })
@@ -91,7 +91,7 @@ function App() {
 
     const handleLogoClick = (e) => {
         const demoRole = localStorage.getItem('demoRole');
-        if (demoRole === 'user0') {
+        if (demoRole === 'ROLE_USER') {
             const rect = e.currentTarget.getBoundingClientRect();
             showAccessDeniedMessage(rect.left + rect.width / 2, rect.bottom + 10);
             return;
@@ -101,7 +101,7 @@ function App() {
 
     const handleEventClick = () => {
         const demoRole = localStorage.getItem('demoRole');
-        if (demoRole === 'user0') {
+        if (demoRole === 'ROLE_USER') {
             showAccessDeniedMessage(window.innerWidth / 2, window.innerHeight / 2);
             return;
         }
@@ -111,8 +111,8 @@ function App() {
     const handleTabChange = (tabId, event) => {
         const demoRole = localStorage.getItem('demoRole');
 
-        // Для пользователя 0 доступна только вкладка help
-        if (demoRole === 'user0' && tabId !== 'help') {
+        // Для пользователя с ролью ROLE_USER доступны только вкладки help и profile
+        if (demoRole === 'ROLE_USER' && tabId !== 'help' && tabId !== 'profile') {
             if (event) {
                 const rect = event.currentTarget.getBoundingClientRect();
                 showAccessDeniedMessage(rect.left + rect.width / 2, rect.bottom + 10);

@@ -3,21 +3,23 @@ import './RoleSwitcher.css';
 
 const RoleSwitcher = ({ onRoleChange }) => {
     const [currentRole, setCurrentRole] = useState(() => {
-        return localStorage.getItem('demoRole') || 'user_0';
+        return localStorage.getItem('demoRole') || 'ROLE_USER';
     });
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     const roles = [
-        { id: 'user_0', label: 'Пользователь 0', icon: '👁️', description: 'Просмотр сайта' },
-        { id: 'user_1', label: 'Пользователь 1', icon: '🌱', description: 'Чат 1' },
-        { id: 'user_2', label: 'Пользователь 2', icon: '⭐', description: 'Чат 2' },
-        { id: 'moderator_admin', label: 'Модератор/Админ', icon: '🛡️', description: 'Ответы + контент' },
-        { id: 'consultant_pitanie', label: 'Консультант (питание)', icon: '🥗', description: 'Лента питания' },
-        { id: 'consultant_sport', label: 'Консультант (спорт)', icon: '⚽', description: 'Спортивный контент' },
-        { id: 'developer', label: 'Разработчик', icon: '💻', description: 'Разработка' },
-        { id: 'vyacheslav', label: 'Вячеслав', icon: '👑', description: 'Владелец' },
-        { id: 'super_admin', label: 'Главный Админ', icon: '🔱', description: 'Полный доступ' }
+        { id: 'ROLE_USER', label: 'Пользователь', icon: '👤', description: 'Базовый доступ' },
+        { id: 'ROLE_PREMIUM', label: 'Премиум', icon: '💎', description: 'Расширенные возможности' },
+        { id: 'ROLE_ADVANCED', label: 'Продвинутый', icon: '🚀', description: 'Продвинутый доступ' },
+        { id: 'ROLE_CREATOR', label: 'Создатель', icon: '🎨', description: 'Загрузка контента' },
+        { id: 'ROLE_ADMIN', label: 'Администратор', icon: '🛡️', description: 'Управление контентом' },
+        { id: 'ROLE_MODERATOR', label: 'Модератор', icon: '👮', description: 'Модерация' },
+        { id: 'ROLE_SPORT_ADMIN', label: 'Спортивный админ', icon: '⚽', description: 'Спортивный контент' },
+        { id: 'ROLE_NUTRITION_ADMIN', label: 'Админ питания', icon: '🥗', description: 'Питание и диеты' },
+        { id: 'ROLE_CONSULTANT_ADMIN', label: 'Консультант', icon: '💬', description: 'Консультации' },
+        { id: 'ROLE_OWNER', label: 'Владелец', icon: '👑', description: 'Вячеслав Тимошенко' },
+        { id: 'ROLE_SUPER_ADMIN', label: 'Супер Админ', icon: '🔱', description: 'Полный доступ' }
     ];
 
     useEffect(() => {
@@ -41,12 +43,7 @@ const RoleSwitcher = ({ onRoleChange }) => {
         localStorage.setItem('demoRole', roleId);
 
         if (window.keycloakMock) {
-            const isAdmin = roleId.includes('admin') ||
-                           roleId.includes('consultant') ||
-                           roleId === 'developer' ||
-                           roleId === 'vyacheslav' ||
-                           roleId === 'super_admin';
-            window.keycloakMock.roles = isAdmin ? ['moderator_admin', 'user_2'] : [roleId];
+            window.keycloakMock.roles = [roleId];
         }
 
         if (onRoleChange) {

@@ -25,7 +25,7 @@ public class MediaController {
     private final SecureMediaService secureMediaService;
 
     @PostMapping("/upload")
-    @PreAuthorize("hasAnyRole('CREATOR', 'ADMIN', 'MODERATOR')")
+    @PreAuthorize("hasAnyRole('ROLE_CREATOR', 'ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_SPORT_ADMIN', 'ROLE_NUTRITION_ADMIN', 'ROLE_CONSULTANT_ADMIN', 'ROLE_OWNER', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<MediaFile> uploadMedia(
             @RequestParam("file") MultipartFile file,
             @RequestParam("type") String type,
@@ -37,7 +37,7 @@ public class MediaController {
     }
 
     @GetMapping("/stream/{fileId}")
-    @PreAuthorize("hasAnyRole('USER', 'PREMIUM', 'CREATOR', 'ADMIN', 'MODERATOR')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_PREMIUM', 'ROLE_ADVANCED', 'ROLE_CREATOR', 'ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_SPORT_ADMIN', 'ROLE_NUTRITION_ADMIN', 'ROLE_CONSULTANT_ADMIN', 'ROLE_OWNER', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> getStreamUrl(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt,
@@ -53,7 +53,7 @@ public class MediaController {
     }
 
     @GetMapping("/key/{fileId}")
-    @PreAuthorize("hasAnyRole('USER', 'PREMIUM', 'CREATOR', 'ADMIN', 'MODERATOR')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_PREMIUM', 'ROLE_ADVANCED', 'ROLE_CREATOR', 'ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_SPORT_ADMIN', 'ROLE_NUTRITION_ADMIN', 'ROLE_CONSULTANT_ADMIN', 'ROLE_OWNER', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<byte[]> getEncryptionKey(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt,
@@ -69,7 +69,7 @@ public class MediaController {
     }
 
     @GetMapping("/download/{fileId}")
-    @PreAuthorize("hasAnyRole('USER', 'PREMIUM', 'CREATOR', 'ADMIN', 'MODERATOR')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_PREMIUM', 'ROLE_ADVANCED', 'ROLE_CREATOR', 'ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_SPORT_ADMIN', 'ROLE_NUTRITION_ADMIN', 'ROLE_CONSULTANT_ADMIN', 'ROLE_OWNER', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<byte[]> downloadFile(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt,
@@ -86,7 +86,7 @@ public class MediaController {
     }
 
     @GetMapping("/{fileId}")
-    @PreAuthorize("hasAnyRole('USER', 'PREMIUM', 'CREATOR', 'ADMIN', 'MODERATOR')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_PREMIUM', 'ROLE_ADVANCED', 'ROLE_CREATOR', 'ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_SPORT_ADMIN', 'ROLE_NUTRITION_ADMIN', 'ROLE_CONSULTANT_ADMIN', 'ROLE_OWNER', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<MediaFile> getMediaInfo(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -96,7 +96,7 @@ public class MediaController {
     }
 
     @GetMapping("/my-files")
-    @PreAuthorize("hasAnyRole('USER', 'PREMIUM', 'CREATOR', 'ADMIN', 'MODERATOR')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_PREMIUM', 'ROLE_ADVANCED', 'ROLE_CREATOR', 'ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_SPORT_ADMIN', 'ROLE_NUTRITION_ADMIN', 'ROLE_CONSULTANT_ADMIN', 'ROLE_OWNER', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<List<MediaFile>> getMyFiles(
             @AuthenticationPrincipal Jwt jwt) {
 
@@ -106,7 +106,7 @@ public class MediaController {
     }
 
     @GetMapping("/hls/{fileId}/playlist.m3u8")
-    @PreAuthorize("hasAnyRole('USER', 'PREMIUM', 'CREATOR', 'ADMIN', 'MODERATOR')")
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_PREMIUM', 'ROLE_ADVANCED', 'ROLE_CREATOR', 'ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_SPORT_ADMIN', 'ROLE_NUTRITION_ADMIN', 'ROLE_CONSULTANT_ADMIN', 'ROLE_OWNER', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<String> getHLSPlaylist(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt,
@@ -127,7 +127,7 @@ public class MediaController {
     }
 
     @DeleteMapping("/{fileId}")
-    @PreAuthorize("hasAnyRole('CREATOR', 'ADMIN', 'MODERATOR')")
+    @PreAuthorize("hasAnyRole('ROLE_CREATOR', 'ROLE_ADMIN', 'ROLE_MODERATOR', 'ROLE_SPORT_ADMIN', 'ROLE_NUTRITION_ADMIN', 'ROLE_CONSULTANT_ADMIN', 'ROLE_OWNER', 'ROLE_SUPER_ADMIN')")
     public ResponseEntity<Void> deleteFile(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt) {

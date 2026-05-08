@@ -114,21 +114,21 @@ const UserProfile = () => {
 
     const getRoleInfo = (role) => {
         const roleMap = {
-            'user_0': { icon: '👁️', name: 'Пользователь 0', color: '#6c757d' },
-            'user_1': { icon: '🌱', name: 'Пользователь 1', color: '#28a745' },
-            'user_2': { icon: '⭐', name: 'Пользователь 2', color: '#ffc107' },
-            'moderator_admin': { icon: '🛡️', name: 'Модератор/Админ', color: '#0d6efd' },
-            'super_admin': { icon: '🔱', name: 'Главный Админ', color: '#dc3545' },
-            'consultant_pitanie': { icon: '🥗', name: 'Консультант Питание', color: '#fd7e14' },
-            'consultant_sport': { icon: '⚽', name: 'Консультант Спорт', color: '#20c997' },
-            'developer': { icon: '💻', name: 'Разработчик', color: '#6f42c1' },
-            'vyacheslav': { icon: '👑', name: 'Вячеслав', color: '#dc3545' }
+            'USER_0': { icon: '👁️', name: 'Пользователь 0', color: '#6c757d' },
+            'USER_1': { icon: '🌱', name: 'Пользователь 1', color: '#28a745' },
+            'USER_2': { icon: '⭐', name: 'Пользователь 2', color: '#ffc107' },
+            'MODERATOR_ADMIN': { icon: '🛡️', name: 'Модератор/Админ', color: '#0d6efd' },
+            'SUPER_ADMIN': { icon: '🔱', name: 'Главный Админ', color: '#dc3545' },
+            'CONSULTANT_PITANIE': { icon: '🥗', name: 'Консультант Питание', color: '#fd7e14' },
+            'CONSULTANT_SPORT': { icon: '⚽', name: 'Консультант Спорт', color: '#20c997' },
+            'DEVELOPER': { icon: '💻', name: 'Разработчик', color: '#6f42c1' },
+            'VYACHESLAV': { icon: '👑', name: 'Вячеслав', color: '#dc3545' }
         };
-        return roleMap[role?.toLowerCase()] || { icon: '👤', name: role || 'Пользователь', color: '#6c757d' };
+        return roleMap[role?.toUpperCase()] || { icon: '👤', name: role || 'Пользователь', color: '#6c757d' };
     };
 
     const isPaidRole = (role) => {
-        return ['user_1', 'user_2', 'moderator_admin', 'super_admin', 'consultant_pitanie', 'consultant_sport', 'developer', 'vyacheslav'].includes(role?.toLowerCase());
+        return ['USER_1', 'USER_2', 'MODERATOR_ADMIN', 'SUPER_ADMIN', 'CONSULTANT_PITANIE', 'CONSULTANT_SPORT', 'DEVELOPER', 'VYACHESLAV'].includes(role?.toUpperCase());
     };
 
     const selectedPeriodData = periods.find(p => p.months === selectedPeriod) || periods[0];

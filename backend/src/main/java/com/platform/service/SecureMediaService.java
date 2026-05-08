@@ -278,35 +278,36 @@ public class SecureMediaService {
 
     private String getUserRole(Jwt jwt) {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "user";
+        if (roles == null) return "ROLE_USER";
 
-        if (roles.contains("super-admin")) return "super-admin";
-        if (roles.contains("vyacheslav")) return "vyacheslav";
-        if (roles.contains("admin")) return "admin";
-        if (roles.contains("moderator")) return "moderator";
-        if (roles.contains("sport-admin")) return "sport-admin";
-        if (roles.contains("nutrition-admin")) return "nutrition-admin";
-        if (roles.contains("consultant-admin")) return "consultant-admin";
-        if (roles.contains("creator")) return "creator";
-        if (roles.contains("premium")) return "premium";
-        if (roles.contains("advanced")) return "advanced";
+        if (roles.contains("SUPER_ADMIN")) return "ROLE_SUPER_ADMIN";
+        if (roles.contains("OWNER")) return "ROLE_OWNER";
+        if (roles.contains("ADMIN")) return "ROLE_ADMIN";
+        if (roles.contains("MODERATOR")) return "ROLE_MODERATOR";
+        if (roles.contains("SPORT_ADMIN")) return "ROLE_SPORT_ADMIN";
+        if (roles.contains("NUTRITION_ADMIN")) return "ROLE_NUTRITION_ADMIN";
+        if (roles.contains("CONSULTANT_ADMIN")) return "ROLE_CONSULTANT_ADMIN";
+        if (roles.contains("CREATOR")) return "ROLE_CREATOR";
+        if (roles.contains("ADVANCED")) return "ROLE_ADVANCED";
+        if (roles.contains("PREMIUM")) return "ROLE_PREMIUM";
+        if (roles.contains("USER")) return "ROLE_USER";
 
-        return "user";
+        return "ROLE_USER";
     }
 
     private boolean isAdmin(String role) {
-        return "admin".equals(role) || "moderator".equals(role) ||
-               "super-admin".equals(role) || "vyacheslav".equals(role) ||
-               "sport-admin".equals(role) || "nutrition-admin".equals(role) ||
-               "consultant-admin".equals(role);
+        return "ROLE_ADMIN".equals(role) || "ROLE_MODERATOR".equals(role) ||
+               "ROLE_SUPER_ADMIN".equals(role) || "ROLE_OWNER".equals(role) ||
+               "ROLE_SPORT_ADMIN".equals(role) || "ROLE_NUTRITION_ADMIN".equals(role) ||
+               "ROLE_CONSULTANT_ADMIN".equals(role);
     }
 
     private boolean canDownloadOriginal(String role) {
-        return "super-admin".equals(role);
+        return "ROLE_SUPER_ADMIN".equals(role);
     }
 
     private boolean hasPremiumAccess(Jwt jwt) {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        return roles != null && (roles.contains("premium") || roles.contains("admin"));
+        return roles != null && (roles.contains("PREMIUM") || roles.contains("ADMIN"));
     }
 }
