@@ -140,12 +140,13 @@ public class EventService {
     private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
         if (roles == null) return "user";
-        if (roles.contains("admin")) return "admin";
-        if (roles.contains("moderator")) return "moderator";
+        if (roles.contains("MODERATOR_ADMIN")) return "MODERATOR_ADMIN";
+        if (roles.contains("SUPER_ADMIN")) return "SUPER_ADMIN";
+        if (roles.contains("VYACHESLAV")) return "VYACHESLAV";
         return "user";
     }
 
     private boolean isAdmin(String role) {
-        return "admin".equals(role) || "moderator".equals(role);
+        return "MODERATOR_ADMIN".equals(role) || "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
     }
 }

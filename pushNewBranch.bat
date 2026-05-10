@@ -16,8 +16,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Get timestamp in format: YYYY-MM-DD_HH-MM-SS
-for /f "delims=" %%i in ('powershell -Command "Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'"') do set BRANCH_NAME=%%i
+:: Get timestamp in format: DD-MM-YYYY_HH-MM-SS
+for /f "delims=" %%i in ('powershell -Command "Get-Date -Format 'dd-MM-yyyy_HH-mm-ss'"') do set BRANCH_NAME=%%i
 
 echo Creating new branch: %BRANCH_NAME%
 echo.
@@ -34,8 +34,14 @@ git commit -m "Auto-commit: snapshot %BRANCH_NAME%" --allow-empty
 echo Creating new branch...
 git checkout -b %BRANCH_NAME%
 
+:: Update README.md with new features
+echo Updating README.md...
+call :updateReadme
+
 :: Push new branch
 echo Pushing to origin...
+git add README.md
+git commit -m "Update README.md: %BRANCH_NAME%"
 git push origin %BRANCH_NAME%
 
 echo.
@@ -46,3 +52,21 @@ echo New branch: %BRANCH_NAME%
 echo.
 
 pause
+goto :eof
+
+:: Function to update README.md
+:updateReadme
+set "timestamp=%BRANCH_NAME%"
+set "date_part=%timestamp:~0,10%"
+set "time_part=%timestamp:~11,8%"
+
+echo.
+echo # New Features (%date_part% %time_part%) >> README.md
+echo.
+echo - Auto-generated update from branch: %BRANCH_NAME%
+echo - Commit timestamp: %timestamp%
+echo.
+echo ---
+echo.
+
+exit /b 0

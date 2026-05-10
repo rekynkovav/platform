@@ -42,7 +42,7 @@ public class PostController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<PostDto> createPost(
             @RequestBody PostDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -52,7 +52,7 @@ public class PostController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<PostDto> updatePost(
             @PathVariable String id,
             @RequestBody PostDto.UpdateRequest request,
@@ -63,7 +63,7 @@ public class PostController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<Void> deletePost(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
@@ -73,12 +73,12 @@ public class PostController {
     }
 
     @PostMapping("/media")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<PostDto.MediaUploadResponse> uploadMedia(
             @RequestParam("media") MultipartFile media,
             @RequestParam(required = false) String type) {
 
-        PostDto.MediaUploadResponse response = postService.uploadMedia(media, type);
+        PostDto.MediaUploadResponse response = postService.uploadSecureMedia(media, type);
         return ResponseEntity.ok(response);
     }
 }

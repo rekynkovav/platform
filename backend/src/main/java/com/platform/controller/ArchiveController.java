@@ -39,7 +39,7 @@ public class ArchiveController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<ArchiveDto> createArchive(
             @RequestBody ArchiveDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -48,7 +48,7 @@ public class ArchiveController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<ArchiveDto> updateArchive(
             @PathVariable String id,
             @RequestBody ArchiveDto.UpdateRequest request,
@@ -58,7 +58,7 @@ public class ArchiveController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<Void> deleteArchive(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {

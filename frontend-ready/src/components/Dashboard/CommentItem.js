@@ -8,7 +8,7 @@ const CommentItem = ({ comment, onDeleted }) => {
     const [isDeleting, setIsDeleting] = useState(false);
     const currentUserId = getUserId();
     const userRoles = getUserRoles();
-    const isAdmin = userRoles.includes('admin') || userRoles.includes('moderator');
+    const isAdmin = userRoles.includes('MODERATOR_ADMIN') || userRoles.includes('SUPER_ADMIN') || userRoles.includes('VYACHESLAV');
     const canDelete = isAdmin || comment.authorId === currentUserId;
 
     const formatDate = (dateString) => {

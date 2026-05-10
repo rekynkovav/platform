@@ -55,7 +55,7 @@ public class AdminService {
         String currentUserRole = getUserRole(jwt);
 
         // Только супер-админ может менять роли
-        if (!"super_admin".equals(currentUserRole)) {
+        if (!"SUPER_ADMIN".equals(currentUserRole) && !"VYACHESLAV".equals(currentUserRole)) {
             throw new AccessDeniedException("Only super admin can change user roles");
         }
 
@@ -75,7 +75,7 @@ public class AdminService {
         String currentUserId = jwt.getSubject();
         String currentUserRole = getUserRole(jwt);
 
-        if (!"admin".equals(currentUserRole) && !"super_admin".equals(currentUserRole)) {
+        if (!"MODERATOR_ADMIN".equals(currentUserRole) && !"SUPER_ADMIN".equals(currentUserRole) && !"VYACHESLAV".equals(currentUserRole)) {
             throw new AccessDeniedException("Only admin can ban users");
         }
 
@@ -96,7 +96,7 @@ public class AdminService {
         String currentUserId = jwt.getSubject();
         String currentUserRole = getUserRole(jwt);
 
-        if (!"admin".equals(currentUserRole) && !"super_admin".equals(currentUserRole)) {
+        if (!"MODERATOR_ADMIN".equals(currentUserRole) && !"SUPER_ADMIN".equals(currentUserRole) && !"VYACHESLAV".equals(currentUserRole)) {
             throw new AccessDeniedException("Only admin can unban users");
         }
 
@@ -175,9 +175,9 @@ public class AdminService {
     private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
         if (roles == null) return "user";
-        if (roles.contains("super_admin")) return "super_admin";
-        if (roles.contains("admin")) return "admin";
-        if (roles.contains("moderator")) return "moderator";
+        if (roles.contains("SUPER_ADMIN")) return "SUPER_ADMIN";
+        if (roles.contains("MODERATOR_ADMIN")) return "MODERATOR_ADMIN";
+        if (roles.contains("VYACHESLAV")) return "VYACHESLAV";
         return "user";
     }
 }

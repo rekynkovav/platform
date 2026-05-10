@@ -36,7 +36,7 @@ public class ChatController {
     }
 
     @GetMapping("/admin-group")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<List<MessageDto>> getAdminGroupMessages(
             @RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) String before) {

@@ -31,7 +31,7 @@ function App() {
     const { theme, toggleTheme } = useTheme();
 
     const demoRole = localStorage.getItem('demoRole');
-    const effectiveRoles = demoRole === 'admin' ? ['admin', 'user'] : (demoRole === 'user' ? ['user'] : userRoles);
+    const effectiveRoles = demoRole === 'SUPER_ADMIN' ? ['SUPER_ADMIN', 'USER_2'] : (demoRole === 'USER_0' ? ['USER_0'] : userRoles);
 
     useEffect(() => {
         if (initStartedRef.current) return;
@@ -48,7 +48,7 @@ function App() {
 
                 // Для пользователя 0 устанавливаем вкладку help по умолчанию
                 const demoRole = localStorage.getItem('demoRole');
-                if (demoRole === 'user_0') {
+                if (demoRole === 'USER_0') {
                     setActiveTab('help');
                 }
             })
@@ -92,7 +92,7 @@ function App() {
 
     const handleLogoClick = (e) => {
         const demoRole = localStorage.getItem('demoRole');
-        if (demoRole === 'user_0') {
+        if (demoRole === 'USER_0') {
             const rect = e.currentTarget.getBoundingClientRect();
             showAccessDeniedMessage(rect.left + rect.width / 2, rect.bottom + 10);
             return;
@@ -102,7 +102,7 @@ function App() {
 
     const handleEventClick = () => {
         const demoRole = localStorage.getItem('demoRole');
-        if (demoRole === 'user_0') {
+        if (demoRole === 'USER_0') {
             showAccessDeniedMessage(window.innerWidth / 2, window.innerHeight / 2);
             return;
         }
@@ -113,7 +113,7 @@ function App() {
         const demoRole = localStorage.getItem('demoRole');
 
         // Для пользователя 0 доступны только help и profile
-        if (demoRole === 'user_0' && tabId !== 'help' && tabId !== 'profile') {
+        if (demoRole === 'USER_0' && tabId !== 'help' && tabId !== 'profile') {
             if (event) {
                 const rect = event.currentTarget.getBoundingClientRect();
                 showAccessDeniedMessage(rect.left + rect.width / 2, rect.bottom + 10);
@@ -169,8 +169,8 @@ function App() {
                 return <ArchiveList />;
             case 'chat': {
                 const demoRole = localStorage.getItem('demoRole');
-                // user_0 заблокирован в handleTabChange
-                if (demoRole === 'user_0') {
+                // USER_0 заблокирован в handleTabChange
+                if (demoRole === 'USER_0') {
                     return <div className="access-denied-message">Доступ запрещён</div>;
                 }
                 // Все видят GeneralChat (с переключателем внутри)
@@ -178,7 +178,7 @@ function App() {
             }
             case 'chat-nutrition': {
                 const demoRole = localStorage.getItem('demoRole');
-                if (demoRole === 'user_0') {
+                if (demoRole === 'USER_0') {
                     return <div className="access-denied-message">Доступ запрещён</div>;
                 }
                 return <NutritionChat />;

@@ -28,7 +28,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final ReactionRepository reactionRepository;
     private final CommentService commentService;
-    private final MediaStorageService mediaStorageService;
+    private final SecureMediaService secureMediaService;
 
     public List<PostDto> getFeed(String userId, String before, Pageable pageable) {
         List<Post> posts;
@@ -118,8 +118,8 @@ public class PostService {
         log.info("Post deleted: {} by {}", postId, userId);
     }
 
-    public PostDto.MediaUploadResponse uploadMedia(MultipartFile file, String type) {
-        return mediaStorageService.saveMedia(file, type);
+    public PostDto.MediaUploadResponse uploadSecureMedia(MultipartFile file, String type) {
+        return secureMediaService.saveMedia(file, type);
     }
 
     private PostDto toDto(Post post, String userId) {
@@ -149,12 +149,13 @@ public class PostService {
     private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
         if (roles == null) return "user";
-        if (roles.contains("admin")) return "admin";
-        if (roles.contains("moderator")) return "moderator";
+        if (roles.contains("MODERATOR_ADMIN")) return "MODERATOR_ADMIN";
+        if (roles.contains("SUPER_ADMIN")) return "SUPER_ADMIN";
+        if (roles.contains("VYACHESLAV")) return "VYACHESLAV";
         return "user";
     }
 
     private boolean isAdmin(String role) {
-        return "admin".equals(role) || "moderator".equals(role);
+        return "MODERATOR_ADMIN".equals(role) || "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
     }
 }

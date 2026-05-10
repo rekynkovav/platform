@@ -33,7 +33,7 @@ const NavTabs = ({ activeTab, onTabChange }) => {
             );
         } else if (tab.splitType === 'chat') {
             const demoRole = localStorage.getItem('demoRole');
-            const canSwitchChats = demoRole !== 'user_0';
+            const canSwitchChats = demoRole !== 'USER_0';
 
             // Все видят Основной + Питание
             return (

@@ -40,7 +40,7 @@ public class EventController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<EventDto> createEvent(
             @RequestBody EventDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -49,7 +49,7 @@ public class EventController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<EventDto> updateEvent(
             @PathVariable String id,
             @RequestBody EventDto.UpdateRequest request,
@@ -59,7 +59,7 @@ public class EventController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<Void> deleteEvent(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {

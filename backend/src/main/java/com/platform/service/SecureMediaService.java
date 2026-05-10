@@ -280,33 +280,22 @@ public class SecureMediaService {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
         if (roles == null) return "user";
 
-        if (roles.contains("super_admin")) return "super_admin";
-        if (roles.contains("vyacheslav")) return "vyacheslav";
-        if (roles.contains("admin")) return "admin";
-        if (roles.contains("moderator")) return "moderator";
-        if (roles.contains("sport-admin")) return "sport-admin";
-        if (roles.contains("nutrition-admin")) return "nutrition-admin";
-        if (roles.contains("consultant-admin")) return "consultant-admin";
-        if (roles.contains("creator")) return "creator";
-        if (roles.contains("premium")) return "premium";
-        if (roles.contains("advanced")) return "advanced";
-
+        if (roles.contains("SUPER_ADMIN")) return "SUPER_ADMIN";
+        if (roles.contains("VYACHESLAV")) return "VYACHESLAV";
+        if (roles.contains("MODERATOR_ADMIN")) return "MODERATOR_ADMIN";
         return "user";
     }
 
     private boolean isAdmin(String role) {
-        return "admin".equals(role) || "moderator".equals(role) ||
-               "super_admin".equals(role) || "vyacheslav".equals(role) ||
-               "sport-admin".equals(role) || "nutrition-admin".equals(role) ||
-               "consultant-admin".equals(role);
+        return "MODERATOR_ADMIN".equals(role) || "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
     }
 
     private boolean canDownloadOriginal(String role) {
-        return "super_admin".equals(role);
+        return "SUPER_ADMIN".equals(role);
     }
 
     private boolean hasPremiumAccess(Jwt jwt) {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        return roles != null && (roles.contains("premium") || roles.contains("admin"));
+        return roles != null && (roles.contains("premium") || roles.contains("MODERATOR_ADMIN") || roles.contains("SUPER_ADMIN") || roles.contains("VYACHESLAV"));
     }
 }

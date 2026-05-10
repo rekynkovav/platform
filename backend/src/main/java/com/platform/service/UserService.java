@@ -31,13 +31,19 @@ public class UserService {
 
     public boolean isAdmin(String userId) {
         return userRepository.findById(userId)
-                .map(user -> "admin".equals(user.getRole()) || "moderator".equals(user.getRole()))
+                .map(user -> {
+                    String role = user.getRole();
+                    return "MODERATOR_ADMIN".equals(role) || "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
+                })
                 .orElse(false);
     }
 
     public boolean isModerator(String userId) {
         return userRepository.findById(userId)
-                .map(user -> "moderator".equals(user.getRole()))
+                .map(user -> {
+                    String role = user.getRole();
+                    return "MODERATOR_ADMIN".equals(role) || "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
+                })
                 .orElse(false);
     }
 

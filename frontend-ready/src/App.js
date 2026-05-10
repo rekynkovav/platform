@@ -1,21 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import NavTabs from './components/Navigation/NavTabs';
 import ScheduledEvents from './components/Scheduled/ScheduledEvents';
 import ArchiveList from './components/Archive/ArchiveList';
 import GeneralChat from './components/Chat/GeneralChat';
 import ContactsList from './components/Contacts/ContactsList';
 import HelpCenter from './components/Help/HelpCenter';
+import { initKeycloak, getUserRoles, getUsername, logout } from './keycloak';
 import './App.css';
 import './components/Dashboard/Dashboard.css'; // Для мокового дашборда
 
-// Заглушка вместо Keycloak (без сервера авторизации)
-const keycloakMock = {
-    authenticated: true,
-    tokenParsed: {
-        preferred_username: 'DemoUser',
-        realm_access: { roles: ['user'] }
-    },
-    logout: () => { window.location.reload(); }
+// Backend roles (для синхронизации с бэкендом)
+const BACKEND_ROLES = {
+    USER_0: 'USER_0',
+    USER_1: 'USER_1',
+    USER_2: 'USER_2',
+    MODERATOR_ADMIN: 'MODERATOR_ADMIN',
+    SUPER_ADMIN: 'SUPER_ADMIN',
+    CONSULTANT_PITANIE: 'CONSULTANT_PITANIE',
+    CONSULTANT_SPORT: 'CONSULTANT_SPORT',
+    DEVELOPER: 'DEVELOPER',
+    VYACHESLAV: 'VYACHESLAV'
 };
 
 // Mock данные для Dashboard (когда нет API)
@@ -39,8 +43,10 @@ const mockPosts = [
 ];
 
 // Простой Dashboard без API
-const DashboardMock = ({ userRoles, keycloak }) => {
-    const isAdmin = userRoles.includes('admin') || userRoles.includes('moderator');
+const DashboardMock = ({ userRoles }) => {
+    const isAdmin = userRoles.includes(BACKEND_ROLES.MODERATOR_ADMIN) ||
+                    userRoles.includes(BACKEND_ROLES.SUPER_ADMIN) ||
+                    userRoles.includes(BACKEND_ROLES.VYACHESLAV);
 
     return (
         <div className="dashboard">
@@ -82,24 +88,39 @@ const DashboardMock = ({ userRoles, keycloak }) => {
 
 function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
-    const userRoles = ['user'];
+    const [userRoles, setUserRoles] = useState(['USER_0']);
+    const [username, setUsername] = useState('User');
+
+    useEffect(() => {
+        initKeycloak().then((authenticated) => {
+            if (authenticated) {
+                const roles = getUserRoles();
+                setUserRoles(roles);
+                setUsername(getUsername());
+            }
+        });
+    }, []);
+
+    const handleLogout = () => {
+        logout();
+    };
 
     const renderContent = () => {
         switch (activeTab) {
             case 'dashboard':
-                return <DashboardMock userRoles={userRoles} keycloak={keycloakMock} />;
+                return <DashboardMock userRoles={userRoles} />;
             case 'scheduled':
-                return <ScheduledEvents userRoles={userRoles} keycloak={keycloakMock} />;
+                return <ScheduledEvents userRoles={userRoles} />;
             case 'archive':
                 return <ArchiveList />;
             case 'chat':
-                return <GeneralChat keycloak={keycloakMock} />;
+                return <GeneralChat />;
             case 'contacts':
-                return <ContactsList keycloak={keycloakMock} />;
+                return <ContactsList />;
             case 'help':
-                return <HelpCenter keycloak={keycloakMock} />;
+                return <HelpCenter />;
             default:
-                return <Dashboard userRoles={userRoles} keycloak={keycloakMock} />;
+                return <DashboardMock userRoles={userRoles} />;
         }
     };
 
@@ -110,9 +131,9 @@ function App() {
                     <h1 className="header-logo">PLATFORM</h1>
                 </div>
                 <div className="header-right">
-                    <span className="header-username">{keycloakMock.tokenParsed?.preferred_username || 'User'}</span>
+                    <span className="header-username">{username}</span>
                     <button className="theme-toggle" onClick={() => {}}>DM</button>
-                    <button className="header-logout" onClick={() => keycloakMock.logout()}>LOGOUT</button>
+                    <button className="header-logout" onClick={handleLogout}>LOGOUT</button>
                 </div>
             </header>
 

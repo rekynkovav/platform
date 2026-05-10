@@ -3,21 +3,21 @@ import './RoleSwitcher.css';
 
 const RoleSwitcher = ({ onRoleChange }) => {
     const [currentRole, setCurrentRole] = useState(() => {
-        return localStorage.getItem('demoRole') || 'user_0';
+        return localStorage.getItem('demoRole') || 'USER_0';
     });
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     const roles = [
-        { id: 'user_0', label: 'Пользователь 0', icon: '👁️', description: 'Просмотр сайта' },
-        { id: 'user_1', label: 'Пользователь 1', icon: '🌱', description: 'Чат 1' },
-        { id: 'user_2', label: 'Пользователь 2', icon: '⭐', description: 'Чат 2' },
-        { id: 'admin_moderator', label: 'Модератор/Админ', icon: '🛡️', description: 'Ответы + контент' },
-        { id: 'consultant_nutrition', label: 'Консультант (питание)', icon: '🥗', description: 'Лента питания' },
-        { id: 'consultant_sport', label: 'Консультант (спорт)', icon: '⚽', description: 'Спортивный контент' },
-        { id: 'developer', label: 'Разработчик', icon: '💻', description: 'Разработка' },
-        { id: 'vyacheslav', label: 'Вячеслав', icon: '👑', description: 'Владелец' },
-        { id: 'super_admin', label: 'Главный Админ', icon: '🔱', description: 'Полный доступ' }
+        { id: 'USER_0', label: 'Пользователь 0', icon: '👁️', description: 'Просмотр сайта' },
+        { id: 'USER_1', label: 'Пользователь 1', icon: '🌱', description: 'Чат 1' },
+        { id: 'USER_2', label: 'Пользователь 2', icon: '⭐', description: 'Чат 2' },
+        { id: 'MODERATOR_ADMIN', label: 'Модератор/Админ', icon: '🛡️', description: 'Ответы + контент' },
+        { id: 'CONSULTANT_PITANIE', label: 'Консультант (питание)', icon: '🥗', description: 'Лента питания' },
+        { id: 'CONSULTANT_SPORT', label: 'Консультант (спорт)', icon: '⚽', description: 'Спортивный контент' },
+        { id: 'DEVELOPER', label: 'Разработчик', icon: '💻', description: 'Разработка' },
+        { id: 'VYACHESLAV', label: 'Вячеслав', icon: '👑', description: 'Владелец' },
+        { id: 'SUPER_ADMIN', label: 'Главный Админ', icon: '🔱', description: 'Полный доступ' }
     ];
 
     useEffect(() => {
@@ -41,12 +41,12 @@ const RoleSwitcher = ({ onRoleChange }) => {
         localStorage.setItem('demoRole', roleId);
 
         if (window.keycloakMock) {
-            const isAdmin = roleId.includes('admin') ||
-                           roleId.includes('consultant') ||
-                           roleId === 'developer' ||
-                           roleId === 'vyacheslav' ||
-                           roleId === 'super_admin';
-            window.keycloakMock.roles = isAdmin ? ['moderator_admin', 'user_2'] : [roleId];
+            const isAdmin = roleId.includes('ADMIN') ||
+                           roleId.includes('CONSULTANT') ||
+                           roleId === 'DEVELOPER' ||
+                           roleId === 'VYACHESLAV' ||
+                           roleId === 'SUPER_ADMIN';
+            window.keycloakMock.roles = isAdmin ? ['MODERATOR_ADMIN', 'USER_2'] : [roleId];
         }
 
         if (onRoleChange) {

@@ -16,7 +16,7 @@ const Dashboard = () => {
 
     useEffect(() => {
         const roles = getUserRoles();
-        setIsAdmin(roles.includes('admin') || roles.includes('moderator'));
+        setIsAdmin(roles.includes('MODERATOR_ADMIN') || roles.includes('SUPER_ADMIN') || roles.includes('VYACHESLAV'));
 
         loadNextEvent();
         loadPosts();

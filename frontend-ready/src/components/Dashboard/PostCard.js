@@ -83,7 +83,7 @@ const PostCard = ({ post, isAdmin, onPostUpdated, onPostDeleted, index }) => {
                     <div className="post-author-info">
                         <span className="post-author-name">{post.authorName || 'Admin'}</span>
                         <span className="post-author-role">
-                            {post.authorRole === 'admin' ? 'Администратор' : 'Модератор'}
+                            {post.authorRole === 'admin' ? 'Администратор' : post.authorRole === 'moderator' ? 'Модератор' : 'Пользователь'}
                         </span>
                     </div>
                 </div>
