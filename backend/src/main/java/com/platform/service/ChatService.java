@@ -6,13 +6,20 @@ import com.platform.model.Message;
 import com.platform.model.dto.MessageDto;
 import com.platform.repository.MediaFileRepository;
 import com.platform.repository.MessageRepository;
+import com.platform.repository.ChatRoomPermissionRepository;
+import org.springframework.security.access.AccessDeniedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 
+import com.platform.model.ChatRoom;
+import com.platform.repository.ChatRoomRepository;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +35,10 @@ public class ChatService {
     private final MessageRepository messageRepository;
     private final UserService userService;
     private final MediaFileRepository mediaFileRepository;
+    private final ChatRoomRepository chatRoomRepository;
+    private final ChatRoomService chatRoomService;
+    private final ChatRoomPermissionRepository chatRoomPermissionRepository;
+    private final NotificationService notificationService;
 
     public List<MessageDto> getGeneralMessages(int limit, String before) {
         Pageable pageable = PageRequest.of(0, limit);
@@ -206,6 +217,63 @@ public class ChatService {
                 .mediaId(message.getMediaId())
                 .mediaType(message.getMediaType())
                 .fileName(message.getFileName())
+                .roomId(message.getRoomId())
+                .roomSlug(message.getRoomSlug())
                 .build();
+    }
+
+    /**
+     * Потолочный метод получения сообщений — с проверкой прав по роли пользователя
+     */
+    @Cacheable(value = "chatMessages", key = "#roomSlug + '_' + #limit + '_' + #before")
+    public List<MessageDto> getMessagesByRoom(String roomSlug, int limit, Instant before, String userRole) {
+        ChatRoom room = chatRoomRepository.findBySlug(roomSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Chat room not found: " + roomSlug));
+
+        // Проверка прав
+        if (!chatRoomService.hasPermission(room.getId(), userRole, "read")) {
+            throw new AccessDeniedException("Нет прав на чтение комнаты: " + roomSlug);
+        }
+
+        List<Message> messages;
+        if (before == null) {
+            messages = messageRepository.findByRoomIdOrderByCreatedAtDesc(room.getId(), PageRequest.of(0, limit));
+        } else {
+            messages = messageRepository.findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(
+                    room.getId(), before, PageRequest.of(0, limit));
+        }
+        return messages.stream().map(this::toDto).toList();
+    }
+
+    /**
+     * Потолочный метод отправки сообщения — с проверкой прав
+     */
+    @CacheEvict(value = {"chatMessages", "unreadNotifications", "allNotifications"}, allEntries = true)
+    public MessageDto sendMessageToRoom(String roomSlug, String userId, String content, String mediaId, String userRole) {
+        ChatRoom room = chatRoomRepository.findBySlug(roomSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Chat room not found: " + roomSlug));
+
+        // Проверка прав на запись
+        if (!chatRoomService.hasPermission(room.getId(), userRole, "read_write")) {
+            throw new AccessDeniedException("Нет прав на отправку сообщений в комнату: " + roomSlug);
+        }
+
+        Message message = Message.builder()
+                .id(UUID.randomUUID().toString())
+                .userId(userId)
+                .content(content != null ? content : "")
+                .mediaId(mediaId)
+                .roomId(room.getId())
+                .roomSlug(room.getSlug())
+                .build();
+
+        Message saved = messageRepository.save(message);
+
+        // === УВЕДОМЛЕНИЯ ДЛЯ ВКЛАДКИ ПОМОЩЬ ===
+        if (room.getSlug().startsWith("questions-")) {
+            notificationService.notifyAboutNewQuestionMessage(saved, room);
+        }
+
+        return toDto(saved);
     }
 }

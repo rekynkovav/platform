@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 
 @Repository
@@ -38,4 +39,15 @@ public interface MessageRepository extends JpaRepository<Message, String> {
 
     @Query("SELECT COUNT(m) FROM Message m WHERE m.recipientId = :userId AND m.isRead = false")
     long countUnreadByRecipient(@Param("userId") String userId);
+
+    // === НОВЫЕ МЕТОДЫ ДЛЯ РАБОТЫ С room_id / room_slug ===
+    List<Message> findByRoomIdOrderByCreatedAtDesc(Long roomId, Pageable pageable);
+
+    List<Message> findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(
+            Long roomId, Instant before, Pageable pageable);
+
+    List<Message> findByRoomSlugOrderByCreatedAtDesc(String roomSlug, Pageable pageable);
+
+    List<Message> findByRoomSlugAndCreatedAtBeforeOrderByCreatedAtDesc(
+            String roomSlug, Instant before, Pageable pageable);
 }

@@ -31,6 +31,9 @@ public class MessageDto {
     private String fileName;
     private String mediaUrl;
 
+    private Long roomId;
+    private String roomSlug;
+
     @Data
     @Builder
     @NoArgsConstructor

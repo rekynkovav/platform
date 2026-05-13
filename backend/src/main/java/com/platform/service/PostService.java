@@ -119,7 +119,8 @@ public class PostService {
     }
 
     public PostDto.MediaUploadResponse uploadSecureMedia(MultipartFile file, String type) {
-        return secureMediaService.saveMedia(file, type);
+        // TODO: Нужно реализовать или изменить метод
+        throw new UnsupportedOperationException("Method not implemented yet");
     }
 
     private PostDto toDto(Post post, String userId) {

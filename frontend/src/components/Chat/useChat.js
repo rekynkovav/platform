@@ -1,139 +1,65 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { chatApi, mediaApi } from '../../services/api';
 
-export const useChat = (chatRoom, config = {}) => {
+export const useChat = (initialRoom = 'general', config = {}) => {
     const {
-        storageKeyPrefix = 'chatMessages',
         canSwitchRooms = true,
-        availableRooms = [],
-        useApi = true // Использовать API или localStorage
+        useApi = true
     } = config;
 
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [currentRoom, setCurrentRoom] = useState(chatRoom || 'default');
-    const [canSwitch, setCanSwitch] = useState(canSwitchRooms);
-    const [currentUserAuthor, setCurrentUserAuthor] = useState('');
+    const [currentRoom, setCurrentRoom] = useState(initialRoom);
+    const [currentUserAuthor, setCurrentUserAuthor] = useState('Пользователь');
     const [isRecording, setIsRecording] = useState(false);
-    const [mediaRecorder, setMediaRecorder] = useState(null);
     const [recordingTime, setRecordingTime] = useState(0);
-    const [recordingInterval, setRecordingInterval] = useState(null);
     const [uploading, setUploading] = useState(false);
 
-    // Кэш для URL медиа файлов
-    const mediaUrlCache = useRef(new Map());
-    const chunksRef = useRef([]);
-
-    // Определяем текущего пользователя и права доступа
+    // Определение автора по роли
     useEffect(() => {
         const demoRole = localStorage.getItem('demoRole');
         let author = 'Пользователь';
 
-        if (demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin') {
+        if (['MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV', 'DEVELOPER'].includes(demoRole)) {
             author = 'Админ';
-        } else if (demoRole === 'user1') {
+        } else if (demoRole === 'USER_1') {
             author = 'Пользователь 1';
-        } else if (demoRole === 'user2') {
+        } else if (demoRole === 'USER_2') {
             author = 'Пользователь 2';
         }
 
         setCurrentUserAuthor(author);
-
-        // Настройка прав переключения комнат
-        if (demoRole === 'user_1') {
-            setCurrentRoom('user1');
-            setCanSwitch(false);
-        } else if (demoRole === 'user_2') {
-            setCanSwitch(true);
-        }
     }, []);
 
-    // Определение типа медиа по MIME
-    const getMediaType = (mimeType) => {
-        if (mimeType?.startsWith('image/')) return 'image';
-        if (mimeType?.startsWith('video/')) return 'video';
-        if (mimeType?.startsWith('audio/')) return 'audio';
-        return 'file';
-    };
+    // Загрузка сообщений
+    const loadMessages = useCallback(async () => {
+        if (!useApi) {
+            setLoading(false);
+            return;
+        }
 
-    // Загрузка сообщений с API
-    const loadMessagesFromApi = useCallback(async (room) => {
         try {
-            const response = await chatApi.getMessages(50);
-
-            // Преобразуем сообщения с медиа
-            const msgs = await Promise.all(response.data.map(async (msg) => {
-                if (msg.mediaId) {
-                    // ПолучаемPresigned URL для медиа
-                    try {
-                        const mediaResponse = await mediaApi.getStreamUrl(msg.mediaId);
-                        return {
-                            ...msg,
-                            mediaUrl: mediaResponse.data.url,
-                            mediaType: msg.mediaType || 'file'
-                        };
-                    } catch (e) {
-                        console.error('Failed to load media URL:', e);
-                        return msg;
-                    }
-                }
-                return msg;
-            }));
-
-            setMessages(msgs);
-        } catch (error) {
-            console.error('Failed to load messages from API:', error);
-            // Fallback к localStorage
-            loadMessagesFromStorage(room);
+            setLoading(true);
+            const response = await chatApi.getGeneralMessages(100);
+            setMessages(Array.isArray(response.data) ? response.data : []);
+        } catch (err) {
+            console.error('Failed to load messages', err);
+            setMessages([]);
+        } finally {
+            setLoading(false);
         }
-    }, []);
-
-    // Загрузка из localStorage
-    const loadMessagesFromStorage = useCallback((room) => {
-        const key = `${storageKeyPrefix}_${room}`;
-        const savedMessages = localStorage.getItem(key);
-
-        if (savedMessages) {
-            setMessages(JSON.parse(savedMessages));
-        } else {
-            const initialMessage = {
-                id: 1,
-                author: 'Система',
-                content: 'Добро пожаловать в чат!',
-                timestamp: new Date().toISOString()
-            };
-            setMessages([initialMessage]);
-            localStorage.setItem(key, JSON.stringify([initialMessage]));
-        }
-        setLoading(false);
-    }, [storageKeyPrefix]);
-
-    // Основная функция загрузки
-    const loadMessages = useCallback((room) => {
-        if (useApi) {
-            loadMessagesFromApi(room);
-        } else {
-            loadMessagesFromStorage(room);
-        }
-    }, [useApi, loadMessagesFromApi, loadMessagesFromStorage]);
+    }, [useApi]);
 
     useEffect(() => {
-        loadMessages(currentRoom);
+        loadMessages();
     }, [currentRoom, loadMessages]);
-
-    // Смена комнаты
-    const changeRoom = useCallback((room) => {
-        if (!canSwitch) return;
-        setCurrentRoom(room);
-    }, [canSwitch]);
 
     // Отправка сообщения
     const sendMessage = useCallback(async (content, mediaId = null) => {
         if (!content?.trim() && !mediaId) return;
 
-        const tempId = `temp_${Date.now()}`;
         const tempMessage = {
-            id: tempId,
+            id: `temp_${Date.now()}`,
             author: currentUserAuthor,
             content: content?.trim() || '',
             mediaId,
@@ -141,314 +67,72 @@ export const useChat = (chatRoom, config = {}) => {
             pending: true
         };
 
-        // Добавляем временное сообщение
         setMessages(prev => [...prev, tempMessage]);
 
-        if (useApi) {
-            try {
-                const response = await chatApi.sendMessage(content, mediaId);
-                // Заменяем временное сообщение реальным
-                setMessages(prev =>
-                    prev.map(msg =>
-                        msg.id === tempId
-                            ? { ...response.data, pending: false }
-                            : msg
-                    )
-                );
-                return response.data;
-            } catch (error) {
-                console.error('Failed to send message:', error);
-                // Удаляем временное сообщение при ошибке
-                setMessages(prev => prev.filter(msg => msg.id !== tempId));
-                throw error;
-            }
-        } else {
-            // LocalStorage режим
-            const message = {
-                id: Date.now(),
-                author: currentUserAuthor,
-                content: content.trim(),
-                mediaId,
-                timestamp: new Date().toISOString()
-            };
-
+        try {
+            const response = await chatApi.sendToGeneralChat(content, mediaId);
             setMessages(prev =>
                 prev.map(msg =>
-                    msg.id === tempId
-                        ? { ...message, pending: false }
-                        : msg
+                    msg.id === tempMessage.id ? { ...response.data, pending: false } : msg
                 )
             );
-
-            const key = `${storageKeyPrefix}_${currentRoom}`;
-            const saved = localStorage.getItem(key);
-            const existing = saved ? JSON.parse(saved) : [];
-            localStorage.setItem(key, JSON.stringify([...existing, message]));
-
-            return message;
+        } catch (error) {
+            console.error('Failed to send message', error);
+            setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
         }
-    }, [currentUserAuthor, currentRoom, useApi, storageKeyPrefix]);
+    }, [currentUserAuthor]);
 
-    // Загрузка файла на сервер
+    // Загрузка медиа
     const uploadMedia = useCallback(async (file) => {
         setUploading(true);
-
         try {
-            const type = getMediaType(file.type);
+            const type = file.type.startsWith('image/') ? 'image' :
+                        file.type.startsWith('video/') ? 'video' :
+                        file.type.startsWith('audio/') ? 'audio' : 'file';
+
             const response = await mediaApi.upload(file, type);
-            const mediaFile = response.data;
-
-            // Получаем presigned URL для предпросмотра
-            let mediaUrl = null;
-            try {
-                const urlResponse = await mediaApi.getStreamUrl(mediaFile.id);
-                mediaUrl = urlResponse.data.url;
-            } catch (e) {
-                console.warn('Could not get preview URL:', e);
-            }
-
-            return {
-                mediaId: mediaFile.id,
-                mediaType: type,
-                mediaUrl,
-                fileName: file.name
-            };
+            return response.data;
         } catch (error) {
-            console.error('Failed to upload media:', error);
+            console.error('Upload failed', error);
             throw error;
         } finally {
             setUploading(false);
         }
     }, []);
 
-    // Старая функция для совместимости (localStorage)
-    const uploadFile = useCallback((file) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
+    // Заглушки для пока не реализованных функций
+    const editMessage = useCallback(() => {
+        console.warn('Редактирование сообщений через API пока не реализовано');
+    }, []);
 
-            reader.onload = (event) => {
-                const message = {
-                    id: Date.now(),
-                    author: currentUserAuthor,
-                    content: file.name,
-                    fileUrl: event.target.result,
-                    fileType: file.type,
-                    fileName: file.name,
-                    timestamp: new Date().toISOString(),
-                    type: getMediaType(file.type)
-                };
+    const deleteMessage = useCallback(() => {
+        console.warn('Удаление сообщений через API пока не реализовано');
+    }, []);
 
-                setMessages(prev => [...prev, message]);
-
-                const key = `${storageKeyPrefix}_${currentRoom}`;
-                const saved = localStorage.getItem(key);
-                const existing = saved ? JSON.parse(saved) : [];
-                localStorage.setItem(key, JSON.stringify([...existing, message]));
-
-                resolve(message);
-            };
-
-            reader.onerror = () => reject(reader.error);
-            reader.readAsDataURL(file);
-        });
-    }, [currentUserAuthor, currentRoom, storageKeyPrefix]);
-
-    // Редактирование сообщения
-    const editMessage = useCallback((msgId, newContent) => {
-        if (!newContent.trim()) return;
-
-        if (useApi) {
-            // TODO: API для редактирования
-            console.warn('Edit via API not implemented yet');
-        }
-
-        const updatedMessages = messages.map(msg =>
-            msg.id === msgId
-                ? { ...msg, content: newContent.trim(), edited: true }
-                : msg
-        );
-
-        setMessages(updatedMessages);
-
-        if (!useApi) {
-            const key = `${storageKeyPrefix}_${currentRoom}`;
-            localStorage.setItem(key, JSON.stringify(updatedMessages));
-        }
-    }, [messages, currentRoom, useApi, storageKeyPrefix]);
-
-    // Удаление сообщения
-    const deleteMessage = useCallback((msgId) => {
-        const messageToDelete = messages.find(msg => msg.id === msgId);
-        if (!messageToDelete || messageToDelete.author !== currentUserAuthor) {
-            alert('Вы можете удалять только свои сообщения');
-            return false;
-        }
-
-        if (!window.confirm('Удалить это сообщение?')) return false;
-
-        if (useApi) {
-            // TODO: API для удаления
-            console.warn('Delete via API not implemented yet');
-        }
-
-        const updatedMessages = messages.filter(msg => msg.id !== msgId);
-        setMessages(updatedMessages);
-
-        if (!useApi) {
-            const key = `${storageKeyPrefix}_${currentRoom}`;
-            localStorage.setItem(key, JSON.stringify(updatedMessages));
-        }
-
-        return true;
-    }, [messages, currentUserAuthor, currentRoom, useApi, storageKeyPrefix]);
-
-    // Запись голосового
-    const startRecording = useCallback(async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
-            chunksRef.current = [];
-
-            recorder.ondataavailable = (e) => {
-                if (e.data.size > 0) {
-                    chunksRef.current.push(e.data);
-                }
-            };
-
-            recorder.onstop = async () => {
-                const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-                stream.getTracks().forEach(track => track.stop());
-
-                if (useApi) {
-                    // Загружаем на сервер
-                    try {
-                        setUploading(true);
-                        const type = 'audio';
-                        const response = await mediaApi.upload(blob, type);
-                        const mediaFile = response.data;
-
-                        // Получаем URL для воспроизведения
-                        let mediaUrl = null;
-                        try {
-                            const urlResponse = await mediaApi.getStreamUrl(mediaFile.id);
-                            mediaUrl = urlResponse.data.url;
-                        } catch (e) {
-                            console.warn('Could not get audio URL:', e);
-                        }
-
-                        // Отправляем сообщение с медиа
-                        await sendMessage('Голосовое сообщение', mediaFile.id);
-
-                        // Добавляем в локальный кэш
-                        mediaUrlCache.current.set(mediaFile.id, mediaUrl);
-                    } catch (error) {
-                        console.error('Failed to upload voice message:', error);
-                        alert('Не удалось загрузить голосовое сообщение');
-                    } finally {
-                        setUploading(false);
-                    }
-                } else {
-                    // LocalStorage - сохраняем как base64
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        const message = {
-                            id: Date.now(),
-                            author: currentUserAuthor,
-                            content: 'Голосовое сообщение',
-                            fileUrl: event.target.result,
-                            fileType: 'audio/webm',
-                            timestamp: new Date().toISOString(),
-                            type: 'voice'
-                        };
-
-                        setMessages(prev => {
-                            const updated = [...prev, message];
-                            const key = `${storageKeyPrefix}_${currentRoom}`;
-                            localStorage.setItem(key, JSON.stringify(updated));
-                            return updated;
-                        });
-                    };
-                    reader.readAsDataURL(blob);
-                }
-            };
-
-            recorder.start();
-            setMediaRecorder(recorder);
-            setIsRecording(true);
-            setRecordingTime(0);
-
-            const interval = setInterval(() => {
-                setRecordingTime(prev => prev + 1);
-            }, 1000);
-            setRecordingInterval(interval);
-        } catch (error) {
-            console.error('Ошибка доступа к микрофону:', error);
-            alert('Не удалось получить доступ к микрофону');
-        }
-    }, [currentUserAuthor, currentRoom, useApi, sendMessage, storageKeyPrefix]);
+    const startRecording = useCallback(() => {
+        setIsRecording(true);
+        setRecordingTime(0);
+    }, []);
 
     const stopRecording = useCallback(() => {
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
-            setIsRecording(false);
-            if (recordingInterval) {
-                clearInterval(recordingInterval);
-                setRecordingInterval(null);
-            }
-        }
-    }, [mediaRecorder, recordingInterval]);
-
-    // Получение URL для медиа (с кэшированием)
-    const getMediaUrl = useCallback(async (mediaId) => {
-        if (mediaUrlCache.current.has(mediaId)) {
-            return mediaUrlCache.current.get(mediaId);
-        }
-
-        if (useApi) {
-            try {
-                const response = await mediaApi.getStreamUrl(mediaId);
-                const url = response.data.url;
-                mediaUrlCache.current.set(mediaId, url);
-                return url;
-            } catch (error) {
-                console.error('Failed to get media URL:', error);
-                return null;
-            }
-        }
-
-        return null;
-    }, [useApi]);
-
-    // Форматирование времени
-    const formatRecordingTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
+        setIsRecording(false);
+        setRecordingTime(0);
+    }, []);
 
     return {
-        // Состояние
         messages,
         loading,
         currentRoom,
-        canSwitch,
         currentUserAuthor,
         isRecording,
         recordingTime,
         uploading,
-
-        // Действия
-        changeRoom,
         sendMessage,
         editMessage,
         deleteMessage,
-        uploadFile,
-        uploadMedia,      // Новая функция для загрузки на сервер
+        uploadMedia,
         startRecording,
-        stopRecording,
-        formatRecordingTime,
-        getMediaUrl,
-        loadMessages
+        stopRecording
     };
 };
 

@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01-create-chat-rooms-table
+      author: grok-xirurg
+      labels: schema
+      comment: "Потолочная сущность ChatRoom — единая нормализованная модель комнат (general, nutrition, questions и будущие)"
+      changes:
+        - createTable:
+            tableName: chat_rooms
+            remarks: Комнаты чатов и вопросов (масштабируется без изменений кода)
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: slug
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+                    unique: true
+                  remarks: "уникальный идентификатор комнаты: user1, user2, nutrition, questions-general и т.д."
+              - column:
+                  name: type
+                  type: VARCHAR(30)
+                  defaultValue: "general"
+                  remarks: "general | nutrition | question | admin | private"
+              - column:
+                  name: name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+              - column:
+                  name: settings
+                  type: JSONB
+                  remarks: "slowmode, permissions, pinned и т.д."
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+        - createIndex:
+            indexName: idx_chat_rooms_slug
+            tableName: chat_rooms
+            columns:
+              - column: { name: slug }
+
+        - createIndex:
+            indexName: idx_chat_rooms_type
+            tableName: chat_rooms
+            columns:
+              - column: { name: type }

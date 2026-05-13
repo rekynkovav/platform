@@ -38,3 +38,19 @@ databaseChangeLog:
   - include:
       file: v4/01-add-media-to-messages.yaml
       relativeToChangelogFile: true
+
+  - include:
+      file: v5/01-create-chat-rooms.yaml
+      relativeToChangelogFile: true
+
+  - include:
+      file: v5/02-add-room-id-to-messages.yaml
+      relativeToChangelogFile: true
+
+  - include:
+      file: v5/03-backfill-room-id.yaml
+      relativeToChangelogFile: true
+
+  - include:
+      file: v5/04-create-room-permissions.yaml
+      relativeToChangelogFile: true

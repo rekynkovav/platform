@@ -51,4 +51,10 @@ public class Message {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "room_id")
+    private Long roomId;
+
+    @Column(name = "room_slug", length = 100)
+    private String roomSlug;
 }

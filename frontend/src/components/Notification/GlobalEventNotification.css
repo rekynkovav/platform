@@ -1,83 +1,78 @@
 .global-event-notification {
     position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 2000;
-    cursor: pointer;
-    animation: slideInLeft 0.5s ease-out;
-}
-
-.notification-bubble-glass {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(12px);
-    border-radius: 16px;
-    padding: 12px 20px;
-    color: var(--text-primary);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.notification-bubble-glass:hover {
-    transform: scale(1.05);
-    background: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-}
-
-.bubble-content-glass {
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #0d6efd, #6610f2);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(13, 110, 253, 0.3);
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    z-index: 1100;
+    animation: slideDown 0.4s ease;
+    max-width: 420px;
+    width: 90%;
 }
 
-.bubble-label-glass {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    opacity: 1;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    background: linear-gradient(135deg, var(--accent), #a78bfa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
 }
 
-.bubble-title-glass {
+.notification-icon {
+    font-size: 24px;
+}
+
+.notification-text {
+    flex: 1;
     font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
+    line-height: 1.4;
 }
 
-.bubble-timer-glass {
+.notification-text strong {
+    display: block;
+    margin-bottom: 2px;
+}
+
+.notification-close {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
     font-size: 16px;
-    font-weight: bold;
-    font-family: monospace;
-    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 
-@keyframes slideInLeft {
+.notification-close:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+@keyframes slideDown {
     from {
-        transform: translateX(-100%);
         opacity: 0;
+        transform: translate(-50%, -20px);
     }
     to {
-        transform: translateX(0);
         opacity: 1;
+        transform: translate(-50%, 0);
     }
 }
 
 @media (max-width: 768px) {
-    .notification-bubble-glass {
-        padding: 8px 16px;
-    }
-
-    .bubble-title-glass {
-        font-size: 12px;
-    }
-
-    .bubble-timer-glass {
-        font-size: 12px;
+    .global-event-notification {
+        top: 70px;
+        padding: 10px 18px;
     }
 }

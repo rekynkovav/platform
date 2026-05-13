@@ -104,6 +104,24 @@
 			<version>24.0.3</version>
 		</dependency>
 
+		<!-- Rate-limiting (Bucket4j) — потолочный стандарт -->
+		<dependency>
+			<groupId>com.github.vladimir-bukhtoyarov.bucket4j</groupId>
+			<artifactId>bucket4j-spring-boot-starter</artifactId>
+			<version>0.8.0</version>
+		</dependency>
+
+		<!-- Кэширование (Caffeine — лёгкий in-memory, можно позже заменить на Redis) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+			<version>3.1.8</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

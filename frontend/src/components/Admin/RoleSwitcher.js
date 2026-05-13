@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './RoleSwitcher.css';
 
-const RoleSwitcher = ({ onRoleChange }) => {
+const RoleSwitcher = () => {
     const [currentRole, setCurrentRole] = useState(() => {
         return localStorage.getItem('demoRole') || 'USER_0';
     });
@@ -39,20 +39,6 @@ const RoleSwitcher = ({ onRoleChange }) => {
     const handleRoleChange = (roleId) => {
         setCurrentRole(roleId);
         localStorage.setItem('demoRole', roleId);
-
-        if (window.keycloakMock) {
-            const isAdmin = roleId.includes('ADMIN') ||
-                           roleId.includes('CONSULTANT') ||
-                           roleId === 'DEVELOPER' ||
-                           roleId === 'VYACHESLAV' ||
-                           roleId === 'SUPER_ADMIN';
-            window.keycloakMock.roles = isAdmin ? ['MODERATOR_ADMIN', 'USER_2'] : [roleId];
-        }
-
-        if (onRoleChange) {
-            onRoleChange(roleId);
-        }
-
         setIsOpen(false);
         window.location.reload();
     };
