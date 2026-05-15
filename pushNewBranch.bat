@@ -16,14 +16,29 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Get timestamp in format: DD-MM-YYYY_HH-MM-SS
+:: Ensure .gitignore exists — CREATE IF MISSING
+if not exist .gitignore (
+    echo Creating .gitignore...
+    (
+        echo node_modules/
+        echo .cache/
+        echo dist/
+        echo build/
+        echo .next/
+        echo .env
+        echo *.log
+    ) > .gitignore
+    echo .gitignore created.
+)
+
+:: Get timestamp
 for /f "delims=" %%i in ('powershell -Command "Get-Date -Format 'dd-MM-yyyy_HH-mm-ss'"') do set BRANCH_NAME=%%i
 
 echo Creating new branch: %BRANCH_NAME%
 echo.
 
-:: Add all changes
-echo Adding all changes...
+:: Add changes — RESPECT .gitignore
+echo Adding changes (respecting .gitignore)...
 git add .
 
 :: Commit
@@ -34,7 +49,7 @@ git commit -m "Auto-commit: snapshot %BRANCH_NAME%" --allow-empty
 echo Creating new branch...
 git checkout -b %BRANCH_NAME%
 
-:: Update README.md with new features
+:: Update README.md
 echo Updating README.md...
 call :updateReadme
 
@@ -60,13 +75,13 @@ set "timestamp=%BRANCH_NAME%"
 set "date_part=%timestamp:~0,10%"
 set "time_part=%timestamp:~11,8%"
 
-echo.
-echo # New Features (%date_part% %time_part%) >> README.md
-echo.
-echo - Auto-generated update from branch: %BRANCH_NAME%
-echo - Commit timestamp: %timestamp%
-echo.
-echo ---
-echo.
+echo. >> README.md
+echo ## New Features (%date_part% %time_part%) >> README.md
+echo. >> README.md
+echo - Auto-generated update from branch: %BRANCH_NAME% >> README.md
+echo - Commit timestamp: %timestamp% >> README.md
+echo. >> README.md
+echo --- >> README.md
+echo. >> README.md
 
 exit /b 0
