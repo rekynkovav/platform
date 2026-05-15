@@ -168,7 +168,6 @@ const NutritionFeed = () => {
 
     // Состояния для навигационных меню
     const [hoveredMenu, setHoveredMenu] = useState(null);
-    const [hideTimeout, setHideTimeout] = useState(null);
     const [isOverCard, setIsOverCard] = useState(false);
     const [isOverDropdown, setIsOverDropdown] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -177,6 +176,8 @@ const NutritionFeed = () => {
     const [menuData, setMenuData] = useState({});
     const [itemToDelete, setItemToDelete] = useState(null);
     const [showDeleteItemConfirm, setShowDeleteItemConfirm] = useState(false);
+    const hideTimeoutRef = useRef(null);
+    const blobUrlsRef = useRef([]);
 
     const {
         playTrack,
@@ -268,6 +269,14 @@ const NutritionFeed = () => {
         }
     }, [showAddForm]);
 
+    // Cleanup при размонтировании
+    useEffect(() => {
+        return () => {
+            blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+            blobUrlsRef.current = [];
+        };
+    }, []);
+
     // Функция для определения типа файла
     const getFileType = (file) => {
         if (file.type.startsWith('audio/')) return 'audio';
@@ -282,6 +291,7 @@ const NutritionFeed = () => {
 
         const fileType = getFileType(file);
         const url = URL.createObjectURL(file);
+        blobUrlsRef.current.push(url);
 
         setNewPost({
             ...newPost,
@@ -539,9 +549,9 @@ const NutritionFeed = () => {
     , [nutritionMenus, hoveredMenu]);
 
     const handleMenuEnter = useCallback((menuId, event) => {
-        if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            setHideTimeout(null);
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
         }
         const rect = event.currentTarget.getBoundingClientRect();
         const windowWidth = window.innerWidth;
@@ -564,19 +574,19 @@ const NutritionFeed = () => {
         });
         setHoveredMenu(menuId);
         setIsOverCard(true);
-    }, [hideTimeout]);
+    }, []);
 
     const handleCardLeave = useCallback(() => {
         setIsOverCard(false);
     }, []);
 
     const handleDropdownEnter = useCallback(() => {
-        if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            setHideTimeout(null);
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
         }
         setIsOverDropdown(true);
-    }, [hideTimeout]);
+    }, []);
 
     const handleDropdownLeave = useCallback(() => {
         setIsOverDropdown(false);
@@ -587,7 +597,7 @@ const NutritionFeed = () => {
             const timeout = setTimeout(() => {
                 setHoveredMenu(null);
             }, 100);
-            setHideTimeout(timeout);
+            hideTimeoutRef.current = timeout;
             return () => clearTimeout(timeout);
         }
     }, [isOverCard, isOverDropdown]);
@@ -596,11 +606,11 @@ const NutritionFeed = () => {
         setSelectedMenuId(menuId);
         setShowAddModal(true);
         setHoveredMenu(null);
-        if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            setHideTimeout(null);
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
         }
-    }, [hideTimeout]);
+    }, []);
 
     const handleSaveContent = useCallback((data) => {
         const updatedData = { ...menuData };
@@ -640,11 +650,11 @@ const NutritionFeed = () => {
         setItemToDelete({ menuId, itemId, itemTitle });
         setShowDeleteItemConfirm(true);
         setHoveredMenu(null);
-        if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            setHideTimeout(null);
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
         }
-    }, [hideTimeout]);
+    }, []);
 
     const executeDeleteItem = useCallback(() => {
         if (!itemToDelete) return;

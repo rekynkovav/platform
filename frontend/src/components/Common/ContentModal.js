@@ -10,6 +10,7 @@ const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescr
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const [recordingTime, setRecordingTime] = useState(0);
     const recordingTimerRef = useRef(null);
+    const blobUrlsRef = useRef([]);
 
     useEffect(() => {
         setTitle(initialTitle);
@@ -27,6 +28,8 @@ const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescr
                 clearInterval(recordingTimerRef.current);
                 recordingTimerRef.current = null;
             }
+            blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+            blobUrlsRef.current = [];
             setTitle('');
             setDescription('');
             setMediaUrl('');
@@ -41,6 +44,8 @@ const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescr
             if (recordingTimerRef.current) {
                 clearInterval(recordingTimerRef.current);
             }
+            blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+            blobUrlsRef.current = [];
         };
     }, []);
 
@@ -48,6 +53,7 @@ const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescr
         const file = e.target.files[0];
         if (file) {
             const url = URL.createObjectURL(file);
+            blobUrlsRef.current.push(url);
             setMediaUrl(url);
 
             if (file.type.startsWith('image/')) {
@@ -75,6 +81,7 @@ const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescr
             recorder.onstop = () => {
                 const audioBlob = new Blob(chunks, { type: 'audio/webm' });
                 const audioUrl = URL.createObjectURL(audioBlob);
+                blobUrlsRef.current.push(audioUrl);
                 setMediaUrl(audioUrl);
                 setMediaType('audio');
                 stream.getTracks().forEach(track => track.stop());
@@ -127,6 +134,9 @@ const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescr
         setDescription('');
         setMediaUrl('');
         setMediaType('');
+        // Revoke blob URLs after save
+        blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+        blobUrlsRef.current = [];
     };
 
     if (!isOpen) return null;
@@ -188,6 +198,7 @@ const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescr
                             <button
                                 className="content-modal-remove-file"
                                 onClick={() => {
+                                    if (mediaUrl && mediaUrl.startsWith('blob:')) URL.revokeObjectURL(mediaUrl);
                                     setMediaUrl('');
                                     setMediaType('');
                                 }}

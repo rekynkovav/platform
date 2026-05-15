@@ -31,6 +31,11 @@ const ChatRoom = ({
 
     const fileInputRef = useRef(null);
     const messagesEndRef = useRef(null);
+    const mountedRef = useRef(true);
+
+    useEffect(() => {
+        return () => { mountedRef.current = false; };
+    }, []);
 
     // Прокрутка к последнему сообщению
     useEffect(() => {
@@ -65,13 +70,13 @@ const ChatRoom = ({
         if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                setFilePreview(event.target.result);
+                if (mountedRef.current) setFilePreview(event.target.result);
             };
             reader.readAsDataURL(file);
         } else if (file.type.startsWith('audio/')) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                setFilePreview(event.target.result);
+                if (mountedRef.current) setFilePreview(event.target.result);
             };
             reader.readAsDataURL(file);
         } else {
@@ -115,9 +120,9 @@ const ChatRoom = ({
             setIsUploading(false);
         }
 
-        // Отправляем текстовое сообщение
+        // Отправка текстового сообщения
         if (newMessage.trim()) {
-            onSendMessage(newMessage);
+            if (onSendMessage) onSendMessage(newMessage);
         }
 
         // Очищаем
@@ -140,7 +145,7 @@ const ChatRoom = ({
 
     const handleSaveEdit = (msgId) => {
         if (!editingContent.trim()) return;
-        onEditMessage(msgId, editingContent);
+        if (onEditMessage) onEditMessage(msgId, editingContent);
         setEditingMessageId(null);
         setEditingContent('');
     };
@@ -151,7 +156,7 @@ const ChatRoom = ({
     };
 
     const handleDeleteMessage = (msgId) => {
-        onDeleteMessage(msgId);
+        if (onDeleteMessage) onDeleteMessage(msgId);
     };
 
     const getRoomTitle = () => {

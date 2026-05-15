@@ -13,6 +13,7 @@ const MainFeed = () => {
     const addFormRef = useRef(null);
     const [activeAudioPostId, setActiveAudioPostId] = useState(null);
     const [, forceUpdate] = useState(0);
+    const blobUrlsRef = useRef([]);
 
     // Состояния для модального окна подтверждения удаления
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -73,6 +74,17 @@ const MainFeed = () => {
             return () => clearTimeout(timer);
         }
     }, [currentTrack]);
+
+    // Cleanup blob URLs и recording timer при размонтировании
+    useEffect(() => {
+        return () => {
+            if (recordingTimerRef.current) {
+                clearInterval(recordingTimerRef.current);
+            }
+            blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+            blobUrlsRef.current = [];
+        };
+    }, []);
 
     // Загрузка постов и ролей
     useEffect(() => {
@@ -179,8 +191,7 @@ const MainFeed = () => {
 
     const handleAddPost = () => {
         const demoRole = localStorage.getItem('demoRole');
-        const isAdmin = demoRole === 'admin_moderator' || demoRole === 'admin_consultant' || demoRole === 'developer' || demoRole === 'super_admin';
-
+        const isAdmin = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
         if (!isAdmin) {
             alert('Только администратор может добавлять записи');
             return;
@@ -203,6 +214,7 @@ const MainFeed = () => {
             recorder.onstop = async () => {
                 const audioBlob = new Blob(chunks, { type: 'audio/webm' });
                 const audioUrl = URL.createObjectURL(audioBlob);
+                blobUrlsRef.current.push(audioUrl);
 
                 setNewPost({
                     ...newPost,
@@ -253,6 +265,7 @@ const MainFeed = () => {
 
         const fileType = getFileType(file);
         const url = URL.createObjectURL(file);
+        blobUrlsRef.current.push(url);
 
         setNewPost({
             ...newPost,
@@ -287,6 +300,10 @@ const MainFeed = () => {
         setIsRecording(false);
         setRecordingTime(0);
 
+        // Revoke blob URLs
+        blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+        blobUrlsRef.current = [];
+
         setTimeout(() => {
             if (feedEndRef.current) {
                 feedEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -305,8 +322,7 @@ const MainFeed = () => {
         if (!postToDelete) return;
 
         const demoRole = localStorage.getItem('demoRole');
-        const isAdmin = demoRole === 'admin_moderator' || demoRole === 'admin_consultant' || demoRole === 'developer' || demoRole === 'super_admin';
-
+        const isAdmin = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
         if (!isAdmin) {
             alert('Только администратор может удалять записи!');
             setShowDeleteConfirm(false);
@@ -381,6 +397,8 @@ const MainFeed = () => {
         setEditingPost(null);
         setIsRecording(false);
         setRecordingTime(0);
+        blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+        blobUrlsRef.current = [];
     };
 
     // Функция для отмены редактирования
@@ -390,6 +408,8 @@ const MainFeed = () => {
         setNewPost({ type: 'text', title: '', content: '', url: '' });
         setIsRecording(false);
         setRecordingTime(0);
+        blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+        blobUrlsRef.current = [];
     };
 
     // Функция для скачивания материала (только для главного админа)
@@ -485,7 +505,7 @@ const MainFeed = () => {
     };
 
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin_moderator' || demoRole === 'admin_consultant' || demoRole === 'developer' || demoRole === 'super_admin';
+    const isAdmin = demoRole === 'admin_moderator' || demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
     const isSuperAdmin = demoRole === 'super_admin';
 
     return (
@@ -699,7 +719,12 @@ const MainFeed = () => {
                                             </span>
                                             <button
                                                 className="remove-file"
-                                                onClick={() => setNewPost({...newPost, url: '', type: 'text'})}
+                                                onClick={() => {
+                                                    setNewPost(prev => {
+                                                        if (prev.url && prev.url.startsWith('blob:')) URL.revokeObjectURL(prev.url);
+                                                        return { ...prev, url: '', type: 'text' };
+                                                    });
+                                                }}
                                             >
                                                 ✕
                                             </button>

@@ -69,3 +69,35 @@ app:
   media:
     upload-path: ${MEDIA_PATH:/tmp/platform-media}
     base-url: ${MEDIA_BASE_URL:https://api.platform.com/media}
+
+spring:
+  cache:
+    type: caffeine
+
+bucket4j:
+  enabled: true
+  filters:
+    - cache-name: chat-api
+      url: /api/chat/**
+      rate-limits:
+        - bandwidths:
+            - capacity: 60
+              time: 1
+              unit: MINUTES
+            - capacity: 300
+              time: 1
+              unit: HOURS
+    - cache-name: notification-api
+      url: /api/notifications/**
+      rate-limits:
+        - bandwidths:
+            - capacity: 30
+              time: 1
+              unit: MINUTES
+    - cache-name: media-api
+      url: /api/media/**
+      rate-limits:
+        - bandwidths:
+            - capacity: 20
+              time: 1
+              unit: MINUTES

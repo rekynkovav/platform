@@ -23,7 +23,7 @@ export const AudioPlayerProvider = ({ children }) => {
     const audioRef = useRef(null);
     const videoRef = useRef(null);
     const hideTimeoutRef = useRef(null);
-    let animationFrameRef = useRef(null);
+    const animationFrameRef = useRef(null);
 
     // Отслеживание скролла
     useEffect(() => {
@@ -53,38 +53,45 @@ export const AudioPlayerProvider = ({ children }) => {
 
     useEffect(() => {
         const mediaRef = getMediaRef();
-        if (mediaRef.current) {
-            const updateTime = () => {
-                setCurrentTime(mediaRef.current.currentTime);
-                animationFrameRef.current = requestAnimationFrame(updateTime);
-            };
+        if (!mediaRef.current) return;
 
-            const updateDuration = () => setDuration(mediaRef.current.duration);
+        const el = mediaRef.current;
 
-            mediaRef.current.addEventListener('loadedmetadata', updateDuration);
-            mediaRef.current.addEventListener('ended', () => {
-                setIsPlaying(false);
-                setCurrentTrack(null);
-                setCurrentTime(0);
-                setDuration(0);
-                setIsMinimized(false);
-            });
-            mediaRef.current.addEventListener('play', () => setIsPlaying(true));
-            mediaRef.current.addEventListener('pause', () => setIsPlaying(false));
+        const updateTime = () => {
+            setCurrentTime(el.currentTime);
+            animationFrameRef.current = requestAnimationFrame(updateTime);
+        };
 
-            if (isPlaying) {
-                animationFrameRef.current = requestAnimationFrame(updateTime);
-            }
+        const updateDuration = () => setDuration(el.duration);
 
-            return () => {
-                if (mediaRef.current) {
-                    mediaRef.current.removeEventListener('loadedmetadata', updateDuration);
-                }
-                if (animationFrameRef.current) {
-                    cancelAnimationFrame(animationFrameRef.current);
-                }
-            };
+        const handleEnded = () => {
+            setIsPlaying(false);
+            setCurrentTrack(null);
+            setCurrentTime(0);
+            setDuration(0);
+            setIsMinimized(false);
+        };
+        const handlePlay = () => setIsPlaying(true);
+        const handlePause = () => setIsPlaying(false);
+
+        el.addEventListener('loadedmetadata', updateDuration);
+        el.addEventListener('ended', handleEnded);
+        el.addEventListener('play', handlePlay);
+        el.addEventListener('pause', handlePause);
+
+        if (isPlaying) {
+            animationFrameRef.current = requestAnimationFrame(updateTime);
         }
+
+        return () => {
+            el.removeEventListener('loadedmetadata', updateDuration);
+            el.removeEventListener('ended', handleEnded);
+            el.removeEventListener('play', handlePlay);
+            el.removeEventListener('pause', handlePause);
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+        };
     }, [isPlaying, currentTrack]);
 
     const playTrack = (track) => {
@@ -189,8 +196,12 @@ export const AudioPlayerProvider = ({ children }) => {
             handleMouseLeave
         }}>
             {children}
-            <audio ref={audioRef} style={{ display: 'none' }} />
-            <video ref={videoRef} style={{ display: 'none' }} />
+            {(!currentTrack || currentTrack?.type !== 'video') && (
+                <audio ref={audioRef} style={{ display: 'none' }} />
+            )}
+            {(!currentTrack || currentTrack?.type === 'video') && (
+                <video ref={videoRef} style={{ display: currentTrack?.type === 'video' && isMinimized ? 'block' : 'none' }} />
+            )}
             {currentTrack && (
                 <GlobalMediaPlayer />
             )}
@@ -257,11 +268,6 @@ const GlobalMediaPlayer = () => {
                 onMouseEnter={() => setShowControls(true)}
                 onMouseLeave={() => setShowControls(false)}
             >
-                <video
-                    src={currentTrack.url}
-                    autoPlay={isPlaying}
-                    className="minimized-video"
-                />
                 {showControls && (
                     <div className="minimized-video-controls">
                         <button className="video-control-btn" onClick={togglePlayPause}>

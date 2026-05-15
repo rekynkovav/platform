@@ -23,7 +23,7 @@ const AdminPostCreator = ({ onPostCreated }) => {
 
             if (type) {
                 newFiles.push(file);
-                if (!mediaType) setMediaType(type);
+                setMediaType(prev => prev || type);
 
                 const url = URL.createObjectURL(file);
                 newPreviews.push({ url, type, file });
@@ -39,9 +39,10 @@ const AdminPostCreator = ({ onPostCreated }) => {
         setMediaPreviews(prev => prev.filter((_, i) => i !== index));
         setMediaFiles(prev => prev.filter((_, i) => i !== index));
 
-        if (mediaPreviews.length === 1) {
-            setMediaType(null);
-        }
+        setMediaType(prev => {
+            if (mediaPreviews.length <= 1) return null;
+            return prev;
+        });
     };
 
     const handleSubmit = async () => {
@@ -63,7 +64,9 @@ const AdminPostCreator = ({ onPostCreated }) => {
                 formData.append('type', mediaType);
 
                 const uploadResponse = await postsApi.uploadMedia(formData, (progressEvent) => {
-                    const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    const percent = progressEvent.total
+                        ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
+                        : 0;
                     setUploadProgress(percent);
                 });
                 mediaUrl = uploadResponse.data.url;
@@ -79,6 +82,8 @@ const AdminPostCreator = ({ onPostCreated }) => {
 
             // Очищаем форму
             setContent('');
+            // Revoke blob URLs
+            mediaPreviews.forEach(p => URL.revokeObjectURL(p.url));
             setMediaFiles([]);
             setMediaPreviews([]);
             setMediaType(null);

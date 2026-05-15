@@ -44,9 +44,15 @@ const NotificationBell = () => {
     const loadNotifications = () => {
         const saved = localStorage.getItem('userNotifications');
         if (saved) {
-            const parsed = JSON.parse(saved);
-            setNotifications(parsed);
-            setUnreadCount(parsed.filter(n => !n.read).length);
+            try {
+                const parsed = JSON.parse(saved);
+                setNotifications(parsed);
+                setUnreadCount(parsed.filter(n => !n.read).length);
+            } catch (e) {
+                localStorage.removeItem('userNotifications');
+                setNotifications([]);
+                setUnreadCount(0);
+            }
         }
     };
 
@@ -382,9 +388,6 @@ const NotificationBell = () => {
                 className={`notification-bell-button ${unreadCount > 0 ? 'has-unread' : ''}`}
                 onClick={() => {
                     setIsOpen(!isOpen);
-                    if (!isOpen && unreadCount > 0) {
-                        markAllAsRead();
-                    }
                 }}
                 title="Уведомления"
             >

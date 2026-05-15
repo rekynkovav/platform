@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import ContentModal from '../Common/ContentModal';
 import './Dashboard.css';
 import {
     initialBroadcastsGuests,
@@ -24,15 +23,15 @@ import {
 const Dashboard = () => {
     const [hoveredMenu, setHoveredMenu] = useState(null);
     const [hoveredSubmenu, setHoveredSubmenu] = useState(null);
-    const [hideTimeout, setHideTimeout] = useState(null);
-    const [submenuShowTimeout, setSubmenuShowTimeout] = useState(null);
-    const [submenuHideTimeout, setSubmenuHideTimeout] = useState(null);
     const [isOverCard, setIsOverCard] = useState(false);
     const [isOverDropdown, setIsOverDropdown] = useState(false);
     const [isOverSubmenu, setIsOverSubmenu] = useState(false);
     const [isOverSubmenuTrigger, setIsOverSubmenuTrigger] = useState(false);
     const isOverSubmenuRef = useRef(false);
     const isOverSubmenuTriggerRef = useRef(false);
+    const hideTimeoutRef = useRef(null);
+    const submenuShowTimeoutRef = useRef(null);
+    const submenuHideTimeoutRef = useRef(null);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const [submenuPosition, setSubmenuPosition] = useState({ top: 0, left: 0 });
     const [showAddModal, setShowAddModal] = useState(false);
@@ -45,6 +44,7 @@ const Dashboard = () => {
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const [recordingTime, setRecordingTime] = useState(0);
     const recordingTimerRef = useRef(null);
+    const blobUrlsRef = useRef([]);
     const [menuData, setMenuData] = useState({});
 
     // Состояния для модального окна подтверждения удаления
@@ -589,6 +589,17 @@ const Dashboard = () => {
         }
     }, []);
 
+    // Очистка blob URLs и таймеров при размонтировании
+    useEffect(() => {
+        return () => {
+            if (recordingTimerRef.current) {
+                clearInterval(recordingTimerRef.current);
+            }
+            blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+            blobUrlsRef.current = [];
+        };
+    }, []);
+
     const saveMenuData = useCallback((data) => {
         setMenuData(data);
         localStorage.setItem('dashboardMenuData', JSON.stringify(data));
@@ -632,9 +643,9 @@ const Dashboard = () => {
     , [navigationMenus, hoveredMenu]);
 
     const handleMenuEnter = useCallback((menuId, event) => {
-        if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            setHideTimeout(null);
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
         }
         const rect = event.currentTarget.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
@@ -672,19 +683,19 @@ const Dashboard = () => {
         setHoveredMenu(menuId);
         setHoveredSubmenu(null);
         setIsOverCard(true);
-    }, [hideTimeout]);
+    }, []);
 
     const handleCardLeave = useCallback(() => {
         setIsOverCard(false);
     }, []);
 
     const handleDropdownEnter = useCallback(() => {
-        if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            setHideTimeout(null);
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
         }
         setIsOverDropdown(true);
-    }, [hideTimeout]);
+    }, []);
 
     const handleDropdownLeave = useCallback(() => {
         setIsOverDropdown(false);
@@ -693,57 +704,48 @@ const Dashboard = () => {
     // Эффект для управления видимостью меню
     useEffect(() => {
         if (!isOverCard && !isOverDropdown && !isOverSubmenu && !isOverSubmenuTrigger) {
-            const timeout = setTimeout(() => {
+            hideTimeoutRef.current = setTimeout(() => {
                 setHoveredMenu(null);
                 setHoveredSubmenu(null);
             }, 100);
-            setHideTimeout(timeout);
-            return () => clearTimeout(timeout);
+            return () => {
+                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+            };
         }
     }, [isOverCard, isOverDropdown, isOverSubmenu, isOverSubmenuTrigger]);
 
     const handleSubmenuEnter = useCallback((submenuId, event) => {
-        if (hideTimeout) clearTimeout(hideTimeout);
+        if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+
         const rect = event.currentTarget.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
-
-        // Более точные размеры подменю с учетом min-width: 400px
         const submenuWidth = Math.max(400, Math.min(800, viewportWidth * 0.9));
         const submenuHeight = Math.min(500, viewportHeight * 0.7);
 
         let top = rect.top + window.scrollY;
         let left = rect.right + window.scrollX;
 
-        // Проверка выхода за правую границу - показываем слева
         if (left + submenuWidth > viewportWidth - 20) {
             left = rect.left + window.scrollX - submenuWidth;
         }
-
-        // Проверка выхода за левую границу
-        if (left < 20) {
-            left = 20;
-        }
-
-        // Проверка выхода за нижнюю границу
+        if (left < 20) left = 20;
         if (top + submenuHeight > viewportHeight + window.scrollY - 20) {
             top = viewportHeight + window.scrollY - submenuHeight - 20;
         }
-
-        // Проверка выхода за верхнюю границу
         if (top < window.scrollY + 20) {
             top = window.scrollY + 20;
         }
 
         setSubmenuPosition({ top, left });
         setHoveredSubmenu(submenuId);
-    }, [hideTimeout]);
+    }, []);
 
     const handleSubmenuItemEnter = useCallback((submenuId, event) => {
         // Очищаем таймеры скрытия
-        if (submenuHideTimeout) {
-            clearTimeout(submenuHideTimeout);
-            setSubmenuHideTimeout(null);
+        if (submenuHideTimeoutRef.current) {
+            clearTimeout(submenuHideTimeoutRef.current);
+            submenuHideTimeoutRef.current = null;
         }
 
         setIsOverSubmenuTrigger(true);
@@ -755,82 +757,65 @@ const Dashboard = () => {
         const scrollY = window.scrollY;
 
         // Устанавливаем таймер показа с задержкой 1 секунда
-        const showTimeout = setTimeout(() => {
+        submenuShowTimeoutRef.current = setTimeout(() => {
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
 
-            // Более точные размеры подменю с учетом min-width: 400px
             const submenuWidth = Math.max(400, Math.min(800, viewportWidth * 0.9));
             const submenuHeight = Math.min(500, viewportHeight * 0.7);
 
             let top = rect.top + scrollY;
             let left = rect.right + scrollX;
 
-            // Проверка выхода за правую границу - показываем слева
             if (left + submenuWidth > viewportWidth - 20) {
                 left = rect.left + scrollX - submenuWidth;
             }
-
-            // Проверка выхода за левую границу
-            if (left < 20) {
-                left = 20;
-            }
-
-            // Проверка выхода за нижнюю границу
+            if (left < 20) left = 20;
             if (top + submenuHeight > viewportHeight + scrollY - 20) {
                 top = viewportHeight + scrollY - submenuHeight - 20;
             }
-
-            // Проверка выхода за верхнюю границу
-            if (top < scrollY + 20) {
-                top = scrollY + 20;
-            }
+            if (top < scrollY + 20) top = scrollY + 20;
 
             setSubmenuPosition({ top, left });
             setHoveredSubmenu(submenuId);
         }, 1000);
-
-        setSubmenuShowTimeout(showTimeout);
-    }, [submenuHideTimeout]);
+    }, []);
 
     const handleSubmenuItemLeave = useCallback(() => {
         // Очищаем таймер показа
-        if (submenuShowTimeout) {
-            clearTimeout(submenuShowTimeout);
-            setSubmenuShowTimeout(null);
+        if (submenuShowTimeoutRef.current) {
+            clearTimeout(submenuShowTimeoutRef.current);
+            submenuShowTimeoutRef.current = null;
         }
 
         setIsOverSubmenuTrigger(false);
         isOverSubmenuTriggerRef.current = false;
 
         // Устанавливаем таймер скрытия с увеличенной задержкой
-        const hideTimeout = setTimeout(() => {
+        submenuHideTimeoutRef.current = setTimeout(() => {
             if (!isOverSubmenuRef.current) {
                 setHoveredSubmenu(null);
             }
         }, 500);
-
-        setSubmenuHideTimeout(hideTimeout);
-    }, [submenuShowTimeout]);
+    }, []);
 
     const handleSubmenuMouseEnter = useCallback(() => {
-        if (submenuHideTimeout) {
-            clearTimeout(submenuHideTimeout);
-            setSubmenuHideTimeout(null);
+        if (submenuHideTimeoutRef.current) {
+            clearTimeout(submenuHideTimeoutRef.current);
+            submenuHideTimeoutRef.current = null;
         }
         setIsOverSubmenu(true);
         isOverSubmenuRef.current = true;
-    }, [submenuHideTimeout]);
+    }, []);
 
     const handleSubmenuMouseLeave = useCallback(() => {
         setIsOverSubmenu(false);
         isOverSubmenuRef.current = false;
-        const timeout = setTimeout(() => {
+        submenuHideTimeoutRef.current = setTimeout(() => {
             if (!isOverSubmenuTriggerRef.current) {
                 setHoveredSubmenu(null);
             }
         }, 300);
-        setSubmenuHideTimeout(timeout);
     }, []);
 
     const handleAddContent = useCallback((menuId, submenuId = null) => {
@@ -845,11 +830,17 @@ const Dashboard = () => {
         // Мгновенно закрываем всплывающее меню
         setHoveredMenu(null);
         setHoveredSubmenu(null);
-        if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            setHideTimeout(null);
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
         }
-    }, [hideTimeout]);
+    }, []);
+
+    const cleanupBlobUrls = useCallback(() => {
+        if (newItemMediaUrl && newItemMediaUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(newItemMediaUrl);
+        }
+    }, [newItemMediaUrl]);
 
     const handleSaveContent = useCallback(() => {
         if (!newItemTitle.trim()) return;
@@ -892,6 +883,7 @@ const Dashboard = () => {
 
         saveMenuData(updatedData);
 
+        cleanupBlobUrls();
         setNewItemTitle('');
         setNewItemDescription('');
         setNewItemMediaUrl('');
@@ -900,12 +892,13 @@ const Dashboard = () => {
         setRecordingTime(0);
         setShowAddModal(false);
         setSelectedMenuId(null);
-    }, [newItemTitle, newItemDescription, newItemMediaUrl, newItemMediaType, menuData, selectedMenuId, editingItem, saveMenuData]);
+    }, [newItemTitle, newItemDescription, newItemMediaUrl, newItemMediaType, menuData, selectedMenuId, editingItem, saveMenuData, cleanupBlobUrls]);
 
     const handleFileUpload = useCallback((e, type) => {
         const file = e.target.files[0];
         if (file) {
             const url = URL.createObjectURL(file);
+            blobUrlsRef.current.push(url);
             setNewItemMediaUrl(url);
             setNewItemMediaType(type);
         }
@@ -926,6 +919,7 @@ const Dashboard = () => {
             recorder.onstop = () => {
                 const audioBlob = new Blob(chunks, { type: 'audio/webm' });
                 const audioUrl = URL.createObjectURL(audioBlob);
+                blobUrlsRef.current.push(audioUrl);
                 setNewItemMediaUrl(audioUrl);
                 setNewItemMediaType('audio');
                 stream.getTracks().forEach(track => track.stop());
@@ -971,11 +965,11 @@ const Dashboard = () => {
         // Мгновенно закрываем всплывающее меню
         setHoveredMenu(null);
         setHoveredSubmenu(null);
-        if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            setHideTimeout(null);
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
         }
-    }, [canEdit, hideTimeout]);
+    }, [canEdit]);
 
     const executeDeleteItem = useCallback(() => {
         if (!itemToDelete) return;
@@ -1007,11 +1001,11 @@ const Dashboard = () => {
         // Закрываем всплывающее меню
         setHoveredMenu(null);
         setHoveredSubmenu(null);
-        if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            setHideTimeout(null);
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
         }
-    }, [canEdit, hideTimeout]);
+    }, [canEdit]);
 
     const handleDownloadBroadcast = useCallback((item) => {
         if (!isSuperAdmin) {
@@ -1028,17 +1022,17 @@ const Dashboard = () => {
             link.click();
             document.body.removeChild(link);
         } else {
-            alert('У этого эфира нет медиафайла для скачивания');
+            alert('У этого эфира нет медиаф��йла для скачивания');
         }
 
         // Закрываем всплывающее меню
         setHoveredMenu(null);
         setHoveredSubmenu(null);
-        if (hideTimeout) {
-            clearTimeout(hideTimeout);
-            setHideTimeout(null);
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
         }
-    }, [isSuperAdmin, hideTimeout]);
+    }, [isSuperAdmin]);
 
     const handleItemClick = useCallback((item) => {
         // Если в description есть ссылка, открываем её
@@ -1278,6 +1272,7 @@ const Dashboard = () => {
             {/* Встроенная модалка добавления контента с записью аудио */}
             {showAddModal && (
                 <div className="modal-overlay" onClick={() => {
+                    if (newItemMediaUrl && newItemMediaUrl.startsWith('blob:')) URL.revokeObjectURL(newItemMediaUrl);
                     setShowAddModal(false);
                     setSelectedMenuId(null);
                     setEditingItem(null);
@@ -1420,6 +1415,7 @@ const Dashboard = () => {
                                     <button
                                         className="remove-file-dashboard"
                                         onClick={() => {
+                                            if (newItemMediaUrl && newItemMediaUrl.startsWith('blob:')) URL.revokeObjectURL(newItemMediaUrl);
                                             setNewItemMediaUrl('');
                                             setNewItemMediaType('');
                                         }}
@@ -1435,6 +1431,7 @@ const Dashboard = () => {
                                 Сохранить
                             </button>
                             <button className="modal-btn cancel" onClick={() => {
+                                if (newItemMediaUrl && newItemMediaUrl.startsWith('blob:')) URL.revokeObjectURL(newItemMediaUrl);
                                 setShowAddModal(false);
                                 setSelectedMenuId(null);
                                 setNewItemTitle('');

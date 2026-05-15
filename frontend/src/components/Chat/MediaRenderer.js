@@ -18,6 +18,7 @@ const MediaRenderer = ({ mediaUrl, mediaType, fileName, onLoadError, compact = f
 
     useEffect(() => {
         if (!mediaUrl) return;
+        let cancelled = false;
 
         // Если это уже полный URL - используем как есть
         if (mediaUrl.startsWith('http') || mediaUrl.startsWith('/api/')) {
@@ -30,17 +31,21 @@ const MediaRenderer = ({ mediaUrl, mediaType, fileName, onLoadError, compact = f
         const fetchStream = async () => {
             try {
                 const response = await fetch(`/api/media/stream/${mediaUrl}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
                 const data = await response.json();
-                setStreamUrl(data.url);
+                if (!cancelled) setStreamUrl(data.url);
             } catch (e) {
                 console.error('Failed to get stream URL:', e);
-                setError('Не удалось загрузить медиа');
+                if (!cancelled) setError('Не удалось загрузить медиа');
             } finally {
-                setIsLoading(false);
+                if (!cancelled) setIsLoading(false);
             }
         };
 
         fetchStream();
+        return () => { cancelled = true; };
     }, [mediaUrl]);
 
     const handleLoad = () => setIsLoading(false);
@@ -135,7 +140,7 @@ const MediaRenderer = ({ mediaUrl, mediaType, fileName, onLoadError, compact = f
                     preload="metadata"
                     onLoadedData={handleLoad}
                     onError={handleError}
-                    poster={streamUrl + '?t=thumb'}
+                    poster={streamUrl ? (streamUrl.includes('?') ? streamUrl + '&t=thumb' : streamUrl + '?t=thumb') : undefined}
                 />
                 {!compact && (
                     <div className="video-overlay">
@@ -167,7 +172,7 @@ const MediaRenderer = ({ mediaUrl, mediaType, fileName, onLoadError, compact = f
             {showFullscreen && (
                 <div className="media-fullscreen" onClick={toggleFullscreen}>
                     <img src={streamUrl} alt={fileName} />
-                    <button className="fullscreen-close" onClick={toggleFullscreen}>✕</button>
+                    <button className="fullscreen-close" onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}>✕</button>
                 </div>
             )}
         </div>
@@ -177,7 +182,7 @@ const MediaRenderer = ({ mediaUrl, mediaType, fileName, onLoadError, compact = f
     const renderFile = () => (
         <div className="media-file-container">
             <a
-                href={streamUrl}
+                href={streamUrl && !streamUrl.startsWith('javascript:') ? streamUrl : '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="media-file-link"

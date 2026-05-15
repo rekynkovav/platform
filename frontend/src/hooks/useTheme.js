@@ -13,8 +13,12 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
     const [theme, setTheme] = useState(() => {
-        const saved = localStorage.getItem('theme');
-        if (saved === 'light' || saved === 'dark') return saved;
+        try {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'light' || saved === 'dark') return saved;
+        } catch (e) {
+            // localStorage недоступен
+        }
         return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     });
 

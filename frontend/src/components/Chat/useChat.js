@@ -81,6 +81,7 @@ export const useChat = (chatRoom, config = {}) => {
             }));
 
             setMessages(msgs);
+            setLoading(false);
         } catch (error) {
             console.error('Failed to load messages from API:', error);
             // Fallback к localStorage
@@ -94,7 +95,12 @@ export const useChat = (chatRoom, config = {}) => {
         const savedMessages = localStorage.getItem(key);
 
         if (savedMessages) {
-            setMessages(JSON.parse(savedMessages));
+            try {
+                setMessages(JSON.parse(savedMessages));
+            } catch (e) {
+                console.warn('Corrupted localStorage data:', e);
+                setMessages([]);
+            }
         } else {
             const initialMessage = {
                 id: 1,
@@ -181,8 +187,13 @@ export const useChat = (chatRoom, config = {}) => {
             );
 
             const key = `${storageKeyPrefix}_${currentRoom}`;
-            const saved = localStorage.getItem(key);
-            const existing = saved ? JSON.parse(saved) : [];
+            let existing;
+            try {
+                const saved = localStorage.getItem(key);
+                existing = saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                existing = [];
+            }
             localStorage.setItem(key, JSON.stringify([...existing, message]));
 
             return message;
@@ -241,8 +252,13 @@ export const useChat = (chatRoom, config = {}) => {
                 setMessages(prev => [...prev, message]);
 
                 const key = `${storageKeyPrefix}_${currentRoom}`;
-                const saved = localStorage.getItem(key);
-                const existing = saved ? JSON.parse(saved) : [];
+                let existing;
+                try {
+                    const saved = localStorage.getItem(key);
+                    existing = saved ? JSON.parse(saved) : [];
+                } catch (e) {
+                    existing = [];
+                }
                 localStorage.setItem(key, JSON.stringify([...existing, message]));
 
                 resolve(message);
@@ -262,28 +278,22 @@ export const useChat = (chatRoom, config = {}) => {
             console.warn('Edit via API not implemented yet');
         }
 
-        const updatedMessages = messages.map(msg =>
-            msg.id === msgId
-                ? { ...msg, content: newContent.trim(), edited: true }
-                : msg
-        );
-
-        setMessages(updatedMessages);
-
-        if (!useApi) {
-            const key = `${storageKeyPrefix}_${currentRoom}`;
-            localStorage.setItem(key, JSON.stringify(updatedMessages));
-        }
-    }, [messages, currentRoom, useApi, storageKeyPrefix]);
+        setMessages(prev => {
+            const updated = prev.map(msg =>
+                msg.id === msgId
+                    ? { ...msg, content: newContent.trim(), edited: true }
+                    : msg
+            );
+            if (!useApi) {
+                const key = `${storageKeyPrefix}_${currentRoom}`;
+                localStorage.setItem(key, JSON.stringify(updated));
+            }
+            return updated;
+        });
+    }, [currentRoom, useApi, storageKeyPrefix]);
 
     // Удаление сообщения
     const deleteMessage = useCallback((msgId) => {
-        const messageToDelete = messages.find(msg => msg.id === msgId);
-        if (!messageToDelete || messageToDelete.author !== currentUserAuthor) {
-            alert('Вы можете удалять только свои сообщения');
-            return false;
-        }
-
         if (!window.confirm('Удалить это сообщение?')) return false;
 
         if (useApi) {
@@ -291,16 +301,22 @@ export const useChat = (chatRoom, config = {}) => {
             console.warn('Delete via API not implemented yet');
         }
 
-        const updatedMessages = messages.filter(msg => msg.id !== msgId);
-        setMessages(updatedMessages);
-
-        if (!useApi) {
-            const key = `${storageKeyPrefix}_${currentRoom}`;
-            localStorage.setItem(key, JSON.stringify(updatedMessages));
-        }
+        setMessages(prev => {
+            const messageToDelete = prev.find(msg => msg.id === msgId);
+            if (!messageToDelete || messageToDelete.author !== currentUserAuthor) {
+                alert('Вы можете удалять только свои сообщения');
+                return prev;
+            }
+            const updated = prev.filter(msg => msg.id !== msgId);
+            if (!useApi) {
+                const key = `${storageKeyPrefix}_${currentRoom}`;
+                localStorage.setItem(key, JSON.stringify(updated));
+            }
+            return updated;
+        });
 
         return true;
-    }, [messages, currentUserAuthor, currentRoom, useApi, storageKeyPrefix]);
+    }, [currentUserAuthor, currentRoom, useApi, storageKeyPrefix]);
 
     // Запись голосового
     const startRecording = useCallback(async () => {
@@ -386,6 +402,15 @@ export const useChat = (chatRoom, config = {}) => {
             alert('Не удалось получить доступ к микрофону');
         }
     }, [currentUserAuthor, currentRoom, useApi, sendMessage, storageKeyPrefix]);
+
+    // Cleanup записи при размонтировании
+    useEffect(() => {
+        return () => {
+            if (recordingInterval) {
+                clearInterval(recordingInterval);
+            }
+        };
+    }, [recordingInterval]);
 
     const stopRecording = useCallback(() => {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getUserRoles } from '../../keycloak';
 import './ScheduledEvents.css';
 
@@ -22,6 +22,8 @@ const ScheduledEvents = () => {
     // Состояния для редактирования
     const [editingEventId, setEditingEventId] = useState(null);
     const [showEditForm, setShowEditForm] = useState(false);
+
+    const notificationTimeoutRef = useRef(null);
 
     const getCurrentDate = () => {
         const today = new Date();
@@ -78,6 +80,15 @@ const ScheduledEvents = () => {
             date: getCurrentDate(),
             time: getCurrentTime()
         }));
+    }, []);
+
+    // Cleanup notification timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (notificationTimeoutRef.current) {
+                clearTimeout(notificationTimeoutRef.current);
+            }
+        };
     }, []);
 
     // Проверяем роль из localStorage напрямую
@@ -138,7 +149,7 @@ const ScheduledEvents = () => {
             setNotificationEvent(event);
 
             // Автоматически скрываем через 30 секунд
-            setTimeout(() => {
+            notificationTimeoutRef.current = setTimeout(() => {
                 setNotificationEvent(null);
             }, 30000);
         }
@@ -209,7 +220,7 @@ const ScheduledEvents = () => {
 
         // Показываем уведомление об удалении
         setDeleteNotification(eventToDelete?.title);
-        setTimeout(() => setDeleteNotification(null), 3000);
+        notificationTimeoutRef.current = setTimeout(() => setDeleteNotification(null), 3000);
 
         setShowDeleteConfirm(false);
         setEventToDelete(null);
@@ -220,7 +231,7 @@ const ScheduledEvents = () => {
         setShowDeleteConfirm(false);
         setEventToDelete(null);
         setDeleteNotification(`❌ Удаление отменено`);
-        setTimeout(() => setDeleteNotification(null), 2000);
+        notificationTimeoutRef.current = setTimeout(() => setDeleteNotification(null), 2000);
     };
 
     const scrollToEventsTab = () => {

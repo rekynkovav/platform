@@ -20,6 +20,7 @@ const EventsHub = () => {
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const [recordingTime, setRecordingTime] = useState(0);
     const recordingTimerRef = useRef(null);
+    const blobUrlsRef = useRef([]);
 
     // Меню и их подменю (без смайликов)
     const menuItems = [
@@ -71,6 +72,17 @@ const EventsHub = () => {
         setUserRoles(roles);
     }, []);
 
+    // Cleanup blob URLs и recording timer при размонтировании
+    useEffect(() => {
+        return () => {
+            if (recordingTimerRef.current) {
+                clearInterval(recordingTimerRef.current);
+            }
+            blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+            blobUrlsRef.current = [];
+        };
+    }, []);
+
     // Загрузка материалов для раздела
     const getMaterialsForSection = (sectionId) => {
         const savedArchive = localStorage.getItem('archiveMaterials');
@@ -94,6 +106,7 @@ const EventsHub = () => {
 
         const fileType = getFileType(file);
         const url = URL.createObjectURL(file);
+        blobUrlsRef.current.push(url);
 
         setNewMaterial({
             ...newMaterial,
@@ -117,6 +130,7 @@ const EventsHub = () => {
             recorder.onstop = async () => {
                 const audioBlob = new Blob(chunks, { type: 'audio/webm' });
                 const audioUrl = URL.createObjectURL(audioBlob);
+                blobUrlsRef.current.push(audioUrl);
 
                 setNewMaterial({
                     ...newMaterial,
@@ -385,7 +399,10 @@ const EventsHub = () => {
                                         </span>
                                         <button
                                             className="remove-file"
-                                            onClick={() => setNewMaterial({...newMaterial, url: '', type: 'text'})}
+                                            onClick={() => {
+                                                if (newMaterial.url && newMaterial.url.startsWith('blob:')) URL.revokeObjectURL(newMaterial.url);
+                                                setNewMaterial({...newMaterial, url: '', type: 'text'});
+                                            }}
                                         >
                                             ✕
                                         </button>

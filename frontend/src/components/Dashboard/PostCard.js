@@ -63,7 +63,15 @@ const PostCard = ({ post, isAdmin, onPostUpdated, onPostDeleted, index }) => {
 
     const handleShare = () => {
         const url = `${window.location.origin}/post/${post.id}`;
-        navigator.clipboard.writeText(url);
+        navigator.clipboard.writeText(url).catch(() => {
+            // Fallback
+            const ta = document.createElement('textarea');
+            ta.value = url;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        });
         alert('Ссылка скопирована!');
 
         // Обновляем счётчик шаров
@@ -133,6 +141,7 @@ const PostCard = ({ post, isAdmin, onPostUpdated, onPostDeleted, index }) => {
     };
 
     const handleCancelEdit = () => {
+        if (editMediaUrl && editMediaUrl.startsWith('blob:')) URL.revokeObjectURL(editMediaUrl);
         setShowEditModal(false);
         setEditContent('');
         setEditMediaUrl('');
@@ -142,6 +151,8 @@ const PostCard = ({ post, isAdmin, onPostUpdated, onPostDeleted, index }) => {
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // Revoke previous blob URL if any
+            if (editMediaUrl && editMediaUrl.startsWith('blob:')) URL.revokeObjectURL(editMediaUrl);
             const url = URL.createObjectURL(file);
             setEditMediaUrl(url);
 
@@ -259,6 +270,7 @@ const PostCard = ({ post, isAdmin, onPostUpdated, onPostDeleted, index }) => {
                                         <button
                                             className="remove-media-btn"
                                             onClick={() => {
+                                                if (editMediaUrl && editMediaUrl.startsWith('blob:')) URL.revokeObjectURL(editMediaUrl);
                                                 setEditMediaUrl('');
                                                 setEditMediaType('');
                                             }}

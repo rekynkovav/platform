@@ -37,14 +37,17 @@ const Questions = () => {
             const categories = ['general', 'nutrition', 'vyacheslav'];
             categories.forEach(cat => {
                 const key = `userQuestions_${cat}`;
-                const questions = JSON.parse(localStorage.getItem(key) || '[]');
+                try {
+                    const questions = JSON.parse(localStorage.getItem(key) || '[]');
+                    // Фильтруем вопросы по правильной категории
+                    const correctQuestions = questions.filter(q => q.mode === cat);
 
-                // Фильтруем вопросы по правильной категории
-                const correctQuestions = questions.filter(q => q.mode === cat);
-
-                if (correctQuestions.length !== questions.length) {
-                    console.log(`Категория ${cat}: было ${questions.length}, осталось ${correctQuestions.length}`);
-                    localStorage.setItem(key, JSON.stringify(correctQuestions));
+                    if (correctQuestions.length !== questions.length) {
+                        console.log(`Категория ${cat}: было ${questions.length}, осталось ${correctQuestions.length}`);
+                        localStorage.setItem(key, JSON.stringify(correctQuestions));
+                    }
+                } catch (e) {
+                    localStorage.removeItem(key);
                 }
             });
 

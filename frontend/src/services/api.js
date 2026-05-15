@@ -28,7 +28,7 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            window.location.href = '/login';
+            window.location.href = window.location.origin + '/login';
         }
         return Promise.reject(error);
     }
@@ -79,15 +79,6 @@ export const chatApi = {
         return api.get('/api/chat/general', { params });
     },
     sendMessage: (content, mediaId = null) => {
-        const payload = { content };
-        if (mediaId) payload.mediaId = mediaId;
-        return api.post('/api/chat/general', payload);
-    },
-    getGeneralMessages: (limit = 50, before = null) => {
-        const params = before ? { limit, before } : { limit };
-        return api.get('/api/chat/general', { params });
-    },
-    sendToGeneralChat: (content, mediaId = null) => {
         const payload = { content };
         if (mediaId) payload.mediaId = mediaId;
         return api.post('/api/chat/general', payload);

@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: 03-backfill-room-id
+      author: grok-xirurg
+      labels: data
+      comment: "Backfill room_id и room_slug для всех существующих сообщений. Одноразовая миграция."
+      changes:
+        - sql:
+            sql: |
+              -- Заполняем room_id и room_slug по старой логике chat_type
+              UPDATE messages m
+              SET room_id = cr.id,
+                  room_slug = cr.slug
+              FROM chat_rooms cr
+              WHERE (m.chat_type = 'general' AND cr.slug = 'user1' AND m.room_id IS NULL)
+                 OR (m.chat_type = 'nutrition' AND cr.slug = 'nutrition' AND m.room_id IS NULL)
+                 OR (m.chat_type = 'admin_group' AND cr.slug = 'admins' AND m.room_id IS NULL);
+
+              -- Для private сообщений (опционально — можно оставить recipient_id)
+              -- UPDATE messages SET room_slug = 'private_' || recipient_id WHERE chat_type = 'private' AND room_id IS NULL;
+
+        - sql:
+            sql: |
+              -- После backfill можно сделать room_id NOT NULL (раскомментировать после проверки)
+              -- ALTER TABLE messages ALTER COLUMN room_id SET NOT NULL;
