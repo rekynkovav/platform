@@ -1,59 +1,53 @@
-import React from 'react';
 import useChat from './useChat';
 import ChatRoom from './ChatRoom';
 
 const NutritionChat = () => {
+    // Одна комната - без переключения
+    const availableRooms = [];
+
+    // Название комнаты
+    const roomTitles = {
+        nutrition: 'Чат Питание'
+    };
+
     const {
         messages,
         loading,
+        currentRoom,
+        canSwitch,
         currentUserAuthor,
         isRecording,
         recordingTime,
-        uploading,
         sendMessage,
         editMessage,
         deleteMessage,
-        uploadMedia,
+        uploadFile,
         startRecording,
         stopRecording
     } = useChat('nutrition', {
         storageKeyPrefix: 'nutritionChatMessages',
         canSwitchRooms: false,
-        useApi: true
+        availableRooms
     });
 
-    const handleFileUpload = async (file) => {
-        try {
-            const mediaResult = await uploadMedia(file);
-            await sendMessage('', mediaResult.mediaId || mediaResult.id);
-            return mediaResult;
-        } catch (error) {
-            console.error('Failed to upload file in nutrition chat:', error);
-            throw error;
-        }
-    };
-
-    if (loading) {
-        return <div className="loading">Загрузка чата питания...</div>;
-    }
+    if (loading) return <div className="loading">Загрузка чата...</div>;
 
     return (
         <ChatRoom
             messages={messages}
             currentUserAuthor={currentUserAuthor}
-            currentRoom="nutrition"
-            canSwitch={false}
-            availableRooms={[]}
-            roomTitles={{ nutrition: 'Чат Питание' }}
+            currentRoom={currentRoom}
+            canSwitch={canSwitch}
+            availableRooms={availableRooms}
+            roomTitles={roomTitles}
             onSendMessage={sendMessage}
             onEditMessage={editMessage}
             onDeleteMessage={deleteMessage}
-            onFileUpload={handleFileUpload}
+            onFileUpload={uploadFile}
             onStartRecording={startRecording}
             onStopRecording={stopRecording}
             isRecording={isRecording}
             recordingTime={recordingTime}
-            uploading={uploading}
         />
     );
 };

@@ -1,5 +1,5 @@
 // components/Dashboard/Comments.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import CommentItem from './CommentItem';
 import CommentInput from './CommentInput';
 import { commentsApi } from '../../services/api';
@@ -9,22 +9,34 @@ const Comments = ({ postId, onCommentAdded }) => {
     const [comments, setComments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const abortRef = useRef(null);
 
     useEffect(() => {
-        loadComments();
+        // Отменяем предыдущий запрос при смене postId
+        if (abortRef.current) abortRef.current.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
+
+        loadComments(controller.signal);
+
+        return () => {
+            controller.abort();
+        };
     }, [postId]);
 
-    const loadComments = async () => {
+    const loadComments = async (signal) => {
         try {
             setLoading(true);
-            const response = await commentsApi.getByPost(postId);
+            const response = await commentsApi.getByPost(postId, { signal });
+            if (signal?.aborted) return;
             setComments(response.data);
             setError(null);
         } catch (err) {
+            if (err.name === 'AbortError' || err.name === 'CanceledError') return;
             console.error('Failed to load comments:', err);
             setError('Не удалось загрузить комментарии');
         } finally {
-            setLoading(false);
+            if (!signal?.aborted) setLoading(false);
         }
     };
 

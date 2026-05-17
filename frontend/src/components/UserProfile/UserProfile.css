@@ -12,7 +12,6 @@
 .profile-header h2 {
     font-size: 28px;
     color: var(--text-primary);
-    margin-bottom: 8px;
 }
 
 .profile-card {
@@ -45,6 +44,11 @@
     margin-bottom: 4px;
 }
 
+.role-badge-description {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
 .payment-notice {
     margin-top: 16px;
     padding: 16px;
@@ -59,15 +63,328 @@
     font-weight: 500;
 }
 
-.payment-section,
-.subscription-active {
+.payment-section {
     background: var(--bg-secondary);
     border-radius: 16px;
     padding: 32px;
     margin-bottom: 24px;
 }
 
+.payment-section h3 {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.payment-description {
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+}
+
+.periods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.period-card {
+    position: relative;
+    background: var(--bg-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.period-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.period-card.selected {
+    border-color: #0d6efd;
+    background: rgba(13, 110, 253, 0.05);
+}
+
+.period-discount {
+    position: absolute;
+    top: -10px;
+    right: 10px;
+    background: #dc3545;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.period-label {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.period-price {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0d6efd;
+    margin-bottom: 4px;
+}
+
+.period-per-month {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.period-savings {
+    font-size: 12px;
+    color: #28a745;
+    font-weight: 600;
+}
+
+.payment-button {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.payment-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(13, 110, 253, 0.3);
+}
+
+.payment-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* QR Code Section */
+.payment-qr-section {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+}
+
+.payment-qr-section h3 {
+    font-size: 24px;
+    margin-bottom: 24px;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.payment-info-box {
+    background: var(--bg-primary);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.payment-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.payment-info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.info-value {
+    color: var(--text-primary);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.payment-id {
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.copy-btn, .copy-btn-small {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.copy-btn:hover, .copy-btn-small:hover {
+    background: var(--bg-secondary);
+}
+
+.copy-btn-small {
+    font-size: 14px;
+    padding: 2px 6px;
+}
+
+.qr-code-container {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.qr-code-container h4 {
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.qr-code-image {
+    max-width: 300px;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-bottom: 16px;
+}
+
+.qr-instruction {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.8;
+    text-align: left;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.bank-details-section {
+    background: var(--bg-primary);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.bank-details-section h4 {
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.bank-details-note {
+    background: rgba(255, 193, 7, 0.1);
+    border-left: 4px solid #ffc107;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+.bank-details-note strong {
+    color: #dc3545;
+    font-family: monospace;
+}
+
+.bank-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.bank-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.bank-detail-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.detail-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.payment-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.check-payment-btn, .back-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.check-payment-btn {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+.check-payment-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(40, 167, 69, 0.3);
+}
+
+.back-btn {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+}
+
+.back-btn:hover {
+    background: var(--bg-secondary);
+}
+
+.payment-help {
+    background: rgba(13, 110, 253, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+}
+
+.payment-help p {
+    margin: 8px 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.payment-help strong {
+    color: var(--text-primary);
+    font-family: monospace;
+}
+
 .subscription-active {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 48px;
     text-align: center;
 }
 
@@ -87,21 +404,408 @@
     font-size: 16px;
 }
 
-.loading,
-.error-message {
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.payment-notice {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(255, 193, 7, 0.1);
+    border-left: 4px solid var(--warning);
+    border-radius: 8px;
+}
+
+.payment-notice p {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.payment-section {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.payment-section h3 {
+    font-size: 20px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.payment-description {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.periods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.period-card {
+    position: relative;
+    background: var(--bg-primary);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
     text-align: center;
-    padding: 40px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.period-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.period-card.selected {
+    border-color: var(--accent);
+    background: rgba(13, 110, 253, 0.1);
+}
+
+.period-discount {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--danger);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.period-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.period-price {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+}
+
+.period-savings {
+    font-size: 12px;
+    color: var(--success);
+    font-weight: 500;
+}
+
+.bank-details-section {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 24px;
+}
+
+.bank-details-section h3 {
+    font-size: 20px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+}
+
+.bank-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.bank-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.bank-detail-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.detail-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.qr-code-section {
+    text-align: center;
+    margin: 24px 0;
+}
+
+.qr-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.qr-code-placeholder {
+    display: inline-block;
+    width: 200px;
+    height: 200px;
+    background: var(--bg-primary);
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.qr-icon {
+    font-size: 48px;
+}
+
+.qr-code-placeholder p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.qr-code-placeholder small {
+    font-size: 12px;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.payment-button {
+    width: 100%;
+    padding: 16px;
+    background: var(--success);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.payment-button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
+}
+
+.payment-note {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 12px;
+}
+
+.subscription-active {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 48px 24px;
+    text-align: center;
+}
+
+.active-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.subscription-active h3 {
+    font-size: 24px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.subscription-active p {
+    font-size: 14px;
     color: var(--text-secondary);
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @media (max-width: 768px) {
-    .profile-card,
-    .payment-section {
-        padding: 20px;
+    .periods-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
+
+    .bank-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .qr-code-placeholder {
+        width: 160px;
+        height: 160px;
+    }
+}
+
+/* Profile Edit Section */
+.profile-edit-section {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h3 {
+    font-size: 20px;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.edit-btn {
+    padding: 10px 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.edit-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.profile-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.profile-field label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.profile-field span {
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.profile-field input,
+.profile-field textarea {
+    padding: 12px 16px;
+    background: var(--bg-primary);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 16px;
+    color: var(--text-primary);
+    transition: border-color 0.2s;
+}
+
+.profile-field input:focus,
+.profile-field textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.profile-field textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.edit-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.save-btn {
+    flex: 1;
+    padding: 14px;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.save-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(40, 167, 69, 0.3);
+}
+
+.save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.cancel-btn {
+    flex: 1;
+    padding: 14px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+    background: var(--bg-secondary);
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+    font-size: 18px;
+}
+
+.error {
+    text-align: center;
+    padding: 40px;
+    color: var(--danger);
+    font-size: 18px;
 }

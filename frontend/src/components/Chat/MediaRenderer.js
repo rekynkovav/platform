@@ -1,44 +1,64 @@
-import React, { useState, useEffect } from 'react';
-import { useAudioPlayer } from '../../contexts/AudioPlayerContext';
+import React, { useState, useEffect, useRef } from 'react';
+import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import './MediaRenderer.css';
 
-const MediaRenderer = ({ mediaUrl, mediaType, fileName }) => {
+const MediaRenderer = ({ mediaUrl, mediaType, fileName, onLoadError, compact = false }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [showFullscreen, setShowFullscreen] = useState(false);
     const [streamUrl, setStreamUrl] = useState(mediaUrl);
     const { playTrack, isPlaying, currentTrack } = useAudioPlayer();
 
     const isAudio = mediaType === 'audio';
     const isVideo = mediaType === 'video';
-    const isThisPlaying = currentTrack?.url === streamUrl && isPlaying;
+    const isMedia = isAudio || isVideo;
+
+    // Проверяем, играет ли этот трек
+    const isThisPlaying = currentTrack?.id === mediaUrl && isPlaying;
 
     useEffect(() => {
         if (!mediaUrl) return;
+        let cancelled = false;
 
-        const fetchStreamUrl = async () => {
+        // Если это уже полный URL - используем как есть
+        if (mediaUrl.startsWith('http') || mediaUrl.startsWith('/api/')) {
+            setStreamUrl(mediaUrl);
+            setIsLoading(false);
+            return;
+        }
+
+        // Иначе запрашиваем стрим
+        const fetchStream = async () => {
             try {
-                if (mediaUrl.startsWith('http') || mediaUrl.startsWith('/api/media')) {
-                    setStreamUrl(mediaUrl);
-                    setIsLoading(false);
-                    return;
-                }
-
                 const response = await fetch(`/api/media/stream/${mediaUrl}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
                 const data = await response.json();
-                setStreamUrl(data.url);
+                if (!cancelled) setStreamUrl(data.url);
             } catch (e) {
                 console.error('Failed to get stream URL:', e);
-                setError('Не удалось загрузить медиа');
+                if (!cancelled) setError('Не удалось загрузить медиа');
             } finally {
-                setIsLoading(false);
+                if (!cancelled) setIsLoading(false);
             }
         };
 
-        fetchStreamUrl();
+        fetchStream();
+        return () => { cancelled = true; };
     }, [mediaUrl]);
 
-    const handlePlayClick = () => {
-        if (!streamUrl) return;
+    const handleLoad = () => setIsLoading(false);
+
+    const handleError = (e) => {
+        setIsLoading(false);
+        setError('Не удалось загрузить медиа');
+        onLoadError?.();
+        console.error('Media load error:', e);
+    };
+
+    const handlePlayClick = (e) => {
+        e?.stopPropagation();
 
         const track = {
             id: mediaUrl,
@@ -50,68 +70,148 @@ const MediaRenderer = ({ mediaUrl, mediaType, fileName }) => {
         playTrack(track);
     };
 
-    const renderContent = () => {
-        if (isLoading) {
-            return <div className="media-loading"><div className="spinner"></div></div>;
-        }
+    const toggleFullscreen = () => {
+        setShowFullscreen(!showFullscreen);
+    };
 
-        if (error) {
+    // ===== AUDIO - инлайн с возможностью глобального воспроизведения =====
+    const renderAudio = () => {
+        if (compact) {
             return (
-                <div className="media-error-container">
-                    <span className="media-error-icon">⚠️</span>
-                    <span className="media-error-text">{error}</span>
-                </div>
-            );
-        }
-
-        if (isAudio) {
-            return (
-                <div className={`media-audio-compact ${isThisPlaying ? 'playing' : ''}`} onClick={handlePlayClick}>
-                    <div className="audio-play-btn">{isThisPlaying ? '⏸️' : '▶️'}</div>
+                <div
+                    className={`media-audio-compact ${isThisPlaying ? 'playing' : ''}`}
+                    onClick={handlePlayClick}
+                >
+                    <div className="audio-play-btn">
+                        {isThisPlaying ? '⏸️' : '▶️'}
+                    </div>
                     <div className="audio-info">
                         <div className="audio-wave"></div>
-                        <span className="audio-name">{fileName || 'Аудио'}</span>
+                        <span className="audio-name">{fileName || 'Голосовое сообщение'}</span>
                     </div>
                 </div>
-            );
-        }
-
-        if (isVideo) {
-            return (
-                <div className="media-video-container" onClick={handlePlayClick}>
-                    <video
-                        src={streamUrl}
-                        className="media-video-preview"
-                        muted
-                        preload="metadata"
-                    />
-                    <div className="video-overlay">
-                        <div className="video-play-btn-large">▶️</div>
-                    </div>
-                </div>
-            );
-        }
-
-        if (mediaType === 'image') {
-            return (
-                <img
-                    src={streamUrl}
-                    alt={fileName || 'Изображение'}
-                    className="media-image"
-                    loading="lazy"
-                />
             );
         }
 
         return (
-            <a href={streamUrl} target="_blank" rel="noopener noreferrer" className="media-file-link">
-                <span className="file-icon">📎</span>
-                <span className="file-name">{fileName || 'Файл'}</span>
-            </a>
+            <div className="media-audio-container">
+                {isLoading && (
+                    <div className="media-loading">
+                        <div className="spinner"></div>
+                    </div>
+                )}
+                <div className="audio-player-inline">
+                    <button
+                        className={`inline-play-btn ${isThisPlaying ? 'playing' : ''}`}
+                        onClick={handlePlayClick}
+                    >
+                        {isThisPlaying ? '⏸️' : '▶️'}
+                    </button>
+                    <div className="inline-audio-info">
+                        <span className="inline-audio-title">{fileName || 'Голосовое'}</span>
+                        <div className="audio-wave-mini">
+                            {[...Array(8)].map((_, i) => (
+                                <span key={i} className="wave-bar" style={{animationDelay: `${i * 0.1}s`}}></span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                {error && <div className="media-error">{error}</div>}
+            </div>
         );
     };
 
-    return <div className="media-renderer">{renderContent()}</div>;
+    // ===== VIDEO - thumbnail с play button =====
+    const renderVideo = () => {
+        if (isLoading) {
+            return (
+                <div className="media-video-loading">
+                    <div className="spinner"></div>
+                </div>
+            );
+        }
+
+        return (
+            <div className="media-video-container" onClick={!compact ? handlePlayClick : undefined}>
+                <video
+                    src={streamUrl}
+                    className="media-video-preview"
+                    muted
+                    preload="metadata"
+                    onLoadedData={handleLoad}
+                    onError={handleError}
+                    poster={streamUrl ? (streamUrl.includes('?') ? streamUrl + '&t=thumb' : streamUrl + '?t=thumb') : undefined}
+                />
+                {!compact && (
+                    <div className="video-overlay">
+                        <div className="video-play-btn-large">▶️</div>
+                    </div>
+                )}
+                {error && <div className="media-error">{error}</div>}
+            </div>
+        );
+    };
+
+    // ===== IMAGE - полный функционал =====
+    const renderImage = () => (
+        <div className="media-image-container">
+            {isLoading && (
+                <div className="media-loading">
+                    <div className="spinner"></div>
+                </div>
+            )}
+            <img
+                src={streamUrl}
+                alt={fileName || 'Изображение'}
+                className={`media-image ${isLoading ? 'hidden' : ''}`}
+                onLoad={handleLoad}
+                onError={handleError}
+                onClick={toggleFullscreen}
+                loading="lazy"
+            />
+            {showFullscreen && (
+                <div className="media-fullscreen" onClick={toggleFullscreen}>
+                    <img src={streamUrl} alt={fileName} />
+                    <button className="fullscreen-close" onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}>✕</button>
+                </div>
+            )}
+        </div>
+    );
+
+    // ===== FILE - скачивание =====
+    const renderFile = () => (
+        <div className="media-file-container">
+            <a
+                href={streamUrl && !streamUrl.startsWith('javascript:') ? streamUrl : '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="media-file-link"
+            >
+                <span className="file-icon">📎</span>
+                <span className="file-name">{fileName || 'Файл'}</span>
+            </a>
+        </div>
+    );
+
+    if (error && !isMedia) {
+        return (
+            <div className="media-error-container">
+                <span className="media-error-icon">⚠️</span>
+                <span className="media-error-text">{error}</span>
+            </div>
+        );
+    }
+
+    switch (mediaType) {
+        case 'image':
+            return renderImage();
+        case 'video':
+            return renderVideo();
+        case 'audio':
+            return renderAudio();
+        default:
+            return renderFile();
+    }
 };
 
 export default MediaRenderer;

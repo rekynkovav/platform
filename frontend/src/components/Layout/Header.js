@@ -1,12 +1,26 @@
-// =============================================
-// HEADER.JS — УСТАРЕВШИЙ ФАЙЛ
-// Основной header теперь встроен напрямую в App.js
-// Этот компонент больше не используется
-// Рекомендуется удалить файл после проверки
-// =============================================
+// components/Layout/Header.js
+import React from 'react';
+import ThemeToggle from './ThemeToggle';
+import { getUsername, logout } from '../../keycloak';
+import './Header.css';
 
 const Header = () => {
-    return null; // заглушка
+    const username = getUsername();
+
+    return (
+        <header className="header">
+            <div className="header-left">
+                <h1 className="header-logo">PLATFORM</h1>
+            </div>
+            <div className="header-right">
+                <span className="header-username">{username}</span>
+                <ThemeToggle />
+                <button className="header-logout" onClick={logout} title="Выйти">
+                    🚪
+                </button>
+            </div>
+        </header>
+    );
 };
 
 export default Header;

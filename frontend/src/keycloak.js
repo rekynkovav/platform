@@ -1,61 +1,16 @@
-// =============================================
-// keycloak.js — Mock для демо-режима
-// Полностью заменяет реальный Keycloak в разработке
-// =============================================
+// keycloak.js - Упрощенная мок-версия для разработки
+import { mockAuth } from './services/mockApi';
 
-const mockUser = {
-    username: 'Тестовый Пользователь',
-    roles: ['USER_2']
-};
+console.log('🔧 Запуск в МОК режиме');
 
-let isInitialized = false;
+export const initKeycloak = () => mockAuth.init();
+export const login = () => console.log('Мок-логин');
+export const logout = () => mockAuth.logout();
+export const getToken = () => 'mock-token-123';
+export const getRefreshToken = () => 'mock-refresh-token';
+export const updateToken = async () => true;
+export const getUsername = () => mockAuth.getUsername();
+export const getUserId = () => 'mock-user-id';
+export const getUserRoles = () => mockAuth.getUserRoles();
 
-export const initKeycloak = async () => {
-    await new Promise(resolve => setTimeout(resolve, 400)); // имитация загрузки
-    isInitialized = true;
-    console.log('%c🔑 Keycloak Mock initialized (demo mode)', 'color: #8b5cf6; font-weight: bold');
-    return true;
-};
-
-export const getUsername = () => {
-    return mockUser.username;
-};
-
-export const getUserRoles = () => {
-    const demoRole = localStorage.getItem('demoRole');
-    if (demoRole) {
-        return [demoRole];
-    }
-    return mockUser.roles;
-};
-
-export const isAuthenticated = () => {
-    return true; // в демо-режиме всегда авторизован
-};
-
-export const logout = () => {
-    localStorage.removeItem('demoRole');
-    window.location.reload();
-};
-
-export const getToken = () => {
-    return 'mock-jwt-token-' + Date.now();
-};
-
-// Для совместимости со старым кодом
-export const keycloak = {
-    init: initKeycloak,
-    authenticated: true,
-    token: 'mock-jwt-token',
-    loadUserInfo: () => Promise.resolve(mockUser)
-};
-
-export default {
-    initKeycloak,
-    getUsername,
-    getUserRoles,
-    isAuthenticated,
-    logout,
-    getToken,
-    keycloak
-};
+export default { init: initKeycloak, logout, login };

@@ -1,36 +1,55 @@
 .scheduled-events {
-    max-width: 900px;
+    max-width: 800px;
     margin: 0 auto;
     animation: fadeIn 0.3s ease-out;
 }
 
-.broadcasts-header {
+.events-header {
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--border);
 }
 
-.broadcasts-header h2 {
-    font-size: 28px;
+.events-header h2 {
+    font-size: 24px;
     color: var(--text-primary);
     margin-bottom: 8px;
 }
 
-.broadcasts-header p {
+.events-header p {
     color: var(--text-secondary);
     font-size: 14px;
 }
 
-.create-broadcast-section {
+.access-denied {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+}
+
+.access-denied span {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 16px;
+}
+
+.access-denied p {
+    color: var(--text-secondary);
+}
+
+.admin-controls-events {
     margin-bottom: 24px;
     display: flex;
     justify-content: center;
 }
 
-.create-broadcast-btn {
-    padding: 12px 24px;
+.add-event-button {
     background: rgba(25, 135, 84, 0.1);
     color: var(--text-primary);
     border: 1px solid rgba(25, 135, 84, 0.3);
+    padding: 12px 24px;
     border-radius: 12px;
     font-size: 16px;
     font-weight: 500;
@@ -38,89 +57,268 @@
     transition: all 0.2s;
 }
 
-.create-broadcast-btn:hover {
+.add-event-button:hover {
     background: rgba(25, 135, 84, 0.2);
     border-color: rgba(25, 135, 84, 0.5);
     transform: translateY(-1px);
 }
 
-.broadcasts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+/* Модальное окно для добавления события */
+.add-event-modal {
+    max-width: 500px;
+    width: 90%;
+}
+
+.add-event-modal h3 {
+    margin: 0 0 20px 0;
+    color: var(--text-primary);
+    font-size: 20px;
+}
+
+.add-event-modal input,
+.add-event-modal textarea {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.add-event-modal input:focus,
+.add-event-modal textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.add-event-modal textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.modal-buttons-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.modal-btn-create {
+    width: 100%;
+    padding: 12px;
+    background: rgba(25, 135, 84, 0.1);
+    color: var(--text-primary);
+    border: 1px solid rgba(25, 135, 84, 0.3);
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-btn-create:hover {
+    background: rgba(25, 135, 84, 0.2);
+    border-color: rgba(25, 135, 84, 0.5);
+    transform: translateY(-1px);
+}
+
+.modal-btn-cancel {
+    width: 100%;
+    padding: 12px;
+    background: rgba(220, 53, 69, 0.1);
+    color: var(--text-primary);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-btn-cancel:hover {
+    background: rgba(220, 53, 69, 0.2);
+    border-color: rgba(220, 53, 69, 0.5);
+    transform: translateY(-1px);
+}
+
+.add-event-form {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+}
+
+.add-event-form h3 {
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.add-event-form input,
+.add-event-form textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+.add-event-form button {
+    background: var(--success);
+    color: white;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    width: 100%;
+}
+
+.events-list {
+    display: flex;
+    flex-direction: column;
     gap: 16px;
 }
 
-.broadcast-card {
+.event-card {
     background: var(--bg-secondary);
-    border-radius: 16px;
-    padding: 20px;
-    position: relative;
-    transition: all 0.2s ease;
+    border-radius: var(--radius);
+    padding: 16px;
+    transition: all 0.2s;
 }
 
-.broadcast-card:hover {
+.event-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
 
-.broadcast-title {
-    font-size: 18px;
-    color: var(--text-primary);
-    margin-bottom: 8px;
+.event-card.expanded {
+    background: var(--bg-primary);
+    border: 1px solid var(--accent);
 }
 
-.broadcast-description {
-    font-size: 14px;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-    line-height: 1.5;
-}
-
-.broadcast-datetime {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-}
-
-.broadcast-status {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--accent);
-}
-
-.broadcast-actions {
-    position: absolute;
-    top: 12px;
-    right: 12px;
+.event-header {
     display: flex;
-    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--bg-secondary);
 }
 
-.edit-broadcast-btn,
-.delete-broadcast-btn {
-    background: transparent;
+.event-card.expanded .event-header {
+    background: var(--accent);
+    color: white;
+}
+
+.event-title-section {
+    flex: 1;
+}
+
+.event-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.event-card.expanded .event-title {
+    color: white;
+}
+
+.event-date {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.event-card.expanded .event-date {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.event-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.edit-event-btn {
+    background: none;
     border: none;
-    padding: 6px 10px;
     font-size: 18px;
     cursor: pointer;
-    transition: all 0.2s;
-    opacity: 0.5;
+    opacity: 0.6;
+    transition: opacity 0.2s;
 }
 
-.edit-broadcast-btn:hover,
-.delete-broadcast-btn:hover {
+.edit-event-btn:hover {
     opacity: 1;
-    transform: scale(1.1);
 }
 
-/* Состояния */
-.loading,
-.error-message,
-.no-events {
-    text-align: center;
-    padding: 60px 20px;
+.delete-event-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.delete-event-btn:hover {
+    opacity: 1;
+}
+
+.edited-badge {
+    font-size: 12px;
     color: var(--text-secondary);
-    font-size: 16px;
+    font-weight: normal;
+    font-style: italic;
+}
+
+.event-expand-icon {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.event-card.expanded .event-expand-icon {
+    color: white;
+}
+
+.event-content {
+    padding: 0 16px 16px 16px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.event-card.expanded .event-content {
+    max-height: 200px;
+}
+
+.event-details {
+    margin-bottom: 12px;
+    padding-top: 12px;
+}
+
+.event-detail-item {
+    display: flex;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.detail-label {
+    color: var(--text-secondary);
+}
+
+.detail-value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.event-description {
+    color: var(--text-primary);
+    line-height: 1.5;
 }
 
 @keyframes fadeIn {
@@ -128,8 +326,265 @@
     to { opacity: 1; }
 }
 
-@media (max-width: 768px) {
-    .broadcasts-grid {
-        grid-template-columns: 1fr;
+.date-time-group {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.date-field, .time-field {
+    flex: 1;
+}
+
+.date-field label, .time-field label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.date-field input, .time-field input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.date-field input:focus, .time-field input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.delete-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+}
+
+.delete-notification .notification-content {
+    background: #ef4444;
+    color: white;
+    border-radius: 12px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.no-events {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.no-events p {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.hint {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Модальное окно подтверждения удаления */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+    background: var(--bg-primary);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-icon {
+    font-size: 28px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 20px;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-body p {
+    margin: 0 0 16px 0;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.event-preview {
+    background: var(--bg-secondary);
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin: 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.event-preview strong {
+    color: var(--accent);
+    font-size: 14px;
+}
+
+.event-details-preview {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.event-preview small {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-style: italic;
+}
+
+.warning-text {
+    color: #ef4444 !important;
+    font-size: 13px !important;
+    margin-top: 12px !important;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px 24px;
+    border-top: 1px solid var(--border);
+}
+
+.modal-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-btn.cancel {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.modal-btn.cancel:hover {
+    background: var(--border);
+    transform: translateY(-1px);
+}
+
+.modal-btn.confirm {
+    background: #ef4444;
+    color: white;
+}
+
+.modal-btn.confirm:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Уведомление об удалении */
+.delete-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1001;
+    animation: slideIn 0.3s ease;
+}
+
+.delete-notification .notification-content {
+    background: #ef4444;
+    color: white;
+    border-radius: 12px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.notification-close {
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.notification-close:hover {
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
     }
 }

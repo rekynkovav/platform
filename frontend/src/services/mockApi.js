@@ -1,105 +1,69 @@
+import { mockUser, mockEvents, mockChatMessages, mockArchiveItems, mockContacts } from '../mocks/mockData';
+
 // Имитация задержки сети
 const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Моковые данные
-const mockUser = {
-    username: 'Тестовый Пользователь',
-    roles: ['USER_2'],
-    id: 'mock-user-123'
-};
 
 export const mockAuth = {
     init: async () => {
         await delay(500);
+        console.log('✅ Мок-авторизация: успешный вход');
         return true;
     },
     getUsername: () => mockUser.username,
     getUserRoles: () => mockUser.roles,
     logout: () => {
+        console.log('🚪 Мок-выход из системы');
         window.location.reload();
     }
 };
 
-// Мок для событий (используется в ScheduledEvents и EventsHub)
 export const mockEventsApi = {
-    getAll: async () => {
-        await delay();
-        const saved = localStorage.getItem('scheduledEvents');
-        const events = saved ? JSON.parse(saved) : [];
-        return { data: events };
-    },
-    getUpcoming: async () => {
-        await delay();
-        const saved = localStorage.getItem('scheduledEvents');
-        const events = saved ? JSON.parse(saved) : [];
-        const now = new Date();
-        const upcoming = events.filter(e => new Date(e.startTime || `${e.date}T${e.time}`) > now);
-        return { data: upcoming };
-    },
-    getPast: async () => {
-        await delay();
-        const saved = localStorage.getItem('scheduledEvents');
-        const events = saved ? JSON.parse(saved) : [];
-        const now = new Date();
-        const past = events.filter(e => new Date(e.startTime || `${e.date}T${e.time}`) <= now);
-        return { data: past };
-    },
     getNext: async () => {
         await delay();
-        const saved = localStorage.getItem('scheduledEvents');
-        const events = saved ? JSON.parse(saved) : [];
-        const now = new Date();
-        const upcoming = events
-            .filter(e => new Date(e.startTime || `${e.date}T${e.time}`) > now)
-            .sort((a, b) => new Date(a.startTime || `${a.date}T${a.time}`) - new Date(b.startTime || `${b.date}T${b.time}`));
-        return { data: upcoming[0] || null };
+        return { data: mockEvents.filter(e => e.status === 'upcoming')[0] };
     },
-    create: async (data) => {
-        await delay(300);
-        const saved = localStorage.getItem('scheduledEvents');
-        const events = saved ? JSON.parse(saved) : [];
-        const newEvent = { id: Date.now().toString(), ...data, status: 'scheduled' };
-        events.unshift(newEvent);
-        localStorage.setItem('scheduledEvents', JSON.stringify(events));
-        return { data: newEvent };
+    getAll: async () => {
+        await delay();
+        return { data: mockEvents };
     },
-    update: async (id, data) => { /* ... */ await delay(300); return { data }; },
-    delete: async (id) => { /* ... */ await delay(200); return { data: { success: true } }; }
+    getById: async (id) => {
+        await delay();
+        return { data: mockEvents.find(e => e.id === parseInt(id)) };
+    }
 };
 
-// Мок для архива
+export const mockChatApi = {
+    getMessages: async (limit = 50, before = null) => {
+        await delay();
+        let messages = [...mockChatMessages];
+        if (before) {
+            messages = messages.filter(m => m.timestamp < before);
+        }
+        return { data: messages.slice(0, limit) };
+    },
+    sendMessage: async (content) => {
+        await delay(200);
+        const newMessage = {
+            id: Date.now(),
+            author: mockUser.username,
+            content,
+            timestamp: new Date().toISOString()
+        };
+        mockChatMessages.push(newMessage);
+        return { data: newMessage };
+    }
+};
+
 export const mockArchiveApi = {
     getAll: async () => {
         await delay();
-        const saved = localStorage.getItem('archives');
-        return { data: saved ? JSON.parse(saved) : [] };
-    },
-    create: async (data) => {
-        await delay(300);
-        const saved = localStorage.getItem('archives');
-        const archives = saved ? JSON.parse(saved) : [];
-        const newArchive = { id: Date.now().toString(), ...data };
-        archives.unshift(newArchive);
-        localStorage.setItem('archives', JSON.stringify(archives));
-        return { data: newArchive };
+        return { data: mockArchiveItems };
     }
 };
 
-// Мок для чата (упрощённый)
-export const mockChatApi = {
-    getGeneralMessages: async () => {
+export const mockContactsApi = {
+    getAll: async () => {
         await delay();
-        return { data: [] };
-    },
-    sendToGeneralChat: async (content, mediaId) => {
-        await delay(200);
-        return { data: { id: Date.now(), content, mediaId, author: mockUser.username, timestamp: new Date().toISOString() } };
+        return { data: mockContacts };
     }
-};
-
-export default {
-    mockAuth,
-    mockEventsApi,
-    mockArchiveApi,
-    mockChatApi
 };

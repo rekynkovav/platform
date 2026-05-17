@@ -1,40 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import './EventCountdown.css';
 
-const EventCountdown = ({ event, onClose }) => {
+const EventCountdown = ({ event, onClose, onClick }) => {
     const [timeLeft, setTimeLeft] = useState({});
 
     useEffect(() => {
-        const calculate = () => {
-            const eventDate = new Date(event.timestamp || event.createdAt);
+        const calculateTimeLeft = () => {
+            const eventDate = new Date(`${event.date}T${event.time || '00:00'}`);
             const now = new Date();
-            const diff = eventDate - now;
-            if (diff <= 0) {
-                onClose();
+            const difference = eventDate - now;
+
+            if (difference <= 0) {
                 return { expired: true };
             }
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
             return { days, hours, minutes, seconds, expired: false };
         };
 
-        const timer = setInterval(() => setTimeLeft(calculate()), 1000);
-        setTimeLeft(calculate());
+        setTimeLeft(calculateTimeLeft());
+
+        const timer = setInterval(() => {
+            setTimeLeft(calculateTimeLeft());
+        }, 1000);
 
         return () => clearInterval(timer);
-    }, [event, onClose]);
+    }, [event]);
 
-    if (timeLeft.expired) return null;
+    if (timeLeft.expired) {
+        return null;
+    }
 
     return (
-        <div className="event-countdown" onClick={() => {}}>
+        <div className="event-countdown" onClick={onClick}>
             <div className="countdown-content">
-                <button className="countdown-close" onClick={onClose}>✕</button>
+                <button className="countdown-close" onClick={(e) => { e.stopPropagation(); onClose(); }}>✕</button>
                 <div className="countdown-icon">🎉</div>
                 <div className="countdown-text">
-                    <strong>Скоро событие!</strong>
+                    <strong>Новое событие!</strong>
                     <span>{event.title}</span>
                 </div>
                 <div className="countdown-timer">
@@ -42,6 +49,7 @@ const EventCountdown = ({ event, onClose }) => {
                     {timeLeft.hours > 0 && <span>{timeLeft.hours}ч </span>}
                     <span>{timeLeft.minutes}м {timeLeft.seconds}с</span>
                 </div>
+                <div className="countdown-arrow">→</div>
             </div>
         </div>
     );
