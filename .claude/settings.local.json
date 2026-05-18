@@ -10,7 +10,8 @@
       "Bash(curl -s http://localhost:8081/actuator/health)",
       "Bash(mvn spring-boot:run)",
       "Bash(rm:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(grep -v \"//\")"
     ]
   }
 }
