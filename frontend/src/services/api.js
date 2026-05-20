@@ -179,4 +179,25 @@ export const usersApi = {
     getUserById: (userId) => api.get(`/api/users/${userId}`)
 };
 
+// API для трансляций (live broadcasts)
+export const broadcastApi = {
+    create: (title, description, streamType = 'video') =>
+        api.post('/api/broadcast/create', { title, description, streamType }),
+
+    start: (broadcastId) =>
+        api.post(`/api/broadcast/${broadcastId}/start`, {}),
+
+    stop: (broadcastId) =>
+        api.post(`/api/broadcast/${broadcastId}/stop`, {}),
+
+    getActive: () =>
+        api.get('/api/broadcast/active'),
+
+    getById: (broadcastId) =>
+        api.get(`/api/broadcast/${broadcastId}`),
+
+    delete: (broadcastId) =>
+        api.delete(`/api/broadcast/${broadcastId}`)
+};
+
 export default api;

@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: platform-postgres
+    environment:
+      POSTGRES_DB: platform
+      POSTGRES_USER: platform
+      POSTGRES_PASSWORD: platform123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - platform-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: platform-keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/platform
+      KC_DB_USERNAME: platform
+      KC_DB_PASSWORD: platform123
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+    ports:
+      - "8080:8080"
+    command: start-dev
+    depends_on:
+      - postgres
+    networks:
+      - platform-network
+
+  rtmp:
+    image: alfg/nginx-rtmp
+    container_name: platform-rtmp
+    ports:
+      - "1935:1935"
+      - "8000:80"
+    volumes:
+      - ./rtmp.conf:/etc/nginx/nginx.conf:ro
+      - ./hls:/hls
+    networks:
+      - platform-network
+
+  backend:
+    build: .
+    container_name: platform-backend
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/platform
+      SPRING_DATASOURCE_USERNAME: platform
+      SPRING_DATASOURCE_PASSWORD: platform123
+      KEYCLOAK_AUTH_SERVER_URL: http://keycloak:8080
+    depends_on:
+      - postgres
+      - keycloak
+      - rtmp
+    volumes:
+      - ./hls:/hls
+      - ./uploads:/uploads
+    networks:
+      - platform-network
+
+  frontend:
+    build: ./frontend
+    container_name: platform-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8081
+      REACT_APP_WS_URL: ws://localhost:8081
+    depends_on:
+      - backend
+    networks:
+      - platform-network
+
+volumes:
+  postgres_data:
+
+networks:
+  platform-network:
+    driver: bridge
