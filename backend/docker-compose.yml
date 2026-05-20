@@ -16,7 +16,7 @@ services:
       - platform-network
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0
+    build: ./docker/keycloak
     container_name: platform-keycloak
     environment:
       KC_DB: postgres
@@ -32,6 +32,8 @@ services:
       - postgres
     networks:
       - platform-network
+    volumes:
+      - ./docker/keycloak:/opt/keycloak/custom
 
   rtmp:
     image: alfg/nginx-rtmp

@@ -1,0 +1,73 @@
+{
+  "realm": "platform",
+  "enabled": true,
+  "displayName": "Platform",
+  "roles": {
+    "realm": [
+      { "name": "USER_0", "description": "Зритель без прав" },
+      { "name": "USER_1", "description": "Новичок" },
+      { "name": "USER_2", "description": "Продвинутый фанат" },
+      { "name": "CONSULTANT_PITANIE", "description": "Консультант по питанию" },
+      { "name": "CONSULTANT_SPORT", "description": "Консультант по спорту" },
+      { "name": "MODERATOR_ADMIN", "description": "Модератор/Админ" },
+      { "name": "DEVELOPER", "description": "Разработчик" },
+      { "name": "VYACHESLAV", "description": "Вячеслав" },
+      { "name": "SUPER_ADMIN", "description": "Главный Админ" }
+    ]
+  },
+  "users": [
+    {
+      "username": "user0",
+      "email": "user0@platform.com",
+      "firstName": "Зритель",
+      "lastName": "Без прав",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "password" }],
+      "realmRoles": ["USER_0"]
+    },
+    {
+      "username": "user1",
+      "email": "user1@platform.com",
+      "firstName": "Новичок",
+      "lastName": "Пользователь",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "password" }],
+      "realmRoles": ["USER_1"]
+    },
+    {
+      "username": "user2",
+      "email": "user2@platform.com",
+      "firstName": "Продвинутый",
+      "lastName": "Фанат",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "password" }],
+      "realmRoles": ["USER_2"]
+    },
+    {
+      "username": "superadmin",
+      "email": "admin@platform.com",
+      "firstName": "Главный",
+      "lastName": "Админ",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "admin123" }],
+      "realmRoles": ["SUPER_ADMIN", "VYACHESLAV"]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "platform-frontend",
+      "name": "Platform Frontend",
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"]
+    },
+    {
+      "clientId": "platform-backend",
+      "name": "Platform Backend",
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true
+    }
+  ]
+}
