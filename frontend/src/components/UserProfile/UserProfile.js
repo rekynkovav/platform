@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { usersApi } from '../../services/api';
+import { usersApi, mediaApi } from '../../services/api';
 import './UserProfile.css';
 
 const UserProfile = () => {
@@ -10,9 +10,11 @@ const UserProfile = () => {
         username: '',
         email: '',
         phone: '',
-        bio: ''
+        bio: '',
+        avatarUrl: ''
     });
     const [saving, setSaving] = useState(false);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [error, setError] = useState(null);
     const [paymentId, setPaymentId] = useState(null);
     const [qrCodeUrl, setQrCodeUrl] = useState(null);
@@ -44,14 +46,59 @@ const UserProfile = () => {
     const loadUser = async () => {
         try {
             setLoading(true);
+
+            // === ВРЕМЕННЫЙ ФИКС ДЛЯ USER_0 ===
+            const demoRole = localStorage.getItem('demoRole');
+            const isUser0Demo = demoRole === 'USER_0' &&
+                               (process.env.REACT_APP_DEMO_MODE === 'true' ||
+                                window.location.hostname === 'localhost');
+
+            if (isUser0Demo) {
+                // МОК-ДАННЫЕ ДЛЯ USER_0
+                const mockUser0 = {
+                    id: 'user-0-demo-id',
+                    username: 'Пользователь 0 (Демо)',
+                    email: 'user0@demo.platform.ru',
+                    phone: '+7 (999) 000-00-00',
+                    role: 'USER_0',
+                    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=user0&backgroundColor=4a90e2&hairColor=2c1b18&accessories=round&facialHair=beardLight',
+                    bio: 'Демонстрационный аккаунт для показа функционала личного кабинета',
+                    banned: false,
+                    banReason: null,
+                    lastActiveAt: new Date().toISOString(),
+                    createdAt: '2024-01-01T00:00:00Z',
+                    // Дополнительные поля для демо
+                    subscriptionActive: true,
+                    subscriptionEnd: '2024-12-31T23:59:59Z',
+                    paymentMethod: 'bank_transfer',
+                    notificationsEnabled: true
+                };
+
+                setUser(mockUser0);
+                setFormData({
+                    username: mockUser0.username,
+                    email: mockUser0.email,
+                    phone: mockUser0.phone,
+                    bio: mockUser0.bio,
+                    avatarUrl: mockUser0.avatarUrl
+                });
+                setError(null);
+                setLoading(false);
+                return;
+            }
+            // === КОНЕЦ ВРЕМЕННОГО ФИКСА ===
+
+            // Обычная загрузка для остальных
             const response = await usersApi.getCurrentUser();
             setUser(response.data);
             setFormData({
                 username: response.data.username || '',
                 email: response.data.email || '',
                 phone: response.data.phone || '',
-                bio: response.data.bio || ''
+                bio: response.data.bio || '',
+                avatarUrl: response.data.avatarUrl || ''
             });
+            setError(null);
         } catch (err) {
             console.error('Ошибка загрузки пользователя:', err);
             setError('Не удалось загрузить профиль');
@@ -63,6 +110,32 @@ const UserProfile = () => {
     const handleSave = async () => {
         try {
             setSaving(true);
+
+            // === ВРЕМЕННЫЙ ФИКС ДЛЯ USER_0 ===
+            const demoRole = localStorage.getItem('demoRole');
+            const isUser0Demo = demoRole === 'USER_0' &&
+                               (process.env.REACT_APP_DEMO_MODE === 'true' ||
+                                window.location.hostname === 'localhost');
+
+            if (isUser0Demo) {
+                // Мок-сохранение для USER_0
+                const updatedUser = {
+                    ...user,
+                    username: formData.username,
+                    email: formData.email,
+                    phone: formData.phone,
+                    bio: formData.bio,
+                    avatarUrl: formData.avatarUrl
+                };
+                setUser(updatedUser);
+                setEditing(false);
+                alert('Демо-профиль USER_0 обновлен (изменения не сохраняются в БД)');
+                setSaving(false);
+                return;
+            }
+            // === КОНЕЦ ВРЕМЕННОГО ФИКСА ===
+
+            // Обычное сохранение для остальных
             const response = await usersApi.updateCurrentUser(formData);
             setUser(response.data);
             setEditing(false);
@@ -71,6 +144,53 @@ const UserProfile = () => {
             alert('Не удалось сохранить профиль');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleAvatarUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Проверка типа файла
+        if (!file.type.startsWith('image/')) {
+            alert('Пожалуйста, выберите изображение (JPG, PNG, GIF)');
+            return;
+        }
+
+        // Проверка размера файла (макс 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Размер файла не должен превышать 5MB');
+            return;
+        }
+
+        try {
+            setUploadingAvatar(true);
+
+            // Загрузка файла на сервер
+            const response = await mediaApi.upload(file, 'image');
+            const mediaFile = response.data;
+
+            // Получаем stream URL для отображения
+            const streamResponse = await mediaApi.getStreamUrl(mediaFile.id);
+            const avatarUrl = streamResponse.data.url || `/api/media/stream/${mediaFile.id}`;
+
+            // Обновляем formData с новым avatarUrl
+            setFormData({ ...formData, avatarUrl });
+
+            // Если не в режиме редактирования, сразу обновляем пользователя
+            if (!editing) {
+                const updatedUser = { ...user, avatarUrl };
+                setUser(updatedUser);
+            }
+
+            alert('Аватар успешно загружен!');
+        } catch (err) {
+            console.error('Ошибка загрузки аватара:', err);
+            alert('Не удалось загрузить аватар');
+        } finally {
+            setUploadingAvatar(false);
+            // Сбрасываем input file
+            e.target.value = '';
         }
     };
 
@@ -121,21 +241,21 @@ const UserProfile = () => {
 
     const getRoleInfo = (role) => {
         const roleMap = {
-            'user_0': { icon: '👁️', name: 'Пользователь 0', color: '#6c757d' },
-            'user_1': { icon: '🌱', name: 'Пользователь 1', color: '#28a745' },
-            'user_2': { icon: '⭐', name: 'Пользователь 2', color: '#ffc107' },
-            'moderator_admin': { icon: '🛡️', name: 'Модератор/Админ', color: '#0d6efd' },
-            'super_admin': { icon: '🔱', name: 'Главный Админ', color: '#dc3545' },
-            'consultant_pitanie': { icon: '🥗', name: 'Консультант Питание', color: '#fd7e14' },
-            'consultant_sport': { icon: '⚽', name: 'Консультант Спорт', color: '#20c997' },
-            'developer': { icon: '💻', name: 'Разработчик', color: '#6f42c1' },
-            'vyacheslav': { icon: '👑', name: 'Вячеслав', color: '#dc3545' }
+            'USER_0': { icon: '👁️', name: 'Пользователь 0', color: '#6c757d' },
+            'USER_1': { icon: '🌱', name: 'Пользователь 1', color: '#28a745' },
+            'USER_2': { icon: '⭐', name: 'Пользователь 2', color: '#ffc107' },
+            'MODERATOR_ADMIN': { icon: '🛡️', name: 'Модератор/Админ', color: '#0d6efd' },
+            'SUPER_ADMIN': { icon: '🔱', name: 'Главный Админ', color: '#dc3545' },
+            'CONSULTANT_PITANIE': { icon: '🥗', name: 'Консультант Питание', color: '#fd7e14' },
+            'CONSULTANT_SPORT': { icon: '⚽', name: 'Консультант Спорт', color: '#20c997' },
+            'DEVELOPER': { icon: '💻', name: 'Разработчик', color: '#6f42c1' },
+            'VYACHESLAV': { icon: '👑', name: 'Вячеслав', color: '#dc3545' }
         };
         return roleMap[role?.toLowerCase()] || { icon: '👤', name: role || 'Пользователь', color: '#6c757d' };
     };
 
     const isPaidRole = (role) => {
-        return ['user_1', 'user_2', 'moderator_admin', 'super_admin', 'consultant_pitanie', 'consultant_sport', 'developer', 'vyacheslav'].includes(role?.toLowerCase());
+        return ['USER_1', 'USER_2', 'MODERATOR_ADMIN', 'SUPER_ADMIN', 'CONSULTANT_PITANIE', 'CONSULTANT_SPORT', 'DEVELOPER', 'VYACHESLAV'].includes(role?.toUpperCase());
     };
 
     const selectedPeriodData = periods.find(p => p.months === selectedPeriod) || periods[0];
@@ -158,6 +278,47 @@ const UserProfile = () => {
             </div>
 
             <div className="profile-card">
+                <div className="profile-avatar-section">
+                    <div className="profile-avatar-container">
+                        {user?.avatarUrl ? (
+                            <img
+                                src={user.avatarUrl}
+                                alt="Аватар пользователя"
+                                className="profile-avatar"
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.parentElement.querySelector('.profile-avatar-placeholder').style.display = 'flex';
+                                }}
+                            />
+                        ) : null}
+                        <div className={`profile-avatar-placeholder ${user?.avatarUrl ? 'hidden' : ''}`}>
+                            <span className="avatar-icon">👤</span>
+                        </div>
+                    </div>
+                    {editing && (
+                        <div className="avatar-upload-controls">
+                            <label className="avatar-upload-btn">
+                                {uploadingAvatar ? 'Загрузка...' : '📷 Сменить аватар'}
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleAvatarUpload}
+                                    style={{ display: 'none' }}
+                                    disabled={uploadingAvatar}
+                                />
+                            </label>
+                            {formData.avatarUrl && formData.avatarUrl !== user?.avatarUrl && (
+                                <button
+                                    className="avatar-remove-btn"
+                                    onClick={() => setFormData({ ...formData, avatarUrl: '' })}
+                                >
+                                    ❌ Удалить
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+
                 <div className="profile-role-badge" style={{ background: roleInfo.color }}>
                     <span className="role-badge-icon">{roleInfo.icon}</span>
                     <div className="role-badge-info">
@@ -235,6 +396,7 @@ const UserProfile = () => {
                             )}
                         </div>
 
+
                         <div className="profile-field">
                             <label>Дата регистрации:</label>
                             <span>{user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : '-'}</span>
@@ -257,7 +419,8 @@ const UserProfile = () => {
                                     username: user?.username || '',
                                     email: user?.email || '',
                                     phone: user?.phone || '',
-                                    bio: user?.bio || ''
+                                    bio: user?.bio || '',
+                                    avatarUrl: user?.avatarUrl || ''
                                 });
                             }}>
                                 Отмена

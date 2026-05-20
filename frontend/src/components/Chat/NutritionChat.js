@@ -1,4 +1,4 @@
-import useChat from './useChat';
+import { useChat } from './useChat';
 import ChatRoom from './ChatRoom';
 
 const NutritionChat = () => {
@@ -27,7 +27,8 @@ const NutritionChat = () => {
     } = useChat('nutrition', {
         storageKeyPrefix: 'nutritionChatMessages',
         canSwitchRooms: false,
-        availableRooms
+        availableRooms,
+        useApi: false // Временно отключаем API до запуска бэкенда
     });
 
     if (loading) return <div className="loading">Загрузка чата...</div>;

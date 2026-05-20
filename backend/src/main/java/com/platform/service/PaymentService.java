@@ -86,8 +86,8 @@ public class PaymentService {
         payment = paymentRepository.save(payment);
 
         try {
-            keycloakService.updateUserRole(payment.getUserId(), "USER", "PREMIUM");
-            log.info("User role updated: {} -> PREMIUM", payment.getUserId());
+            keycloakService.updateUserRole(payment.getUserId(), "USER_0", "USER_1");
+            log.info("User role updated: {} -> USER_1", payment.getUserId());
         } catch (Exception e) {
             log.error("Failed to update user role in Keycloak", e);
             throw new RuntimeException("Failed to update user role: " + e.getMessage());

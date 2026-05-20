@@ -62,15 +62,15 @@ const Questions = () => {
     // Определяем ID роли (уникальный идентификатор)
     const getRoleId = (role) => {
         const roleIds = {
-            'admin_moderator': 'admin_moderator',
-            'consultant_nutrition': 'consultant_nutrition',
-            'consultant_sport': 'consultant_sport',
-            'vyacheslav': 'vyacheslav',
-            'developer': 'developer',
-            'super_admin': 'super_admin',
-            'user0': 'user0',
-            'user1': 'user1',
-            'user2': 'user2'
+            'MODERATOR_ADMIN': 'MODERATOR_ADMIN',
+            'CONSULTANT_PITANIE': 'CONSULTANT_PITANIE',
+            'CONSULTANT_SPORT': 'CONSULTANT_SPORT',
+            'VYACHESLAV': 'VYACHESLAV',
+            'DEVELOPER': 'DEVELOPER',
+            'SUPER_ADMIN': 'SUPER_ADMIN',
+            'USER_0': 'USER_0',
+            'USER_1': 'USER_1',
+            'USER_2': 'USER_2'
         };
         return roleIds[role] || role;
     };
@@ -85,12 +85,12 @@ const Questions = () => {
     ];
 
     // Определяем роли четко
-    const isGeneralAdmin = demoRole === 'admin_moderator' || demoRole === 'developer';
-    const isNutritionConsultant = demoRole === 'consultant_nutrition';
-    const isSportConsultant = demoRole === 'consultant_sport';
-    const isVyacheslav = demoRole === 'vyacheslav';
-    const isSuperAdmin = demoRole === 'super_admin';
-    const isUser0 = demoRole === 'user0';
+    const isGeneralAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER';
+    const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
+    const isSportConsultant = demoRole === 'CONSULTANT_SPORT';
+    const isVyacheslav = demoRole === 'VYACHESLAV';
+    const isSuperAdmin = demoRole === 'SUPER_ADMIN';
+    const isUser0 = demoRole === 'USER_0';
     const isAnyAdmin = isGeneralAdmin || isNutritionConsultant || isSportConsultant || isVyacheslav || isSuperAdmin;
 
     // Кто может переключать режимы (ВСЕ пользователи, кроме админов в режиме ответа)
@@ -119,11 +119,11 @@ const Questions = () => {
             let questionsToShow = [];
 
             if (isNutritionConsultant) {
-                // Консультант питания видит ТОЛЬКО вопросы с recipientId = 'consultant_nutrition'
+                // Консультант питания видит ТОЛЬКО вопросы с recipientId = 'CONSULTANT_PITANIE'
                 questionsToShow = allQuestions.filter(q =>
-                    q.recipientId === 'consultant_nutrition' && !q.archived
+                    q.recipientId === 'CONSULTANT_PITANIE' && !q.archived
                 );
-                console.log('Консультант питания: вопросы с recipientId=consultant_nutrition:', questionsToShow.length);
+                console.log('Консультант питания: вопросы с recipientId=CONSULTANT_PITANIE:', questionsToShow.length);
             } else if (isVyacheslav) {
                 // Вячеслав переключается между личными и общими
                 if (vyacheslavView === 'personal') {
@@ -231,7 +231,7 @@ const Questions = () => {
             date: new Date().toISOString().split('T')[0],
             isAnswered: false,
             mode: questionMode,
-            recipientId: questionMode === 'nutrition' ? 'consultant_nutrition' :
+            recipientId: questionMode === 'nutrition' ? 'CONSULTANT_PITANIE' :
                         questionMode === 'vyacheslav' ? 'vyacheslav' :
                         '', // Пустая строка для общих вопросов
             archived: false,
@@ -435,7 +435,7 @@ const Questions = () => {
                 // Админы архивируют отвеченные вопросы в своей области видимости
                 let shouldArchive = false;
 
-                if (isNutritionConsultant && q.recipientId === 'consultant_nutrition' && q.isAnswered) {
+                if (isNutritionConsultant && q.recipientId === 'CONSULTANT_PITANIE' && q.isAnswered) {
                     shouldArchive = true;
                 } else if (isVyacheslav && vyacheslavView === 'personal' && q.recipientId === 'vyacheslav' && q.isAnswered) {
                     shouldArchive = true;

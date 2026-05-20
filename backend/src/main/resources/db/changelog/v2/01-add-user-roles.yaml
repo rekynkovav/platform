@@ -15,5 +15,5 @@ databaseChangeLog:
 
               -- Создание модераторов
               INSERT INTO users (id, username, email, role)
-              VALUES ('00000000-0000-0000-0000-000000000002', 'moderator', 'moderator@platform.com', 'SUPER_ADMIN')
+              VALUES ('00000000-0000-0000-0000-000000000002', 'moderator', 'moderator@platform.com', 'MODERATOR_ADMIN')
               ON CONFLICT (id) DO NOTHING;

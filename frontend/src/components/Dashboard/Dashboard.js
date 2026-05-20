@@ -54,18 +54,21 @@ const Dashboard = () => {
 
     const demoRole = localStorage.getItem('demoRole');
     const isAdmin = useMemo(() =>
-        demoRole === 'admin_moderator' ||
-        demoRole === 'developer' ||
-        demoRole === 'super_admin'
+        demoRole === 'MODERATOR_ADMIN' ||
+        demoRole === 'DEVELOPER' ||
+        demoRole === 'SUPER_ADMIN' ||
+        demoRole === 'VYACHESLAV'
     , [demoRole]);
 
     const canEdit = useMemo(() =>
-        demoRole === 'admin_moderator' ||
-        demoRole === 'super_admin'
+        demoRole === 'MODERATOR_ADMIN' ||
+        demoRole === 'SUPER_ADMIN' ||
+        demoRole === 'VYACHESLAV'
     , [demoRole]);
 
     const isSuperAdmin = useMemo(() =>
-        demoRole === 'super_admin'
+        demoRole === 'SUPER_ADMIN' ||
+        demoRole === 'VYACHESLAV'
     , [demoRole]);
 
     // Отладка: выводим роль и статус админа
@@ -1092,7 +1095,7 @@ const Dashboard = () => {
                             currentMenu.items.map((item) => (
                                 <div
                                     key={item.id}
-                                    className="menu-dropdown-item"
+                                    className={`menu-dropdown-item ${item.hasSubmenu ? 'has-submenu' : ''}`}
                                     onClick={(e) => {
                                         if (!item.hasSubmenu) {
                                             handleItemClick(item);
@@ -1113,6 +1116,7 @@ const Dashboard = () => {
                                     <div className="menu-item-content">
                                         <div>
                                             <div className="menu-item-title">
+                                                {item.hasSubmenu && <span className="submenu-icon">📁 </span>}
                                                 {item.title}
                                                 {item.editedAt && <span className="edited-badge"> (изменено)</span>}
                                             </div>

@@ -134,7 +134,7 @@ public class ChatRoomService {
      */
     public void initDefaultPermissions() {
         // Общие вопросы — все пользователи могут читать и писать
-        setPermissionForRoom("questions-general", "ROLE_USER", "read_write");
+        setPermissionForRoom("questions-general", "ROLE_USER_0", "read_write");
         setPermissionForRoom("questions-general", "ROLE_CONSULTANT_PITANIE", "admin");
         setPermissionForRoom("questions-general", "ROLE_VYACHESLAV", "admin");
         setPermissionForRoom("questions-general", "ROLE_MODERATOR_ADMIN", "admin");
@@ -142,17 +142,17 @@ public class ChatRoomService {
         // Питание — только консультант питания + Vyacheslav
         setPermissionForRoom("questions-nutrition", "ROLE_CONSULTANT_PITANIE", "admin");
         setPermissionForRoom("questions-nutrition", "ROLE_VYACHESLAV", "admin");
-        setPermissionForRoom("questions-nutrition", "ROLE_USER", "read_write");
+        setPermissionForRoom("questions-nutrition", "ROLE_USER_0", "read_write");
 
         // Лично Вячеславу — только Vyacheslav + админы
         setPermissionForRoom("questions-vyacheslav", "ROLE_VYACHESLAV", "admin");
         setPermissionForRoom("questions-vyacheslav", "ROLE_MODERATOR_ADMIN", "admin");
-        setPermissionForRoom("questions-vyacheslav", "ROLE_USER", "read_write");
+        setPermissionForRoom("questions-vyacheslav", "ROLE_USER_0", "read_write");
 
         // Обычные чаты (user1, user2, nutrition)
-        setPermissionForRoom("user1", "ROLE_USER", "read_write");
-        setPermissionForRoom("user2", "ROLE_USER", "read_write");
-        setPermissionForRoom("nutrition", "ROLE_USER", "read_write");
+        setPermissionForRoom("user1", "ROLE_USER_0", "read_write");
+        setPermissionForRoom("user2", "ROLE_USER_0", "read_write");
+        setPermissionForRoom("nutrition", "ROLE_USER_0", "read_write");
         setPermissionForRoom("nutrition", "ROLE_CONSULTANT_PITANIE", "admin");
 
         System.out.println("✅ Default room permissions initialized successfully");

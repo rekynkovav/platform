@@ -262,3 +262,34 @@
     background: currentColor;
     border-radius: 3px 3px 0 0;
 }
+
+/* Стили для разделенной вкладки трансляций */
+.broadcast-split {
+    border: none;
+}
+
+.nav-tab-half.broadcast-live,
+.nav-tab-half.broadcast-archive {
+    border: none;
+}
+
+.nav-tab-half.broadcast-live:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--text-primary);
+}
+
+.nav-tab-half.broadcast-live.active {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    font-weight: bold;
+}
+
+.nav-tab-half.broadcast-archive:hover {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--text-primary);
+}
+
+.nav-tab-half.broadcast-archive.active {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+}

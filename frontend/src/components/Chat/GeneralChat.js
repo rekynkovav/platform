@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import useChat from './useChat';
+import { useChat } from './useChat';
 import ChatRoom from './ChatRoom';
 
-const GeneralChat = ({ useApi = true }) => {
+const GeneralChat = ({ useApi = false }) => { // Временно отключаем API до запуска бэкенда
     // Доступные комнаты чата
     const availableRooms = [
-        { id: 'user1', label: 'Новички' },
+        { id: 'user1', label: 'Общий' },
         { id: 'user2', label: 'Продвинутые' }
     ];
 
     // Названия комнат
     const roomTitles = {
-        user1: 'Чат новичков',
+        user1: 'Общий чат',
         user2: 'Чат продвинутых'
     };
 

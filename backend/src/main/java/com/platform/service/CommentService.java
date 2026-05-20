@@ -116,11 +116,11 @@ public class CommentService {
 
     private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "user";
+        if (roles == null) return "USER_0";
         if (roles.contains("MODERATOR_ADMIN")) return "MODERATOR_ADMIN";
         if (roles.contains("SUPER_ADMIN")) return "SUPER_ADMIN";
         if (roles.contains("VYACHESLAV")) return "VYACHESLAV";
-        return "user";
+        return "USER_0";
     }
 
     private boolean isAdmin(String role) {

@@ -110,6 +110,48 @@
     border-radius: var(--radius);
     max-width: 80%;
     align-self: flex-start;
+    display: flex;
+    gap: 12px;
+}
+
+.message-avatar {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    position: relative;
+}
+
+.avatar-image {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-light), var(--primary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border);
+}
+
+.avatar-placeholder.hidden {
+    display: none;
+}
+
+.avatar-icon {
+    font-size: 20px;
+    color: white;
+}
+
+.message-content-wrapper {
+    flex: 1;
+    min-width: 0; /* Для правильного обрезания текста */
 }
 
 .message-header {
@@ -505,10 +547,24 @@
 .chat-message.own {
     align-self: flex-end;
     background: rgba(139, 92, 246, 0.1);
+    flex-direction: row-reverse;
 }
 
 .chat-message.own strong {
     color: var(--accent);
+}
+
+.chat-message.own .message-avatar {
+    order: 2;
+}
+
+.chat-message.own .message-content-wrapper {
+    order: 1;
+}
+
+.chat-message.own .message-actions {
+    margin-left: 0;
+    margin-right: auto;
 }
 
 /* Медиа в сообщении */

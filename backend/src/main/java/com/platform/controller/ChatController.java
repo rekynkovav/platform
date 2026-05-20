@@ -43,7 +43,7 @@ public class ChatController {
 
         String userRole = jwt.getClaimAsString("realm_access.roles") != null
                 ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                : "ROLE_USER";
+                : "ROLE_USER_0";
 
         Instant beforeInstant = before != null ? Instant.parse(before) : null;
         return ResponseEntity.ok(chatService.getMessagesByRoom(roomSlug, limit, beforeInstant, userRole));
@@ -63,7 +63,7 @@ public class ChatController {
 
         String userRole = jwt.getClaimAsString("realm_access.roles") != null
                 ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                : "ROLE_USER";
+                : "ROLE_USER_0";
 
         return ResponseEntity.ok(chatService.sendMessageToRoom(
                 roomSlug,
@@ -200,7 +200,7 @@ public class ChatController {
 
         String userRole = jwt.getClaimAsString("realm_access.roles") != null
                 ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                : "ROLE_USER";
+                : "ROLE_USER_0";
 
         return ResponseEntity.ok(chatService.getMessagesByRoom(room.getSlug(), limit, beforeInstant, userRole));
     }
@@ -221,7 +221,7 @@ public class ChatController {
 
         String userRole = jwt.getClaimAsString("realm_access.roles") != null
                 ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                : "ROLE_USER";
+                : "ROLE_USER_0";
 
         return ResponseEntity.ok(chatService.sendMessageToRoom(
                 room.getSlug(),

@@ -278,12 +278,12 @@ public class SecureMediaService {
 
     private String getUserRole(Jwt jwt) {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "user";
+        if (roles == null) return "USER_0";
 
         if (roles.contains("SUPER_ADMIN")) return "SUPER_ADMIN";
         if (roles.contains("VYACHESLAV")) return "VYACHESLAV";
         if (roles.contains("MODERATOR_ADMIN")) return "MODERATOR_ADMIN";
-        return "user";
+        return "USER_0";
     }
 
     private boolean isAdmin(String role) {
@@ -296,6 +296,6 @@ public class SecureMediaService {
 
     private boolean hasPremiumAccess(Jwt jwt) {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        return roles != null && (roles.contains("premium") || roles.contains("MODERATOR_ADMIN") || roles.contains("SUPER_ADMIN") || roles.contains("VYACHESLAV"));
+        return roles != null && (roles.contains("USER_1") || roles.contains("MODERATOR_ADMIN") || roles.contains("SUPER_ADMIN") || roles.contains("VYACHESLAV"));
     }
 }

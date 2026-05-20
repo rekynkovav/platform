@@ -157,11 +157,11 @@ const NotificationBell = () => {
     const checkQuestionNotifications = () => {
         const demoRole = localStorage.getItem('demoRole');
 
-        const isGeneralAdmin = demoRole === 'admin_moderator' || demoRole === 'developer';
-        const isNutritionConsultant = demoRole === 'consultant_nutrition';
-        const isVyacheslav = demoRole === 'vyacheslav';
-        const isSuperAdmin = demoRole === 'super_admin';
-        const isUser = demoRole === 'user0' || demoRole === 'user1' || demoRole === 'user2';
+        const isGeneralAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER';
+        const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
+        const isVyacheslav = demoRole === 'VYACHESLAV';
+        const isSuperAdmin = demoRole === 'SUPER_ADMIN';
+        const isUser = demoRole === 'USER_0' || demoRole === 'USER_1' || demoRole === 'USER_2';
 
         const saved = localStorage.getItem('userNotifications');
         let existingNotifs = saved ? JSON.parse(saved) : [];
@@ -174,11 +174,11 @@ const NotificationBell = () => {
 
             if (isNutritionConsultant) {
                 myUnansweredQuestions = allQuestions.filter(q =>
-                    q.recipientId === 'consultant_nutrition' && !q.isAnswered && !q.archived
+                    q.recipientId === 'CONSULTANT_PITANIE' && !q.isAnswered && !q.archived
                 );
             } else if (isVyacheslav) {
                 myUnansweredQuestions = allQuestions.filter(q =>
-                    (q.recipientId === 'vyacheslav' || !q.recipientId || q.recipientId === '') &&
+                    (q.recipientId === 'VYACHESLAV' || !q.recipientId || q.recipientId === '') &&
                     !q.isAnswered && !q.archived
                 );
             } else if (isGeneralAdmin || isSuperAdmin) {
@@ -252,7 +252,7 @@ const NotificationBell = () => {
                 }
             });
 
-            if (demoRole === 'user1' || demoRole === 'user2' || demoRole === 'vyacheslav') {
+            if (demoRole === 'USER_1' || demoRole === 'USER_2' || demoRole === 'VYACHESLAV') {
                 const mainPosts = JSON.parse(localStorage.getItem('mainFeedPosts') || '[]');
                 mainPosts.forEach(post => {
                     const alreadyShown = shownContent.posts.includes(post.id);

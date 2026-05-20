@@ -228,32 +228,53 @@ const ChatRoom = ({
                         key={msg.id}
                         className={`chat-message ${msg.author === currentUserAuthor ? 'own' : ''} ${msg.pending ? 'pending' : ''}`}
                     >
-                        <div className="message-header">
-                            <strong>{msg.author}</strong>
-                            <span className="timestamp">
-                                {new Date(msg.timestamp).toLocaleTimeString()}
-                                {msg.edited && <span className="edited-label"> (изменено)</span>}
-                            </span>
-                            {msg.pending && <span className="pending-label">Отправляется...</span>}
-                            {msg.author === currentUserAuthor && !msg.pending && (
-                                <div className="message-actions">
-                                    <button
-                                        className="edit-message-btn"
-                                        onClick={() => handleEditMessage(msg)}
-                                        title="Редактировать"
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        className="delete-message-btn"
-                                        onClick={() => handleDeleteMessage(msg.id)}
-                                        title="Удалить"
-                                    >
-                                        🗑️
-                                    </button>
-                                </div>
-                            )}
+                        <div className="message-avatar">
+                            {msg.avatarUrl ? (
+                                <img
+                                    src={msg.avatarUrl}
+                                    alt={`Аватар ${msg.author}`}
+                                    className="avatar-image"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentElement.querySelector('.avatar-placeholder').style.display = 'flex';
+                                    }}
+                                />
+                            ) : null}
+                            <div className={`avatar-placeholder ${msg.avatarUrl ? 'hidden' : ''}`}>
+                                <span className="avatar-icon">
+                                    {msg.author === 'Система' ? '🤖' :
+                                     msg.author === 'Админ' ? '🛡️' : '👤'}
+                                </span>
+                            </div>
                         </div>
+
+                        <div className="message-content-wrapper">
+                            <div className="message-header">
+                                <strong>{msg.author}</strong>
+                                <span className="timestamp">
+                                    {new Date(msg.timestamp).toLocaleTimeString()}
+                                    {msg.edited && <span className="edited-label"> (изменено)</span>}
+                                </span>
+                                {msg.pending && <span className="pending-label">Отправляется...</span>}
+                                {msg.author === currentUserAuthor && !msg.pending && (
+                                    <div className="message-actions">
+                                        <button
+                                            className="edit-message-btn"
+                                            onClick={() => handleEditMessage(msg)}
+                                            title="Редактировать"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            className="delete-message-btn"
+                                            onClick={() => handleDeleteMessage(msg.id)}
+                                            title="Удалить"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
                         {editingMessageId === msg.id ? (
                             <div className="edit-message-form">
@@ -279,6 +300,7 @@ const ChatRoom = ({
                                 )}
                             </>
                         )}
+                        </div>
                     </div>
                 ))}
                 <div ref={messagesEndRef} />

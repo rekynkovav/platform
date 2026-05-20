@@ -6,6 +6,7 @@ import NutritionFeed from './components/Feed/NutritionFeed';
 import Dashboard from './components/Dashboard/Dashboard';
 import EventsHub from './components/Events/EventsHub';
 import ArchiveList from './components/Archive/ArchiveList';
+import LiveBroadcastView from './components/live/LiveBroadcastViewSimple';
 import GeneralChat from './components/Chat/GeneralChat';
 import NutritionChat from './components/Chat/NutritionChat';
 import Questions from './components/Help/Questions';
@@ -13,10 +14,10 @@ import GlobalEventNotification from './components/Notification/GlobalEventNotifi
 import NotificationBell from './components/Notification/NotificationBell';
 import RoleSwitcher from './components/Admin/RoleSwitcher';
 import UserProfile from './components/UserProfile/UserProfile';
-import { useTheme } from './hooks/useTheme';
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
 import './App.css';
 import ScheduledEvents from "./components/Scheduled/ScheduledEvents";
+import './utils/chatLogViewer'; // Импортируем для доступа к логгеру в консоли
 
 function App() {
     const [authenticated, setAuthenticated] = useState(false);
@@ -28,7 +29,6 @@ function App() {
     const [accessDeniedPosition, setAccessDeniedPosition] = useState({ x: 0, y: 0 });
     const initStartedRef = useRef(false);
     const accessDeniedTimerRef = useRef(null);
-    const { theme, toggleTheme } = useTheme();
 
     const demoRole = localStorage.getItem('demoRole');
     const effectiveRoles = demoRole === 'SUPER_ADMIN' ? ['SUPER_ADMIN', 'USER_2'] : (demoRole === 'USER_0' ? ['USER_0'] : userRoles);
@@ -167,6 +167,8 @@ function App() {
                 return <ScheduledEvents />;
             case 'archive':
                 return <ArchiveList />;
+            case 'broadcast-live':
+                return <LiveBroadcastView />;
             case 'chat': {
                 const demoRole = localStorage.getItem('demoRole');
                 // USER_0 заблокирован в handleTabChange
@@ -206,9 +208,6 @@ function App() {
                 <div className="header-right">
                     <NotificationBell />
                     <RoleSwitcher />
-                    <button className="theme-toggle" onClick={toggleTheme}>
-                        {theme === 'light' ? '🌙' : '☀️'}
-                    </button>
                     <button className="header-logout" onClick={() => setActiveTab('profile')} title="Личный кабинет">👤</button>
                 </div>
             </header>

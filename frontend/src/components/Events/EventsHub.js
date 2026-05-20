@@ -41,7 +41,7 @@ const EventsHub = () => {
 
     // Получаем роль из localStorage
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
+    const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
     const currentUser = getUsername();
 
     // Отладка: выводим роль и статус админа
@@ -64,10 +64,10 @@ const EventsHub = () => {
     useEffect(() => {
         const savedRoles = localStorage.getItem('demoRole');
         let roles = [];
-        if (savedRoles === 'admin') {
-            roles = ['admin', 'user'];
-        } else if (savedRoles === 'user') {
-            roles = ['user'];
+        if (savedRoles === 'MODERATOR_ADMIN' || savedRoles === 'SUPER_ADMIN' || savedRoles === 'VYACHESLAV' || savedRoles === 'DEVELOPER') {
+            roles = ['MODERATOR_ADMIN', 'USER_0'];
+        } else if (savedRoles === 'USER_0' || savedRoles === 'USER_1' || savedRoles === 'USER_2') {
+            roles = ['USER_0'];
         }
         setUserRoles(roles);
     }, []);

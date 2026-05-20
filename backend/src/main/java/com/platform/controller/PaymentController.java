@@ -22,7 +22,7 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping("/create")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER_0')")
     public ResponseEntity<PaymentDto> createPayment(
             @RequestBody PaymentDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -32,7 +32,7 @@ public class PaymentController {
     }
 
     @GetMapping("/{paymentId}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER_0')")
     public ResponseEntity<PaymentDto> getPayment(
             @PathVariable String paymentId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -42,7 +42,7 @@ public class PaymentController {
     }
 
     @GetMapping("/my")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER_0')")
     public ResponseEntity<List<PaymentDto>> getMyPayments(
             @AuthenticationPrincipal Jwt jwt) {
 
@@ -51,7 +51,7 @@ public class PaymentController {
     }
 
     @GetMapping("/{paymentId}/status")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER_0')")
     public ResponseEntity<PaymentDto> checkPaymentStatus(
             @PathVariable String paymentId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -61,7 +61,7 @@ public class PaymentController {
     }
 
     @PostMapping("/{paymentId}/confirm")
-    @PreAuthorize("hasAnyRole('ADMIN', 'VYACHESLAV', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'VYACHESLAV', 'SUPER_ADMIN')")
     public ResponseEntity<PaymentDto> confirmPayment(
             @PathVariable String paymentId,
             @RequestBody PaymentDto.ConfirmRequest request,
@@ -72,7 +72,7 @@ public class PaymentController {
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasAnyRole('ADMIN', 'VYACHESLAV', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'VYACHESLAV', 'SUPER_ADMIN')")
     public ResponseEntity<List<PaymentDto>> getPendingPayments() {
 
         List<Payment> payments = paymentService.getPendingPayments();
