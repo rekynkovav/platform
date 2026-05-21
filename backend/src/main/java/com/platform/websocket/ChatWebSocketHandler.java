@@ -9,6 +9,9 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import javax.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
@@ -118,4 +121,36 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         public String getUserRole() { return userRole; }
         public void setUserRole(String userRole) { this.userRole = userRole; }
     }
+
+    @PreDestroy
+    public void cleanup() {
+        log.info("Cleaning up WebSocket sessions");
+        log.info("Очистка WebSocket сессий");
+
+        for (Map<String, WebSocketSession> sessions : roomSessions.values()) {
+            for (WebSocketSession session : sessions.values()) {
+                try {
+                    if (session.isOpen()) {
+                        session.close();
+                    }
+                } catch (Exception e) {
+                    log.warn("Error closing session: {}", e.getMessage());
+                }
+            }
+        }
+        roomSessions.clear();
+
+        for (WebSocketSession session : userSessions.values()) {
+            try {
+                if (session.isOpen()) {
+                    session.close();
+                }
+            } catch (Exception e) {
+                log.warn("Error closing session: {}", e.getMessage());
+            }
+        }
+        userSessions.clear();
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(ChatWebSocketHandler.class);
 }

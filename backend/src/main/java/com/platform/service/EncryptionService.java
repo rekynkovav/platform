@@ -81,4 +81,14 @@ public class EncryptionService {
         System.arraycopy(fullKey, 0, hlsKey, 0, 16);
         return hlsKey;
     }
+
+    public Cipher getCipher(int mode, byte[] key, String ivBase64) throws Exception {
+        SecretKeySpec secretKey = new SecretKeySpec(key, KEY_ALGORITHM);
+        byte[] iv = Base64.getDecoder().decode(ivBase64);
+        IvParameterSpec ivSpec = new IvParameterSpec(iv);
+
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(mode, secretKey, ivSpec);
+        return cipher;
+    }
 }

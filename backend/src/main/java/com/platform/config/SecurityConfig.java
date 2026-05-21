@@ -74,10 +74,19 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("https://platform.com", "http://localhost:3000"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+
+        // ТОЛЬКО РАЗРЕШЁННЫЕ ДОМЕНЫ (без звёздочки)
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:3000",           // Локальная разработка
+            "http://localhost:3001",           // Альтернативный порт
+            "https://platform.example.com",    // Продакшен (замените на свой домен)
+            "https://admin.platform.example.com" // Админка
+        ));
+
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);  // 1 час кэширования preflight запросов
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

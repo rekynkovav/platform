@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.net.URL;
 import java.time.Instant;
 import java.util.Date;
@@ -116,6 +117,24 @@ public class S3StorageService implements StorageService {
         } catch (Exception e) {
             log.error("Failed to check existence: {}", path, e);
             return false;
+        }
+    }
+
+    @Override
+    public String upload(InputStream inputStream, String path, String contentType, long contentLength) {
+        try {
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(contentLength);
+            metadata.setContentType(contentType != null ? contentType : "application/octet-stream");
+
+            PutObjectRequest request = new PutObjectRequest(bucket, path, inputStream, metadata);
+            getS3Client().putObject(request);
+
+            log.info("File uploaded to S3 via stream: {}", path);
+            return path;
+        } catch (Exception e) {
+            log.error("Failed to upload file to S3 via stream: {}", path, e);
+            throw new RuntimeException("Failed to upload file to S3", e);
         }
     }
 }

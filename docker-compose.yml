@@ -73,6 +73,8 @@ services:
         condition: service_started
       rtmp:
         condition: service_started
+      redis:
+        condition: service_started
     networks:
       - platform_network
 
@@ -89,6 +91,15 @@ services:
     restart: unless-stopped
     networks:
       - platform_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: platform-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - platform_network
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
@@ -122,6 +133,114 @@ services:
       - frontend
       - backend
       - keycloak
+    networks:
+      - platform_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: platform-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - platform_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: platform-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - platform_network
+    depends_on:
+      - prometheus
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: platform-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    networks:
+      - platform_network
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: platform-logstash
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - "5000:5000"
+    networks:
+      - platform_network
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: platform-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - platform_network
+    depends_on:
+      - elasticsearch
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: platform-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - platform_network
+
+  backup:
+    image: postgres:15
+    container_name: platform-backup
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh
+    environment:
+      - PGPASSWORD=platform123
+    command: >
+      sh -c "chmod +x /backup.sh &&
+             crond -b -l 8 &&
+             echo '0 2 * * * /backup.sh' > /etc/crontabs/root &&
+             tail -f /dev/null"
+    networks:
+      - platform_network
+    depends_on:
+      - postgres
+
+  nginx-cdn:
+    image: nginx:alpine
+    container_name: platform-nginx-cdn
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx-cdn.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - platform_network
+    depends_on:
+      - rtmp
+
+  coturn:
+    image: coturn/coturn
+    container_name: platform-coturn
+    ports:
+      - "3478:3478"
+      - "3478:3478/udp"
+      - "5349:5349"
+    command: >
+      -n --fingerprint --lt-cred-mech --realm=platform.com
+      --user=platform:platform123 --log-file=stdout
     networks:
       - platform_network
 

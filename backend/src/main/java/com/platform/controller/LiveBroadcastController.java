@@ -1,5 +1,6 @@
 package com.platform.controller;
 
+import com.platform.dto.CreateBroadcastRequest;
 import com.platform.model.LiveBroadcast;
 import com.platform.service.LiveBroadcastService;
 import lombok.RequiredArgsConstructor;
@@ -22,26 +23,35 @@ public class LiveBroadcastController {
     private final LiveBroadcastService broadcastService;
 
     @PostMapping("/create")
-    @PreAuthorize("hasAnyRole('CREATOR', 'MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV', 'DEVELOPER')")
+    @PreAuthorize("hasAnyRole('CONSULTANT_PITANIE', 'CONSULTANT_SPORT', 'MODERATOR_ADMIN', 'DEVELOPER', 'VYACHESLAV', 'SUPER_ADMIN')")
     public ResponseEntity<LiveBroadcast> createBroadcast(
-            @RequestBody Map<String, String> request,
+            @jakarta.validation.Valid @RequestBody CreateBroadcastRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        String title = request.get("title");
-        String description = request.get("description");
-        String streamType = request.getOrDefault("streamType", "video");
         String userId = jwt.getSubject();
-        
-        LiveBroadcast broadcast = broadcastService.createBroadcast(title, description, streamType, userId);
+
+        log.info("User {} creating broadcast: {}", userId, request.getTitle());
+        log.info("Пользователь {} создаёт трансляцию: {}", userId, request.getTitle());
+
+        LiveBroadcast broadcast = broadcastService.createBroadcast(
+            request.getTitle(),
+            request.getDescription(),
+            request.getStreamType(),
+            userId
+        );
         return ResponseEntity.ok(broadcast);
     }
 
     @PostMapping("/{id}/start")
-    @PreAuthorize("hasAnyRole('CREATOR', 'MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV', 'DEVELOPER')")
+    @PreAuthorize("hasAnyRole('CONSULTANT_PITANIE', 'CONSULTANT_SPORT', 'MODERATOR_ADMIN', 'DEVELOPER', 'VYACHESLAV', 'SUPER_ADMIN')")
     public ResponseEntity<Map<String, String>> startBroadcast(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         String rtmpUrl = broadcastService.startBroadcast(id, userId);
+
+        log.info("User {} started broadcast {}", userId, id);
+        log.info("Пользователь {} запустил трансляцию {}", userId, id);
+
         return ResponseEntity.ok(Map.of(
             "streamUrl", rtmpUrl,
             "streamKey", id,
@@ -50,18 +60,25 @@ public class LiveBroadcastController {
     }
 
     @PostMapping("/{id}/stop")
-    @PreAuthorize("hasAnyRole('CREATOR', 'MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV', 'DEVELOPER')")
+    @PreAuthorize("hasAnyRole('CONSULTANT_PITANIE', 'CONSULTANT_SPORT', 'MODERATOR_ADMIN', 'DEVELOPER', 'VYACHESLAV', 'SUPER_ADMIN')")
     public ResponseEntity<Void> stopBroadcast(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         broadcastService.stopBroadcast(id, userId);
+
+        log.info("User {} stopped broadcast {}", userId, id);
+        log.info("Пользователь {} остановил трансляцию {}", userId, id);
+
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/active")
     public ResponseEntity<List<LiveBroadcast>> getActiveBroadcasts() {
-        return ResponseEntity.ok(broadcastService.getActiveBroadcasts());
+        List<LiveBroadcast> broadcasts = broadcastService.getActiveBroadcasts();
+        log.debug("Active broadcasts count: {}", broadcasts.size());
+        log.debug("Количество активных трансляций: {}", broadcasts.size());
+        return ResponseEntity.ok(broadcasts);
     }
 
     @GetMapping("/{id}")
@@ -70,12 +87,16 @@ public class LiveBroadcastController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<Void> deleteBroadcast(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         broadcastService.deleteBroadcast(id, userId);
+
+        log.warn("User {} deleted broadcast {}", userId, id);
+        log.warn("Пользователь {} удалил трансляцию {}", userId, id);
+
         return ResponseEntity.ok().build();
     }
 
@@ -92,13 +113,16 @@ public class LiveBroadcastController {
             @RequestBody Map<String, String> payload) {
         String action = payload.get("action");
         String streamKey = payload.get("streamKey");
-        
+
+        log.info("RTMP webhook: action={}, streamKey={}", action, streamKey);
+        log.info("RTMP вебхук: действие={}, ключ={}", action, streamKey);
+
         if ("publish".equals(action)) {
             broadcastService.onStreamStart(streamKey);
         } else if ("publish_done".equals(action)) {
             broadcastService.onStreamStop(streamKey);
         }
-        
+
         return ResponseEntity.ok().build();
     }
 }

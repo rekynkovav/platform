@@ -2,7 +2,11 @@ package com.platform.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
+import javax.annotation.PostConstruct;
+import java.util.concurrent.Future;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -24,12 +28,28 @@ public class WatermarkService {
     @Value("${app.watermark.temp-path:/tmp/watermarks}")
     private String tempPath;
 
+    @PostConstruct
+    public void checkFFmpeg() {
+        try {
+            Process process = Runtime.getRuntime().exec("ffmpeg -version");
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                log.error("FFMPEG NOT AVAILABLE! Install: apt-get install ffmpeg");
+            } else {
+                log.info("FFmpeg is available");
+            }
+        } catch (Exception e) {
+            log.error("FFMPEG NOT FOUND! Watermark and HLS will not work. Error: {}", e.getMessage());
+        }
+    }
+
     /**
      * Добавление невидимого водяного знака на видео
      * Знак содержит UID пользователя + ID файла + timestamp
      * Накладывается с низкой прозрачностью (0.1) и маленьким шрифтом
      */
-    public File addVideoWatermark(File inputVideo, String userId, String fileId) {
+    @Async("ffmpegExecutor")
+    public Future<File> addVideoWatermark(File inputVideo, String userId, String fileId) {
         try {
             // Генерируем уникальный watermark текст
             String watermarkText = generateWatermarkText(userId, fileId);
@@ -72,22 +92,23 @@ public class WatermarkService {
             if (exitCode != 0) {
                 log.error("FFmpeg watermark failed: {}", output);
                 // Если FFmpeg не доступен, возвращаем исходный файл
-                return inputVideo;
+                return new AsyncResult<>(inputVideo);
             }
 
             log.info("Watermark added successfully: {}", outputFile.getAbsolutePath());
-            return outputFile;
+            return new AsyncResult<>(outputFile);
 
         } catch (Exception e) {
             log.error("Failed to add watermark to video", e);
-            return inputVideo;
+            return new org.springframework.scheduling.annotation.AsyncResult<>(inputVideo);
         }
     }
 
     /**
      * Добавление невидимого водяного знака на изображение
      */
-    public File addImageWatermark(File inputImage, String userId, String fileId) {
+    @Async("ffmpegExecutor")
+    public Future<File> addImageWatermark(File inputImage, String userId, String fileId) {
         try {
             String watermarkText = generateWatermarkText(userId, fileId);
 
@@ -111,11 +132,11 @@ public class WatermarkService {
             Process process = pb.start();
             process.waitFor();
 
-            return outputFile;
+            return new AsyncResult<>(outputFile);
 
         } catch (Exception e) {
             log.error("Failed to add watermark to image", e);
-            return inputImage;
+            return new AsyncResult<>(inputImage);
         }
     }
 

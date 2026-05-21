@@ -2,6 +2,7 @@ package com.platform.service;
 
 import com.platform.exception.AccessDeniedException;
 import com.platform.exception.ResourceNotFoundException;
+import com.platform.model.BroadcastStatus;
 import com.platform.model.LiveBroadcast;
 import com.platform.repository.LiveBroadcastRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,29 +25,32 @@ public class LiveBroadcastService {
     @Transactional
     public LiveBroadcast createBroadcast(String title, String description, String streamType, String userId) {
         String broadcastId = UUID.randomUUID().toString();
-        
+
+        log.info("Creating broadcast for user {}: title={}", userId, title);
+        log.info("Создание трансляции для пользователя {}: название={}", userId, title);
+
         LiveBroadcast broadcast = LiveBroadcast.builder()
             .id(broadcastId)
             .title(title)
             .description(description)
             .streamType(streamType)
             .ownerId(userId)
-            .status("idle")
+            .status(BroadcastStatus.IDLE)
             .rtmpStreamKey(broadcastId)
             .build();
-        
+
         return broadcastRepository.save(broadcast);
     }
 
     @Transactional
     public String startBroadcast(String broadcastId, String userId) {
         LiveBroadcast broadcast = getBroadcast(broadcastId);
-        
+
         if (!broadcast.getOwnerId().equals(userId)) {
             throw new AccessDeniedException("You don't have permission to start this broadcast");
         }
-        
-        broadcast.setStatus("live");
+
+        broadcast.setStatus(BroadcastStatus.LIVE);
         broadcast.setStartedAt(LocalDateTime.now());
         broadcastRepository.save(broadcast);
         
@@ -59,12 +63,12 @@ public class LiveBroadcastService {
     @Transactional
     public void stopBroadcast(String broadcastId, String userId) {
         LiveBroadcast broadcast = getBroadcast(broadcastId);
-        
+
         if (!broadcast.getOwnerId().equals(userId)) {
             throw new AccessDeniedException("You don't have permission to stop this broadcast");
         }
-        
-        broadcast.setStatus("ended");
+
+        broadcast.setStatus(BroadcastStatus.ENDED);
         broadcast.setEndedAt(LocalDateTime.now());
         broadcastRepository.save(broadcast);
         
@@ -77,7 +81,7 @@ public class LiveBroadcastService {
     }
 
     public List<LiveBroadcast> getActiveBroadcasts() {
-        return broadcastRepository.findByStatus("live");
+        return broadcastRepository.findByStatus(BroadcastStatus.LIVE);
     }
 
     @Transactional
@@ -95,7 +99,7 @@ public class LiveBroadcastService {
     public String getHlsPlaylist(String broadcastId) {
         LiveBroadcast broadcast = getBroadcast(broadcastId);
         
-        if (!"live".equals(broadcast.getStatus())) {
+        if (!BroadcastStatus.LIVE.equals(broadcast.getStatus())) {
             throw new IllegalStateException("Broadcast is not live");
         }
         
@@ -106,20 +110,24 @@ public class LiveBroadcastService {
     @Transactional
     public void onStreamStart(String streamKey) {
         broadcastRepository.findByRtmpStreamKey(streamKey).ifPresent(broadcast -> {
-            broadcast.setStatus("live");
+            broadcast.setStatus(BroadcastStatus.LIVE);
             broadcast.setStartedAt(LocalDateTime.now());
             broadcastRepository.save(broadcast);
+
             log.info("RTMP stream started for broadcast: {}", broadcast.getId());
+            log.info("RTMP поток запущен для трансляции: {}", broadcast.getId());
         });
     }
 
     @Transactional
     public void onStreamStop(String streamKey) {
         broadcastRepository.findByRtmpStreamKey(streamKey).ifPresent(broadcast -> {
-            broadcast.setStatus("ended");
+            broadcast.setStatus(BroadcastStatus.ENDED);
             broadcast.setEndedAt(LocalDateTime.now());
             broadcastRepository.save(broadcast);
+
             log.info("RTMP stream stopped for broadcast: {}", broadcast.getId());
+            log.info("RTMP поток остановлен для трансляции: {}", broadcast.getId());
         });
     }
 
