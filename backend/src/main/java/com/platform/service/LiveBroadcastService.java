@@ -136,8 +136,10 @@ public class LiveBroadcastService {
         broadcastRepository.incrementViewerCount(broadcastId);
         
         LiveBroadcast broadcast = getBroadcast(broadcastId);
-        int currentViewers = broadcast.getViewerCount() + 1;
-        if (currentViewers > broadcast.getMaxViewers()) {
+        int currentViewers = broadcast.getViewerCount() != null ? broadcast.getViewerCount() + 1 : 1;
+        Integer maxViewers = broadcast.getMaxViewers();
+        
+        if (maxViewers == null || currentViewers > maxViewers) {
             broadcast.setMaxViewers(currentViewers);
             broadcastRepository.save(broadcast);
         }

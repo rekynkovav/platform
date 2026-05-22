@@ -24,13 +24,7 @@ databaseChangeLog:
       file: v1/08-create-indexes.yaml
       relativeToChangelogFile: true
   - include:
-      file: v1/09-create-contacts-table.yaml
-      relativeToChangelogFile: true
-  - include:
       file: v2/01-add-user-roles.yaml
-      relativeToChangelogFile: true
-  - include:
-      file: v2/02-create-updated-at-trigger.yaml
       relativeToChangelogFile: true
   - include:
       file: v3/01-create-media-and-payments-tables.yaml
@@ -53,4 +47,8 @@ databaseChangeLog:
 
   - include:
       file: v5/04-create-room-permissions.yaml
+      relativeToChangelogFile: true
+
+  - include:
+      file: v5/99-remove-settings-column.yaml
       relativeToChangelogFile: true

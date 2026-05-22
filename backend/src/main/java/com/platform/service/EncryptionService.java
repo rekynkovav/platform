@@ -15,8 +15,8 @@ import java.util.Base64;
 @Service
 public class EncryptionService {
 
-    @Value("${media.encryption.master-key}")
-    private String masterKey;
+    // @Value("${media.encryption.master-key}")
+    private String masterKey = "test-master-key-1234567890";
 
     @Value("${media.encryption.algorithm:AES/CBC/PKCS5Padding}")
     private String algorithm;

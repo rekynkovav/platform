@@ -23,6 +23,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
 import java.util.UUID;
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
@@ -64,9 +66,21 @@ public class SecureMediaService {
             File watermarkedFile = tempFile;
 
             if ("video".equals(fileType)) {
-                watermarkedFile = watermarkService.addVideoWatermark(tempFile, userId, fileId);
+                try {
+                    Future<File> futureWatermark = watermarkService.addVideoWatermark(tempFile, userId, fileId);
+                    watermarkedFile = futureWatermark.get(); // ждём завершения
+                } catch (InterruptedException | ExecutionException e) {
+                    log.error("Video watermark processing failed", e);
+                    throw new RuntimeException("Failed to add video watermark", e);
+                }
             } else if ("image".equals(fileType)) {
-                watermarkedFile = watermarkService.addImageWatermark(tempFile, userId, fileId);
+                try {
+                    Future<File> futureWatermark = watermarkService.addImageWatermark(tempFile, userId, fileId);
+                    watermarkedFile = futureWatermark.get(); // ждём завершения
+                } catch (InterruptedException | ExecutionException e) {
+                    log.error("Image watermark processing failed", e);
+                    throw new RuntimeException("Failed to add image watermark", e);
+                }
             }
 
             // ШИФРОВАНИЕ ПОТОКОВО с записью во временный файл
@@ -149,14 +163,6 @@ public class SecureMediaService {
         } catch (Exception e) {
             log.error("Failed to upload secure media", e);
             log.error("Не удалось загрузить защищённый медиа-файл", e);
-            throw new RuntimeException("Failed to upload media: " + e.getMessage());
-        }
-
-            log.info("Secure media uploaded: {} by {}", fileId, userId);
-            return mediaFile;
-
-        } catch (Exception e) {
-            log.error("Failed to upload secure media", e);
             throw new RuntimeException("Failed to upload media: " + e.getMessage());
         }
     }

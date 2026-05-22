@@ -12,7 +12,10 @@
       "Bash(rm:*)",
       "Bash(ls:*)",
       "Bash(grep -v \"//\")",
-      "Bash(mvn compile *)"
+      "Bash(mvn compile *)",
+      "Bash(./mvnw test *)",
+      "Bash(docker-compose *)",
+      "Bash(xargs grep *)"
     ]
   }
 }

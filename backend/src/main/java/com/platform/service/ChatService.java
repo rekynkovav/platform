@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ChatService {
 
@@ -38,7 +37,21 @@ public class ChatService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomService chatRoomService;
     private final ChatRoomPermissionRepository chatRoomPermissionRepository;
-    private final NotificationService notificationService;
+    // private final NotificationService notificationService;
+
+    public ChatService(MessageRepository messageRepository,
+                      UserService userService,
+                      MediaFileRepository mediaFileRepository,
+                      ChatRoomRepository chatRoomRepository,
+                      ChatRoomService chatRoomService,
+                      ChatRoomPermissionRepository chatRoomPermissionRepository) {
+        this.messageRepository = messageRepository;
+        this.userService = userService;
+        this.mediaFileRepository = mediaFileRepository;
+        this.chatRoomRepository = chatRoomRepository;
+        this.chatRoomService = chatRoomService;
+        this.chatRoomPermissionRepository = chatRoomPermissionRepository;
+    }
 
     public List<MessageDto> getGeneralMessages(int limit, String before) {
         Pageable pageable = PageRequest.of(0, limit);
@@ -270,9 +283,10 @@ public class ChatService {
         Message saved = messageRepository.save(message);
 
         // === УВЕДОМЛЕНИЯ ДЛЯ ВКЛАДКИ ПОМОЩЬ ===
-        if (room.getSlug().startsWith("questions-")) {
-            notificationService.notifyAboutNewQuestionMessage(saved, room);
-        }
+        // Временно отключено из-за циклической зависимости
+        // if (room.getSlug().startsWith("questions-")) {
+        //     notificationService.notifyAboutNewQuestionMessage(saved, room);
+        // }
 
         return toDto(saved);
     }

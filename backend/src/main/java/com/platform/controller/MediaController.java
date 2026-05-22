@@ -2,7 +2,7 @@ package com.platform.controller;
 
 import com.platform.model.MediaFile;
 import com.platform.service.SecureMediaService;
-import com.github.vladimir_bukhtoyarov.bucket4j.spring.boot.starter.annotation.Bucket4j;
+// import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -27,9 +27,7 @@ public class MediaController {
 
     @PostMapping("/upload")
     @PreAuthorize("isAuthenticated()")
-    @Bucket4j(name = "media-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 20, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "media-limit")
     public ResponseEntity<MediaFile> uploadMedia(
             @RequestParam("file") MultipartFile file,
             @RequestParam("type") String type,
@@ -41,9 +39,7 @@ public class MediaController {
     }
 
     @GetMapping("/stream/{fileId}")
-    @Bucket4j(name = "media-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 20, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "media-limit")
     public ResponseEntity<Map<String, Object>> getStreamUrl(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt,
@@ -59,9 +55,7 @@ public class MediaController {
     }
 
     @GetMapping("/key/{fileId}")
-    @Bucket4j(name = "media-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 20, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "media-limit")
     public ResponseEntity<byte[]> getEncryptionKey(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt,
@@ -77,9 +71,7 @@ public class MediaController {
     }
 
     @GetMapping("/download/{fileId}")
-    @Bucket4j(name = "media-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 20, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "media-limit")
     public ResponseEntity<byte[]> downloadFile(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt,
@@ -96,9 +88,7 @@ public class MediaController {
     }
 
     @GetMapping("/{fileId}")
-    @Bucket4j(name = "media-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 20, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "media-limit")
     public ResponseEntity<MediaFile> getMediaInfo(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -108,9 +98,7 @@ public class MediaController {
     }
 
     @GetMapping("/my-files")
-    @Bucket4j(name = "media-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 20, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "media-limit")
     public ResponseEntity<List<MediaFile>> getMyFiles(
             @AuthenticationPrincipal Jwt jwt) {
 
@@ -120,9 +108,7 @@ public class MediaController {
     }
 
     @GetMapping("/hls/{fileId}/playlist.m3u8")
-    @Bucket4j(name = "media-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 20, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "media-limit")
     public ResponseEntity<String> getHLSPlaylist(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt,
@@ -143,9 +129,7 @@ public class MediaController {
     }
 
     @DeleteMapping("/{fileId}")
-    @Bucket4j(name = "media-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 20, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "media-limit")
     public ResponseEntity<Void> deleteFile(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt) {

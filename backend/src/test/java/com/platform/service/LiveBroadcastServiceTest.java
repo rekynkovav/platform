@@ -2,6 +2,7 @@ package com.platform.service;
 
 import com.platform.exception.AccessDeniedException;
 import com.platform.exception.ResourceNotFoundException;
+import com.platform.model.BroadcastStatus;
 import com.platform.model.LiveBroadcast;
 import com.platform.repository.LiveBroadcastRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +40,7 @@ class LiveBroadcastServiceTest {
             .description("Test Description")
             .streamType("video")
             .ownerId(userId)
-            .status("idle")
+            .status(BroadcastStatus.IDLE)
             .rtmpStreamKey("streamKey123")
             .build();
     }
@@ -64,7 +65,7 @@ class LiveBroadcastServiceTest {
 
         assertNotNull(rtmpUrl);
         assertTrue(rtmpUrl.contains("rtmp://"));
-        assertEquals("live", testBroadcast.getStatus());
+        assertEquals(BroadcastStatus.LIVE, testBroadcast.getStatus());
         verify(broadcastRepository, times(1)).save(testBroadcast);
     }
 
@@ -84,7 +85,7 @@ class LiveBroadcastServiceTest {
 
         broadcastService.stopBroadcast("broadcast123", userId);
 
-        assertEquals("ended", testBroadcast.getStatus());
+        assertEquals(BroadcastStatus.ENDED, testBroadcast.getStatus());
         verify(broadcastRepository, times(1)).save(testBroadcast);
     }
 
@@ -99,13 +100,13 @@ class LiveBroadcastServiceTest {
 
     @Test
     void testGetActiveBroadcasts() {
-        when(broadcastRepository.findByStatus("live")).thenReturn(List.of(testBroadcast));
+        when(broadcastRepository.findByStatus(BroadcastStatus.LIVE)).thenReturn(List.of(testBroadcast));
 
         List<LiveBroadcast> active = broadcastService.getActiveBroadcasts();
 
         assertFalse(active.isEmpty());
         assertEquals(1, active.size());
-        verify(broadcastRepository, times(1)).findByStatus("live");
+        verify(broadcastRepository, times(1)).findByStatus(BroadcastStatus.LIVE);
     }
 
     @Test
@@ -120,7 +121,7 @@ class LiveBroadcastServiceTest {
 
     @Test
     void testGetHlsPlaylist() {
-        testBroadcast.setStatus("live");
+        testBroadcast.setStatus(BroadcastStatus.LIVE);
         when(broadcastRepository.findById("broadcast123")).thenReturn(Optional.of(testBroadcast));
 
         String playlist = broadcastService.getHlsPlaylist("broadcast123");
@@ -131,7 +132,7 @@ class LiveBroadcastServiceTest {
 
     @Test
     void testGetHlsPlaylistNotLive() {
-        testBroadcast.setStatus("ended");
+        testBroadcast.setStatus(BroadcastStatus.ENDED);
         when(broadcastRepository.findById("broadcast123")).thenReturn(Optional.of(testBroadcast));
 
         assertThrows(IllegalStateException.class, () -> {
@@ -146,7 +147,7 @@ class LiveBroadcastServiceTest {
 
         broadcastService.onStreamStart("streamKey123");
 
-        assertEquals("live", testBroadcast.getStatus());
+        assertEquals(BroadcastStatus.LIVE, testBroadcast.getStatus());
         verify(broadcastRepository, times(1)).save(testBroadcast);
     }
 

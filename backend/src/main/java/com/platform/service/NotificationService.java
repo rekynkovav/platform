@@ -97,7 +97,7 @@ public class NotificationService {
                 type,
                 title,
                 shortMessage,
-                savedMessage.getId(),
+                Long.parseLong(savedMessage.getId()),
                 room.getSlug()
         );
     }

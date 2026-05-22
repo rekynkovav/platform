@@ -31,8 +31,9 @@ public class LiveBroadcast {
     @Column(nullable = false)
     private String ownerId;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;
+    private BroadcastStatus status;
 
     @Column
     private Integer viewerCount;
@@ -76,5 +77,8 @@ public class LiveBroadcast {
         isChatEnabled = true;
         isReactionsEnabled = true;
         isRecording = false;
+        if (status == null) {
+            status = BroadcastStatus.IDLE;
+        }
     }
 }

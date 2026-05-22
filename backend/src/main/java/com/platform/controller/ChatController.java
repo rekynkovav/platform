@@ -5,7 +5,7 @@ import com.platform.model.dto.ChatRoomDto;
 import com.platform.model.ChatRoom;
 import com.platform.service.ChatService;
 import com.platform.service.ChatRoomService;
-import com.github.vladimir_bukhtoyarov.bucket4j.spring.boot.starter.annotation.Bucket4j;
+// import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,9 +32,7 @@ public class ChatController {
      * Универсальный метод получения сообщений по slug комнаты — с проверкой прав
      */
     @GetMapping("/{roomSlug}")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 60, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<List<MessageDto>> getMessagesByRoom(
             @PathVariable String roomSlug,
             @RequestParam(defaultValue = "50") int limit,
@@ -53,9 +51,7 @@ public class ChatController {
      * Универсальный метод отправки сообщения в комнату — с проверкой прав
      */
     @PostMapping("/{roomSlug}")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<MessageDto> sendMessageToRoom(
             @PathVariable String roomSlug,
             @RequestBody MessageDto.SendRequest request,
@@ -78,9 +74,7 @@ public class ChatController {
     // ==================================================================
 
     @GetMapping("/general")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 60, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<List<MessageDto>> getGeneralMessages(
             @RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) String before,
@@ -89,9 +83,7 @@ public class ChatController {
     }
 
     @PostMapping("/general")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<MessageDto> sendToGeneralChat(
             @RequestBody MessageDto.SendRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -100,9 +92,7 @@ public class ChatController {
 
     @GetMapping("/admin-group")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 60, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<List<MessageDto>> getAdminGroupMessages(
             @RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) String before,
@@ -111,9 +101,7 @@ public class ChatController {
     }
 
     @PostMapping("/admin-group")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<MessageDto> sendToAdminGroup(
             @RequestBody MessageDto.SendRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -122,9 +110,7 @@ public class ChatController {
 
     // private чаты пока оставляем как есть (можно позже перевести на roomSlug = "private_" + userId)
     @GetMapping("/private/{userId}")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 60, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<List<MessageDto>> getPrivateMessages(
             @PathVariable String userId,
             @RequestParam(defaultValue = "50") int limit,
@@ -135,9 +121,7 @@ public class ChatController {
     }
 
     @PostMapping("/private/{userId}")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<MessageDto> sendPrivateMessage(
             @PathVariable String userId,
             @RequestBody MessageDto.SendRequest request,
@@ -148,17 +132,13 @@ public class ChatController {
 
     // остальные legacy методы (unread, markAsRead) оставляем без изменений
     @GetMapping("/unread")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<Long> getUnreadCount(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(chatService.getUnreadCount(jwt.getSubject()));
     }
 
     @PutMapping("/messages/{messageId}/read")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<Void> markAsRead(
             @PathVariable String messageId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -175,9 +155,7 @@ public class ChatController {
      * Возвращает список всех доступных комнат вопросов
      */
     @GetMapping("/questions/rooms")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<List<ChatRoomDto>> getQuestionRooms() {
         return ResponseEntity.ok(chatRoomService.getQuestionRoomsDto());
     }
@@ -186,9 +164,7 @@ public class ChatController {
      * Получить сообщения из комнаты вопросов (по режиму: general / nutrition / vyacheslav)
      */
     @GetMapping("/questions/{mode}")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 60, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<List<MessageDto>> getQuestionMessages(
             @PathVariable String mode,
             @RequestParam(defaultValue = "50") int limit,
@@ -209,9 +185,7 @@ public class ChatController {
      * Отправить вопрос / ответ в комнату вопросов
      */
     @PostMapping("/questions/{mode}")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<MessageDto> sendQuestionMessage(
             @PathVariable String mode,
             @RequestBody MessageDto.SendRequest request,

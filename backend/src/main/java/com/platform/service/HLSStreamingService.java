@@ -1,6 +1,7 @@
 package com.platform.service;
 
 import com.platform.model.MediaFile;
+import com.platform.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +31,7 @@ public class HLSStreamingService {
     private String tempPath;
 
     private final EncryptionService encryptionService;
-    private final S3StorageService s3StorageService;
+    private final StorageService storageService;
 
     /**
      * Конвертация видео в HLS формат с шифрованием
@@ -127,20 +128,17 @@ public class HLSStreamingService {
 
     private String uploadHLSFiles(Path hlsDir, String fileId) throws Exception {
         String playlistS3Key = null;
-
         File[] files = hlsDir.toFile().listFiles();
+
         if (files != null) {
             for (File file : files) {
+                byte[] content = Files.readAllBytes(file.toPath());
+                String path = "hls/" + fileId + "/" + file.getName();
+
                 if (file.getName().endsWith(".m3u8")) {
-                    byte[] content = Files.readAllBytes(file.toPath());
-                    playlistS3Key = s3StorageService.uploadEncryptedFile(
-                        content, "hls", fileId + "_playlist.m3u8"
-                    );
+                    playlistS3Key = storageService.upload(content, path, "application/vnd.apple.mpegurl");
                 } else if (file.getName().endsWith(".ts")) {
-                    byte[] content = Files.readAllBytes(file.toPath());
-                    s3StorageService.uploadEncryptedFile(
-                        content, "hls", fileId + "_" + file.getName()
-                    );
+                    storageService.upload(content, path, "video/mp2t");
                 }
             }
         }

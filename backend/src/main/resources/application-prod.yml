@@ -1,4 +1,22 @@
 spring:
+  main:
+    allow-circular-references: true
+  autoconfigure:
+    exclude:
+      - com.giffing.bucket4j.spring.boot.starter.Bucket4jAutoConfiguration
+
+bucket4j:
+  enabled: true
+  cache-to-use: caffeine
+  methods:
+    - name: "dummy"
+      cache-name: buckets
+      rate-limits:
+        - bandwidths:
+            - capacity: 100
+              time: 1
+              unit: minutes
+              refill-speed: interval
   datasource:
     url: jdbc:postgresql://postgres:5432/platform_db
     username: platform_user
@@ -27,3 +45,15 @@ app:
   media:
     upload-path: /app/uploads
     base-url: https://platform.local/media
+    encryption:
+      master-key: "test-master-key-1234567890"
+      algorithm: "AES/CBC/PKCS5Padding"
+
+keycloak:
+  auth-server-url: http://keycloak:8080
+  realm: platform
+  resource: platform-backend
+  credentials:
+    secret: "test-secret-key"
+
+

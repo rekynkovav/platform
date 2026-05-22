@@ -18,17 +18,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class KeycloakService {
 
-    @Value("${keycloak.auth-server-url}")
-    private String serverUrl;
+    // @Value("${keycloak.auth-server-url}")
+    private String serverUrl = "http://keycloak:8080";
 
-    @Value("${keycloak.realm}")
-    private String realm;
+    // @Value("${keycloak.realm}")
+    private String realm = "platform";
 
-    @Value("${keycloak.resource}")
-    private String clientId;
+    // @Value("${keycloak.resource}")
+    private String clientId = "platform-backend";
 
-    @Value("${keycloak.credentials.secret}")
-    private String clientSecret;
+    // @Value("${keycloak.credentials.secret}")
+    private String clientSecret = "test-secret-key";
 
     private Keycloak keycloak;
 

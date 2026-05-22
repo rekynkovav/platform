@@ -2,6 +2,7 @@ package com.platform.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.model.Notification;
+import com.platform.model.dto.MessageDto;
 import com.platform.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -9,7 +10,7 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

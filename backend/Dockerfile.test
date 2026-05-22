@@ -1,0 +1,28 @@
+FROM eclipse-temurin:17-jdk
+
+WORKDIR /app
+
+# Копируем только pom.xml для кэширования зависимостей
+COPY pom.xml .
+
+# Устанавливаем Maven и собираем зависимости
+RUN apt-get update && apt-get install -y maven && \
+    mvn dependency:resolve && \
+    apt-get remove -y maven && apt-get autoremove -y
+
+# Копируем исходный код
+COPY src ./src
+
+# Собираем приложение
+RUN apt-get update && apt-get install -y maven && \
+    mvn clean compile -DskipTests && \
+    apt-get remove -y maven && apt-get autoremove -y
+
+# Показываем результат
+RUN echo "=== BUILD RESULT ===" && \
+    if [ -f "target/classes/com/platform/PlatformApplication.class" ]; then \
+        echo "✅ Компиляция успешна"; \
+    else \
+        echo "❌ Компиляция не удалась"; \
+        exit 1; \
+    fi

@@ -21,14 +21,8 @@ public class ChatRoomService {
 
     @PostConstruct
     public void initDefaultRooms() {
-        createIfNotExists("user1", "general", "Чат новичков");
-        createIfNotExists("user2", "general", "Чат продвинутых");
-        createIfNotExists("nutrition", "nutrition", "Чат Питание");
-        createIfNotExists("questions-general", "question", "Общие вопросы");
-        createIfNotExists("questions-nutrition", "question", "Вопросы по питанию");
-        createIfNotExists("questions-vyacheslav", "question", "Вопросы лично Вячеславу");
-        createIfNotExists("admins", "admin", "Групповой чат администраторов");
-        initDefaultPermissions();
+        // Временно отключено из-за проблем с JSONB
+        System.out.println("⚠️ Инициализация комнат временно отключена из-за проблем с JSONB");
     }
 
     private void createIfNotExists(String slug, String type, String name) {
@@ -38,6 +32,7 @@ public class ChatRoomService {
                     .type(type)
                     .name(name)
                     .isActive(true)
+                    // .settings("{}")
                     .build();
             chatRoomRepository.save(room);
         }

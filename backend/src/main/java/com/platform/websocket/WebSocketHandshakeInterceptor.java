@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
@@ -17,7 +18,8 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
-                                   WebSocketHandler wsHandler, Map<String, Object> attributes) {
+                                   WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
+
         // Извлекаем токен из query параметров
         String query = request.getURI().getQuery();
         if (query != null && query.contains("token=")) {
@@ -26,23 +28,14 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
             log.debug("Token extracted from query");
         }
 
-        // Извлекаем userId из заголовков
-        String userId = request.getHeaders().getFirst("X-User-Id");
-        if (userId != null) {
-            attributes.put("userId", userId);
-            log.debug("UserId from header: {}", userId);
-        } else {
-            log.debug("No X-User-Id header found");
-        }
-
-        // Получаем principal из SecurityContext
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            Object principal = authentication.getPrincipal();
-            if (principal != null) {
-                attributes.put("userId", principal.getName());
-                attributes.put("userRole", principal.getAuthorities().iterator().next().getAuthority());
-            }
+        // Получение аутентификации из SecurityContext
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            attributes.put("userId", auth.getName());
+            attributes.put("userRole", auth.getAuthorities().stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElse("USER_0"));
         }
 
         log.debug("WebSocket handshake from: {}", request.getRemoteAddress());

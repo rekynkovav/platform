@@ -105,9 +105,9 @@
 
         <!-- Rate Limiting -->
         <dependency>
-            <groupId>com.github.vladimir-bukhtoyarov.bucket4j</groupId>
+            <groupId>com.giffing.bucket4j.spring.boot.starter</groupId>
             <artifactId>bucket4j-spring-boot-starter</artifactId>
-            <version>0.8.0</version>
+            <version>0.12.10</version>
         </dependency>
 
         <!-- Redis for WebSocket clustering -->
@@ -145,6 +145,11 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
