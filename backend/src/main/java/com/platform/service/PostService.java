@@ -119,8 +119,23 @@ public class PostService {
     }
 
     public PostDto.MediaUploadResponse uploadSecureMedia(MultipartFile file, String type) {
-        // TODO: Нужно реализовать или изменить метод
-        throw new UnsupportedOperationException("Method not implemented yet");
+        try {
+            String fileId = UUID.randomUUID().toString();
+            String userId = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+
+            // Сохраняем файл через SecureMediaService
+            com.platform.model.MediaFile mediaFile = secureMediaService.uploadSecureMedia(file, type, userId, fileId);
+
+            return PostDto.MediaUploadResponse.builder()
+                .url(mediaFile.getS3Key())
+                .type(mediaFile.getFileType())
+                .size(mediaFile.getFileSize())
+                .filename(mediaFile.getOriginalFilename())
+                .build();
+        } catch (Exception e) {
+            log.error("Failed to upload media", e);
+            throw new RuntimeException("Failed to upload media", e);
+        }
     }
 
     private PostDto toDto(Post post, String userId) {
@@ -149,11 +164,11 @@ public class PostService {
 
     private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "user";
+        if (roles == null) return "USER_0";
         if (roles.contains("MODERATOR_ADMIN")) return "MODERATOR_ADMIN";
         if (roles.contains("SUPER_ADMIN")) return "SUPER_ADMIN";
         if (roles.contains("VYACHESLAV")) return "VYACHESLAV";
-        return "user";
+        return "USER_0";
     }
 
     private boolean isAdmin(String role) {

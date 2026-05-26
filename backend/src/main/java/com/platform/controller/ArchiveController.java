@@ -41,7 +41,7 @@ public class ArchiveController {
     @PostMapping
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<ArchiveDto> createArchive(
-            @RequestBody ArchiveDto.CreateRequest request,
+            @Valid @RequestBody ArchiveDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         return ResponseEntity.ok(archiveService.createArchive(request, jwt));
@@ -51,7 +51,7 @@ public class ArchiveController {
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<ArchiveDto> updateArchive(
             @PathVariable String id,
-            @RequestBody ArchiveDto.UpdateRequest request,
+            @Valid @RequestBody ArchiveDto.UpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         return ResponseEntity.ok(archiveService.updateArchive(id, request, jwt));

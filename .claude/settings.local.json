@@ -11,7 +11,17 @@
       "Bash(mvn spring-boot:run)",
       "Bash(rm:*)",
       "Bash(ls:*)",
-      "Bash(grep -v \"//\")"
+      "Bash(grep -v \"//\")",
+      "Bash(mvn compile *)",
+      "Bash(./mvnw test *)",
+      "Bash(docker-compose *)",
+      "Bash(xargs grep *)",
+      "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('prometheus.yml'\\)\\)\")",
+      "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('alerts.yml'\\)\\)\")",
+      "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('alertmanager.yml'\\)\\)\")",
+      "Bash(xmllint --noout backend/src/main/resources/logback-spring.xml)",
+      "Bash(mvn clean *)",
+      "Bash(javac -cp \".\" CacheConfig.java)"
     ]
   }
 }

@@ -23,7 +23,7 @@ public class NotificationService {
      * Создать уведомление и сразу отправить по WebSocket
      */
     public Notification createAndSend(String userId, String type, String title, String message,
-                                      Long relatedId, String relatedRoomSlug) {
+                                      String relatedId, String relatedRoomSlug) {
 
         Notification notification = Notification.builder()
                 .userId(userId)
@@ -63,7 +63,7 @@ public class NotificationService {
      * Пометить как прочитанное
      */
     @CacheEvict(value = {"unreadNotifications", "allNotifications"}, key = "#notification.userId")
-    public void markAsRead(Long notificationId) {
+    public void markAsRead(String notificationId) {
         notificationRepository.findById(notificationId).ifPresent(n -> {
             n.setRead(true);
             notificationRepository.save(n);

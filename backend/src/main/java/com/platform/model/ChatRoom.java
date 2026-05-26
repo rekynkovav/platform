@@ -17,8 +17,8 @@ import java.time.Instant;
 public class ChatRoom {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(nullable = false, unique = true, length = 100)
     private String slug;           // user1, nutrition, questions-general и т.д.
@@ -35,8 +35,9 @@ public class ChatRoom {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
-    @Column(columnDefinition = "JSONB")
-    private String settings;       // slowmode, permissions и т.д.
+    // @Column(columnDefinition = "JSONB")
+    // @org.hibernate.annotations.Type(org.hibernate.type.JsonType.class)
+    // private String settings = "{}";       // slowmode, permissions и т.д.
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

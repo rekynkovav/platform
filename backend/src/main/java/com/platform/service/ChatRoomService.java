@@ -8,10 +8,12 @@ import com.platform.repository.ChatRoomRepository;
 import com.platform.repository.ChatRoomPermissionRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatRoomService {
@@ -21,14 +23,8 @@ public class ChatRoomService {
 
     @PostConstruct
     public void initDefaultRooms() {
-        createIfNotExists("user1", "general", "Чат новичков");
-        createIfNotExists("user2", "general", "Чат продвинутых");
-        createIfNotExists("nutrition", "nutrition", "Чат Питание");
-        createIfNotExists("questions-general", "question", "Общие вопросы");
-        createIfNotExists("questions-nutrition", "question", "Вопросы по питанию");
-        createIfNotExists("questions-vyacheslav", "question", "Вопросы лично Вячеславу");
-        createIfNotExists("admins", "admin", "Групповой чат администраторов");
-        initDefaultPermissions();
+        // Временно отключено из-за проблем с JSONB
+        System.out.println("⚠️ Инициализация комнат временно отключена из-за проблем с JSONB");
     }
 
     private void createIfNotExists(String slug, String type, String name) {
@@ -38,6 +34,7 @@ public class ChatRoomService {
                     .type(type)
                     .name(name)
                     .isActive(true)
+                    // .settings("{}")
                     .build();
             chatRoomRepository.save(room);
         }
@@ -104,7 +101,7 @@ public class ChatRoomService {
     /**
      * Установить права для роли в комнате
      */
-    public void setPermission(Long roomId, String role, String permissionLevel) {
+    public void setPermission(UUID roomId, String role, String permissionLevel) {
         ChatRoomPermission permission = chatRoomPermissionRepository.findByChatRoomIdAndRole(roomId, role)
                 .orElse(ChatRoomPermission.builder()
                         .chatRoom(chatRoomRepository.findById(roomId).orElseThrow())
@@ -118,14 +115,32 @@ public class ChatRoomService {
     /**
      * Проверить, имеет ли роль нужный уровень доступа к комнате
      */
-    public boolean hasPermission(Long roomId, String role, String requiredLevel) {
-        return chatRoomPermissionRepository.findByChatRoomIdAndRole(roomId, role)
-                .map(p -> {
-                    if ("admin".equals(p.getPermissionLevel())) return true;
-                    if ("read_write".equals(p.getPermissionLevel())) return true;
-                    return "read".equals(p.getPermissionLevel()) && "read".equals(requiredLevel);
-                })
-                .orElse(false); // по умолчанию доступ закрыт
+    public boolean hasPermission(UUID roomId, String role, String requiredLevel) {
+        try {
+            log.debug("Checking permission for roomId: {}, role: {}, requiredLevel: {}", roomId, role, requiredLevel);
+
+            if (roomId == null) {
+                log.warn("RoomId is null for permission check");
+                return false;
+            }
+
+            if (role == null || role.isEmpty()) {
+                log.warn("Role is null or empty for permission check");
+                return false;
+            }
+
+            return chatRoomPermissionRepository.findByChatRoomIdAndRole(roomId, role)
+                    .map(p -> {
+                        if ("admin".equals(p.getPermissionLevel())) return true;
+                        if ("read_write".equals(p.getPermissionLevel())) return true;
+                        return "read".equals(p.getPermissionLevel()) && "read".equals(requiredLevel);
+                    })
+                    .orElse(false); // по умолчанию доступ закрыт
+
+        } catch (Exception e) {
+            log.error("Error checking permission for roomId {}: {}", roomId, e.getMessage(), e);
+            return false; // В случае ошибки возвращаем false для безопасности
+        }
     }
 
     /**
@@ -134,7 +149,7 @@ public class ChatRoomService {
      */
     public void initDefaultPermissions() {
         // Общие вопросы — все пользователи могут читать и писать
-        setPermissionForRoom("questions-general", "ROLE_USER", "read_write");
+        setPermissionForRoom("questions-general", "ROLE_USER_0", "read_write");
         setPermissionForRoom("questions-general", "ROLE_CONSULTANT_PITANIE", "admin");
         setPermissionForRoom("questions-general", "ROLE_VYACHESLAV", "admin");
         setPermissionForRoom("questions-general", "ROLE_MODERATOR_ADMIN", "admin");
@@ -142,17 +157,17 @@ public class ChatRoomService {
         // Питание — только консультант питания + Vyacheslav
         setPermissionForRoom("questions-nutrition", "ROLE_CONSULTANT_PITANIE", "admin");
         setPermissionForRoom("questions-nutrition", "ROLE_VYACHESLAV", "admin");
-        setPermissionForRoom("questions-nutrition", "ROLE_USER", "read_write");
+        setPermissionForRoom("questions-nutrition", "ROLE_USER_0", "read_write");
 
         // Лично Вячеславу — только Vyacheslav + админы
         setPermissionForRoom("questions-vyacheslav", "ROLE_VYACHESLAV", "admin");
         setPermissionForRoom("questions-vyacheslav", "ROLE_MODERATOR_ADMIN", "admin");
-        setPermissionForRoom("questions-vyacheslav", "ROLE_USER", "read_write");
+        setPermissionForRoom("questions-vyacheslav", "ROLE_USER_0", "read_write");
 
         // Обычные чаты (user1, user2, nutrition)
-        setPermissionForRoom("user1", "ROLE_USER", "read_write");
-        setPermissionForRoom("user2", "ROLE_USER", "read_write");
-        setPermissionForRoom("nutrition", "ROLE_USER", "read_write");
+        setPermissionForRoom("user1", "ROLE_USER_0", "read_write");
+        setPermissionForRoom("user2", "ROLE_USER_0", "read_write");
+        setPermissionForRoom("nutrition", "ROLE_USER_0", "read_write");
         setPermissionForRoom("nutrition", "ROLE_CONSULTANT_PITANIE", "admin");
 
         System.out.println("✅ Default room permissions initialized successfully");

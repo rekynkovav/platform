@@ -1,23 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './RoleSwitcher.css';
+import { ROLES, ROLE_LABELS, ROLE_ICONS } from '../../constants/roles';
+
+const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'development';
 
 const RoleSwitcher = ({ onRoleChange }) => {
+    // Не показываем в production
+    if (!isDevelopment) {
+        return null;
+    }
     const [currentRole, setCurrentRole] = useState(() => {
-        return localStorage.getItem('demoRole') || 'USER_0';
+        return localStorage.getItem('demoRole') || ROLES.USER_0;
     });
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     const roles = [
-        { id: 'USER_0', label: 'Пользователь 0', icon: '👁️', description: 'Просмотр сайта' },
-        { id: 'USER_1', label: 'Пользователь 1', icon: '🌱', description: 'Чат 1' },
-        { id: 'USER_2', label: 'Пользователь 2', icon: '⭐', description: 'Чат 2' },
-        { id: 'MODERATOR_ADMIN', label: 'Модератор/Админ', icon: '🛡️', description: 'Ответы + контент' },
-        { id: 'CONSULTANT_PITANIE', label: 'Консультант (питание)', icon: '🥗', description: 'Лента питания' },
-        { id: 'CONSULTANT_SPORT', label: 'Консультант (спорт)', icon: '⚽', description: 'Спортивный контент' },
-        { id: 'DEVELOPER', label: 'Разработчик', icon: '💻', description: 'Разработка' },
-        { id: 'VYACHESLAV', label: 'Вячеслав', icon: '👑', description: 'Владелец' },
-        { id: 'SUPER_ADMIN', label: 'Главный Админ', icon: '🔱', description: 'Полный доступ' }
+        { id: ROLES.USER_0, label: ROLE_LABELS[ROLES.USER_0], icon: ROLE_ICONS[ROLES.USER_0], description: 'Просмотр сайта' },
+        { id: ROLES.USER_1, label: ROLE_LABELS[ROLES.USER_1], icon: ROLE_ICONS[ROLES.USER_1], description: 'Чат 1' },
+        { id: ROLES.USER_2, label: ROLE_LABELS[ROLES.USER_2], icon: ROLE_ICONS[ROLES.USER_2], description: 'Чат 2' },
+        { id: ROLES.MODERATOR_ADMIN, label: ROLE_LABELS[ROLES.MODERATOR_ADMIN], icon: ROLE_ICONS[ROLES.MODERATOR_ADMIN], description: 'Ответы + контент' },
+        { id: ROLES.CONSULTANT_PITANIE, label: ROLE_LABELS[ROLES.CONSULTANT_PITANIE], icon: ROLE_ICONS[ROLES.CONSULTANT_PITANIE], description: 'Лента питания' },
+        { id: ROLES.CONSULTANT_SPORT, label: ROLE_LABELS[ROLES.CONSULTANT_SPORT], icon: ROLE_ICONS[ROLES.CONSULTANT_SPORT], description: 'Спортивный контент' },
+        { id: ROLES.DEVELOPER, label: ROLE_LABELS[ROLES.DEVELOPER], icon: ROLE_ICONS[ROLES.DEVELOPER], description: 'Разработка' },
+        { id: ROLES.VYACHESLAV, label: ROLE_LABELS[ROLES.VYACHESLAV], icon: ROLE_ICONS[ROLES.VYACHESLAV], description: 'Владелец' },
+        { id: ROLES.SUPER_ADMIN, label: ROLE_LABELS[ROLES.SUPER_ADMIN], icon: ROLE_ICONS[ROLES.SUPER_ADMIN], description: 'Полный доступ' }
     ];
 
     useEffect(() => {
@@ -43,10 +50,10 @@ const RoleSwitcher = ({ onRoleChange }) => {
         if (window.keycloakMock) {
             const isAdmin = roleId.includes('ADMIN') ||
                            roleId.includes('CONSULTANT') ||
-                           roleId === 'DEVELOPER' ||
-                           roleId === 'VYACHESLAV' ||
-                           roleId === 'SUPER_ADMIN';
-            window.keycloakMock.roles = isAdmin ? ['MODERATOR_ADMIN', 'USER_2'] : [roleId];
+                           roleId === ROLES.DEVELOPER ||
+                           roleId === ROLES.VYACHESLAV ||
+                           roleId === ROLES.SUPER_ADMIN;
+            window.keycloakMock.roles = isAdmin ? [ROLES.MODERATOR_ADMIN, ROLES.USER_2] : [roleId];
         }
 
         if (onRoleChange) {

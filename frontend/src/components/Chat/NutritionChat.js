@@ -1,4 +1,4 @@
-import useChat from './useChat';
+import { useChat } from './useChat';
 import ChatRoom from './ChatRoom';
 
 const NutritionChat = () => {
@@ -18,16 +18,20 @@ const NutritionChat = () => {
         currentUserAuthor,
         isRecording,
         recordingTime,
+        uploading,
+        error,
         sendMessage,
         editMessage,
         deleteMessage,
         uploadFile,
         startRecording,
-        stopRecording
+        stopRecording,
+        clearError
     } = useChat('nutrition', {
         storageKeyPrefix: 'nutritionChatMessages',
         canSwitchRooms: false,
-        availableRooms
+        availableRooms,
+        useApi: false // Временно отключаем API до запуска бэкенда
     });
 
     if (loading) return <div className="loading">Загрузка чата...</div>;
@@ -48,6 +52,8 @@ const NutritionChat = () => {
             onStopRecording={stopRecording}
             isRecording={isRecording}
             recordingTime={recordingTime}
+            error={error}
+            onClearError={clearError}
         />
     );
 };

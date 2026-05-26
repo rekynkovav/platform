@@ -1,16 +1,69 @@
-// keycloak.js - Упрощенная мок-версия для разработки
-import { mockAuth } from './services/mockApi';
+import Keycloak from 'keycloak-js';
 
-console.log('🔧 Запуск в МОК режиме');
+const keycloakConfig = {
+    url: process.env.REACT_APP_KEYCLOAK_URL || 'http://localhost:8080/auth',
+    realm: 'platform',
+    clientId: 'platform-frontend'
+};
 
-export const initKeycloak = () => mockAuth.init();
-export const login = () => console.log('Мок-логин');
-export const logout = () => mockAuth.logout();
-export const getToken = () => 'mock-token-123';
-export const getRefreshToken = () => 'mock-refresh-token';
-export const updateToken = async () => true;
-export const getUsername = () => mockAuth.getUsername();
-export const getUserId = () => 'mock-user-id';
-export const getUserRoles = () => mockAuth.getUserRoles();
+let keycloakInstance = null;
+let isInitialized = false;
+let userRoles = [];
+let username = '';
+
+export const initKeycloak = async () => {
+    if (isInitialized) return keycloakInstance?.authenticated || false;
+
+    keycloakInstance = new Keycloak(keycloakConfig);
+
+    try {
+        const authenticated = await keycloakInstance.init({
+            onLoad: 'check-sso',
+            silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+            pkceMethod: 'S256'
+        });
+
+        if (authenticated) {
+            const token = keycloakInstance.tokenParsed;
+            if (token?.realm_access?.roles) {
+                userRoles = token.realm_access.roles;
+            }
+            username = token?.preferred_username || token?.email || 'User';
+
+            // Обновление токена за 60 секунд до истечения
+            setInterval(() => {
+                keycloakInstance.updateToken(30).catch(err => {
+                    console.error('Failed to refresh token', err);
+                });
+            }, 60000);
+        }
+
+        isInitialized = true;
+        return authenticated;
+    } catch (error) {
+        console.error('Keycloak init failed:', error);
+        isInitialized = true;
+        return false;
+    }
+};
+
+export const login = () => keycloakInstance?.login();
+export const logout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    keycloakInstance?.logout({ redirectUri: window.location.origin });
+};
+export const getToken = () => keycloakInstance?.token;
+export const getRefreshToken = () => keycloakInstance?.refreshToken;
+export const updateToken = async () => {
+    if (keycloakInstance) {
+        return keycloakInstance.updateToken(30);
+    }
+    return false;
+};
+export const getUsername = () => username;
+export const getUserId = () => keycloakInstance?.tokenParsed?.sub;
+export const getUserRoles = () => userRoles;
+export const isTokenExpired = () => keycloakInstance?.isTokenExpired();
 
 export default { init: initKeycloak, logout, login };

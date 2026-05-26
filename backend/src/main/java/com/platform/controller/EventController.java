@@ -42,7 +42,7 @@ public class EventController {
     @PostMapping
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<EventDto> createEvent(
-            @RequestBody EventDto.CreateRequest request,
+            @Valid @RequestBody EventDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         return ResponseEntity.ok(eventService.createEvent(request, jwt));
@@ -52,7 +52,7 @@ public class EventController {
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<EventDto> updateEvent(
             @PathVariable String id,
-            @RequestBody EventDto.UpdateRequest request,
+            @Valid @RequestBody EventDto.UpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         return ResponseEntity.ok(eventService.updateEvent(id, request, jwt));

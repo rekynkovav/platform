@@ -7,17 +7,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface MediaFileRepository extends JpaRepository<MediaFile, String> {
 
     List<MediaFile> findByOwnerId(String ownerId);
-
-    List<MediaFile> findByFileType(String fileType);
-
-    Optional<MediaFile> findByS3Key(String s3Key);
 
     @Modifying
     @Query("UPDATE MediaFile m SET m.viewsCount = m.viewsCount + 1 WHERE m.id = :id")
@@ -26,4 +22,7 @@ public interface MediaFileRepository extends JpaRepository<MediaFile, String> {
     @Modifying
     @Query("UPDATE MediaFile m SET m.downloadCount = m.downloadCount + 1 WHERE m.id = :id")
     void incrementDownloads(@Param("id") String id);
+
+    @Query("SELECT m FROM MediaFile m WHERE m.type = 'HLS' AND m.createdAt < :cutoff")
+    List<MediaFile> findOldHlsSegments(@Param("cutoff") LocalDateTime cutoff);
 }

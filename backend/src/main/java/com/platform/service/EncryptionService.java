@@ -15,19 +15,16 @@ import java.util.Base64;
 @Service
 public class EncryptionService {
 
-    @Value("${media.encryption.master-key}")
-    private String masterKey;
+    // @Value("${media.encryption.master-key}")
+    private String masterKey = "test-master-key-1234567890";
 
     @Value("${media.encryption.algorithm:AES/CBC/PKCS5Padding}")
     private String algorithm;
 
     private static final String KEY_ALGORITHM = "AES";
-    private static final int KEY_SIZE = 32; // 256 bits
-    private static final int IV_SIZE = 16; // 128 bits
+    private static final int KEY_SIZE = 32;
+    private static final int IV_SIZE = 16;
 
-    /**
-     * Генерация уникального ключа шифрования для файла
-     */
     public byte[] generateFileKey(String userId, String fileId) {
         try {
             String keySource = masterKey + ":" + userId + ":" + fileId;
@@ -39,9 +36,6 @@ public class EncryptionService {
         }
     }
 
-    /**
-     * Генерация случайного IV (Initialization Vector)
-     */
     public String generateIV() {
         SecureRandom random = new SecureRandom();
         byte[] iv = new byte[IV_SIZE];
@@ -49,9 +43,6 @@ public class EncryptionService {
         return Base64.getEncoder().encodeToString(iv);
     }
 
-    /**
-     * Шифрование данных
-     */
     public byte[] encrypt(byte[] data, byte[] key, String ivBase64) {
         try {
             SecretKeySpec secretKey = new SecretKeySpec(key, KEY_ALGORITHM);
@@ -68,9 +59,6 @@ public class EncryptionService {
         }
     }
 
-    /**
-     * Расшифровка данных
-     */
     public byte[] decrypt(byte[] encryptedData, byte[] key, String ivBase64) {
         try {
             SecretKeySpec secretKey = new SecretKeySpec(key, KEY_ALGORITHM);
@@ -87,20 +75,18 @@ public class EncryptionService {
         }
     }
 
-    /**
-     * Генерация ключа для HLS сегментов (16 байт для AES-128)
-     */
     public byte[] generateHLSKey(String userId, String fileId) {
         byte[] fullKey = generateFileKey(userId, fileId);
-        byte[] hlsKey = new byte[16]; // AES-128 для HLS
+        byte[] hlsKey = new byte[16];
         System.arraycopy(fullKey, 0, hlsKey, 0, 16);
         return hlsKey;
     }
 
-    /**
-     * Проверка валидности ключа
-     */
-    public boolean validateKey(byte[] key) {
-        return key != null && key.length == KEY_SIZE;
+    public Cipher getCipher(int mode, byte[] key, String iv) throws Exception {
+        SecretKeySpec keySpec = new SecretKeySpec(key, "AES");
+        IvParameterSpec ivSpec = new IvParameterSpec(iv.getBytes());
+        Cipher cipher = Cipher.getInstance(algorithm);
+        cipher.init(mode, keySpec, ivSpec);
+        return cipher;
     }
 }

@@ -110,6 +110,48 @@
     border-radius: var(--radius);
     max-width: 80%;
     align-self: flex-start;
+    display: flex;
+    gap: 12px;
+}
+
+.message-avatar {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    position: relative;
+}
+
+.avatar-image {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-light), var(--primary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border);
+}
+
+.avatar-placeholder.hidden {
+    display: none;
+}
+
+.avatar-icon {
+    font-size: 20px;
+    color: white;
+}
+
+.message-content-wrapper {
+    flex: 1;
+    min-width: 0; /* Для правильного обрезания текста */
 }
 
 .message-header {
@@ -461,9 +503,48 @@
 .upload-error {
     color: #ef4444;
     font-size: 12px;
-    padding: 4px 8px;
+    padding: 8px 12px;
     background: #fef2f2;
     border-radius: var(--radius-sm);
+    border: 1px solid #fecaca;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    animation: fadeIn 0.3s ease;
+}
+
+.upload-error .error-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.upload-error .error-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #ef4444;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.upload-error .error-close:hover {
+    opacity: 1;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Индикатор загрузки */
@@ -505,10 +586,24 @@
 .chat-message.own {
     align-self: flex-end;
     background: rgba(139, 92, 246, 0.1);
+    flex-direction: row-reverse;
 }
 
 .chat-message.own strong {
     color: var(--accent);
+}
+
+.chat-message.own .message-avatar {
+    order: 2;
+}
+
+.chat-message.own .message-content-wrapper {
+    order: 1;
+}
+
+.chat-message.own .message-actions {
+    margin-left: 0;
+    margin-right: auto;
 }
 
 /* Медиа в сообщении */

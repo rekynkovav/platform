@@ -9,6 +9,7 @@ const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescr
     const [isRecording, setIsRecording] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const [recordingTime, setRecordingTime] = useState(0);
+    const [error, setError] = useState(null);
     const recordingTimerRef = useRef(null);
     const blobUrlsRef = useRef([]);
 
@@ -48,6 +49,10 @@ const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescr
             blobUrlsRef.current = [];
         };
     }, []);
+
+    const clearError = () => {
+        setError(null);
+    };
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
@@ -97,7 +102,7 @@ const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescr
             }, 1000);
         } catch (err) {
             console.error('Ошибка доступа к микрофону:', err);
-            alert('Не удалось получить доступ к микрофону');
+            setError('Не удалось получить доступ к микрофону');
         }
     };
 
@@ -145,6 +150,15 @@ const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescr
         <div className="content-modal-overlay" onClick={onClose}>
             <div className="content-modal" onClick={(e) => e.stopPropagation()}>
                 <h3>Добавить контент</h3>
+
+                {/* Отображение ошибок */}
+                {error && (
+                    <div className="error-message">
+                        <span className="error-icon">⚠️</span>
+                        <span>{error}</span>
+                        <button className="error-close" onClick={clearError}>×</button>
+                    </div>
+                )}
 
                 <input
                     type="text"

@@ -1,0 +1,108 @@
+spring:
+  application:
+    name: platform-backend
+  main:
+    allow-circular-references: true
+  autoconfigure:
+    exclude:
+      - com.giffing.bucket4j.spring.boot.starter.Bucket4jAutoConfiguration
+
+bucket4j:
+  enabled: true
+  cache-to-use: caffeine
+  methods:
+    - name: "dummy"
+      cache-name: buckets
+      rate-limits:
+        - bandwidths:
+            - capacity: 100
+              time: 1
+              unit: minutes
+              refill-speed: interval
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/platform}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: false
+
+  servlet:
+    multipart:
+      max-file-size: 1GB
+      max-request-size: 1GB
+
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=2000,expireAfterWrite=5m
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/platform}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/platform/protocol/openid-connect/certs}
+
+  web:
+    resources:
+      static-locations: classpath:/static/
+
+server:
+  port: 8081
+  servlet:
+    context-path: /
+
+logging:
+  level:
+    com.platform: DEBUG
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+
+app:
+  watermark:
+    font-path: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+    temp-path: /tmp/watermarks
+
+  storage:
+    type: s3
+    s3:
+      bucket-name: ${S3_BUCKET:platform-media}
+      region: ${S3_REGION:us-east-1}
+      endpoint: ${S3_ENDPOINT:https://s3.amazonaws.com}
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+
+  encryption:
+    algorithm: AES/GCM/NoPadding
+    key-size: 256
+
+  hls:
+    enabled: true
+    segment-duration: 10
+    playlist-length: 3
+
+  media:
+    encryption:
+      master-key: "test-master-key-1234567890"
+      algorithm: "AES/CBC/PKCS5Padding"
+
+keycloak:
+  auth-server-url: http://localhost:8080
+  realm: platform
+  resource: platform-backend
+  credentials:
+    secret: "test-secret-key"
+
+

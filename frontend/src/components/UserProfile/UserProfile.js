@@ -1,388 +1,200 @@
 import React, { useState, useEffect } from 'react';
-import { usersApi } from '../../services/api';
+import { userApi, paymentApi } from '../../services/api';
+import { getUsername, getUserId, getUserRoles } from '../../keycloak';
 import './UserProfile.css';
 
 const UserProfile = () => {
     const [user, setUser] = useState(null);
+    const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [editing, setEditing] = useState(false);
-    const [formData, setFormData] = useState({
-        username: '',
-        email: '',
-        phone: '',
-        bio: ''
-    });
-    const [saving, setSaving] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState({});
+    const [qrCode, setQrCode] = useState(null);
+    const [currentPayment, setCurrentPayment] = useState(null);
     const [error, setError] = useState(null);
-    const [paymentId, setPaymentId] = useState(null);
-    const [qrCodeUrl, setQrCodeUrl] = useState(null);
-    const [showPayment, setShowPayment] = useState(false);
+    const username = getUsername();
+    const userId = getUserId();
+    const userRoles = getUserRoles();
 
-    const periods = [
-        { months: 1, price: 10000, label: '1 месяц', pricePerMonth: 10000 },
-        { months: 3, price: 27000, label: '3 месяца', discount: '10%', pricePerMonth: 9000, savings: 3000 },
-        { months: 6, price: 48000, label: '6 месяцев', discount: '20%', pricePerMonth: 8000, savings: 12000 },
-        { months: 12, price: 84000, label: '12 месяцев', discount: '30%', pricePerMonth: 7000, savings: 36000 }
-    ];
-
-    const [selectedPeriod, setSelectedPeriod] = useState(1);
-
-    const bankDetails = {
-        name: 'БФАДД',
-        inn: '9715470089',
-        kpp: '771501001',
-        account: '40703810512000002359',
-        bank: 'ВОЛОГОДСКОЕ ОТДЕЛЕНИЕ N8638 ПАО СБЕРБАНК г. Вологда',
-        corrAccount: '30101810900000000644',
-        bik: '041909644'
+    const clearError = () => {
+        setError(null);
     };
 
     useEffect(() => {
-        loadUser();
+        loadUserData();
+        loadPayments();
     }, []);
 
-    const loadUser = async () => {
+    const loadUserData = async () => {
         try {
-            setLoading(true);
-            const response = await usersApi.getCurrentUser();
-            setUser(response.data);
-            setFormData({
-                username: response.data.username || '',
-                email: response.data.email || '',
-                phone: response.data.phone || '',
-                bio: response.data.bio || ''
+            const data = await userApi.getMe();
+            setUser(data);
+            setEditForm({
+                username: data.username,
+                email: data.email,
+                phone: data.phone || '',
+                bio: data.bio || '',
+                avatarUrl: data.avatarUrl || ''
             });
-        } catch (err) {
-            console.error('Ошибка загрузки пользователя:', err);
-            setError('Не удалось загрузить профиль');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSave = async () => {
-        try {
-            setSaving(true);
-            const response = await usersApi.updateCurrentUser(formData);
-            setUser(response.data);
-            setEditing(false);
-        } catch (err) {
-            console.error('Ошибка сохранения:', err);
-            alert('Не удалось сохранить профиль');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handlePayment = async () => {
-        setLoading(true);
-        try {
-            const newPaymentId = `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-            setPaymentId(newPaymentId);
-
-            const selectedPeriodData = periods.find(p => p.months === selectedPeriod);
-            const amount = selectedPeriodData.price;
-            const sbpData = generateSBPQRData(amount, newPaymentId);
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(sbpData)}`;
-            setQrCodeUrl(qrUrl);
-
-            localStorage.setItem('pendingPayment', JSON.stringify({
-                paymentId: newPaymentId,
-                amount: amount,
-                period: selectedPeriod,
-                createdAt: new Date().toISOString()
-            }));
+            setError(null);
         } catch (error) {
-            console.error('Ошибка создания платежа:', error);
-            alert('Ошибка при создании платежа. Попробуйте еще раз.');
+            console.error('Failed to load user:', error);
+            setError('Не удалось загрузить данные пользователя');
         } finally {
             setLoading(false);
         }
     };
 
-    const generateSBPQRData = (amount, paymentId) => {
-        const bankAccount = bankDetails.account;
-        const recipientName = bankDetails.name;
-        const purpose = `Подписка ${paymentId}`;
-        return `ST00012|Name=${recipientName}|PersonalAcc=${bankAccount}|BankName=${bankDetails.bank}|BIC=${bankDetails.bik}|CorrespAcc=${bankDetails.corrAccount}|Sum=${amount * 100}|Purpose=${purpose}|PayeeINN=${bankDetails.inn}|KPP=${bankDetails.kpp}`;
+    const loadPayments = async () => {
+        try {
+            const data = await paymentApi.getUserPayments();
+            setPayments(data || []);
+            setError(null);
+        } catch (error) {
+            console.error('Failed to load payments:', error);
+            setError('Не удалось загрузить данные о платежах');
+        }
     };
 
-    const copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text).catch(() => {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-        });
-        alert('Скопировано в буфер обмена!');
+    const handleUpdate = async () => {
+        try {
+            const updated = await userApi.updateMe(editForm);
+            setUser(updated);
+            setIsEditing(false);
+            setError(null);
+            alert('Profile updated successfully');
+        } catch (error) {
+            console.error('Failed to update profile:', error);
+            setError('Не удалось обновить профиль');
+        }
     };
 
-    const getRoleInfo = (role) => {
-        const roleMap = {
-            'user_0': { icon: '👁️', name: 'Пользователь 0', color: '#6c757d' },
-            'user_1': { icon: '🌱', name: 'Пользователь 1', color: '#28a745' },
-            'user_2': { icon: '⭐', name: 'Пользователь 2', color: '#ffc107' },
-            'moderator_admin': { icon: '🛡️', name: 'Модератор/Админ', color: '#0d6efd' },
-            'super_admin': { icon: '🔱', name: 'Главный Админ', color: '#dc3545' },
-            'consultant_pitanie': { icon: '🥗', name: 'Консультант Питание', color: '#fd7e14' },
-            'consultant_sport': { icon: '⚽', name: 'Консультант Спорт', color: '#20c997' },
-            'developer': { icon: '💻', name: 'Разработчик', color: '#6f42c1' },
-            'vyacheslav': { icon: '👑', name: 'Вячеслав', color: '#dc3545' }
-        };
-        return roleMap[role?.toLowerCase()] || { icon: '👤', name: role || 'Пользователь', color: '#6c757d' };
+    const createPayment = async (months) => {
+        try {
+            const payment = await paymentApi.create({ subscriptionMonths: months });
+            setCurrentPayment(payment);
+
+            // Загрузить QR-код
+            const qrResponse = await paymentApi.getPaymentQR(payment.id);
+            setQrCode(`data:image/png;base64,${qrResponse.qrCodeBase64}`);
+
+            setError(null);
+            alert(`Payment created: ${payment.amount} RUB`);
+            loadPayments();
+        } catch (error) {
+            console.error('Failed to create payment:', error);
+            setError('Не удалось создать платеж');
+        }
     };
 
-    const isPaidRole = (role) => {
-        return ['user_1', 'user_2', 'moderator_admin', 'super_admin', 'consultant_pitanie', 'consultant_sport', 'developer', 'vyacheslav'].includes(role?.toLowerCase());
-    };
-
-    const selectedPeriodData = periods.find(p => p.months === selectedPeriod) || periods[0];
-
-    if (loading && !user) {
-        return <div className="user-profile"><div className="loading">Загрузка...</div></div>;
-    }
-
-    if (error) {
-        return <div className="user-profile"><div className="error">{error}</div></div>;
-    }
-
-    const roleInfo = getRoleInfo(user?.role);
-    const needsPayment = !isPaidRole(user?.role);
+    if (loading) return <div className="loading">Loading...</div>;
+    if (!user) return <div className="error">User not found</div>;
 
     return (
         <div className="user-profile">
+            {/* Отображение ошибок */}
+            {error && (
+                <div className="error-message">
+                    <span className="error-icon">⚠️</span>
+                    <span>{error}</span>
+                    <button className="error-close" onClick={clearError}>×</button>
+                </div>
+            )}
+
             <div className="profile-header">
-                <h2>👤 Личный кабинет</h2>
+                <h2>Profile: {user.username}</h2>
+                <div className="roles">
+                    Roles: {userRoles.join(', ')}
+                </div>
             </div>
 
-            <div className="profile-card">
-                <div className="profile-role-badge" style={{ background: roleInfo.color }}>
-                    <span className="role-badge-icon">{roleInfo.icon}</span>
-                    <div className="role-badge-info">
-                        <div className="role-badge-name">{roleInfo.name}</div>
-                        <div className="role-badge-description">Роль: {user?.role || 'user'}</div>
+            <div className="profile-info">
+                {isEditing ? (
+                    <div className="edit-form">
+                        <input
+                            value={editForm.username}
+                            onChange={(e) => setEditForm({...editForm, username: e.target.value})}
+                            placeholder="Username"
+                        />
+                        <input
+                            value={editForm.email}
+                            onChange={(e) => setEditForm({...editForm, email: e.target.value})}
+                            placeholder="Email"
+                        />
+                        <input
+                            value={editForm.phone}
+                            onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
+                            placeholder="Phone"
+                        />
+                        <textarea
+                            value={editForm.bio}
+                            onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
+                            placeholder="Bio"
+                        />
+                        <button onClick={handleUpdate}>Save</button>
+                        <button onClick={() => setIsEditing(false)}>Cancel</button>
                     </div>
-                </div>
-
-                {needsPayment && (
-                    <div className="payment-notice">
-                        <p>⚠️ Для доступа к полному функционалу необходимо оформить подписку</p>
+                ) : (
+                    <div className="profile-details">
+                        <p><strong>Email:</strong> {user.email}</p>
+                        <p><strong>Phone:</strong> {user.phone || 'Not set'}</p>
+                        <p><strong>Bio:</strong> {user.bio || 'Not set'}</p>
+                        <p><strong>Member since:</strong> {new Date(user.createdAt).toLocaleDateString()}</p>
+                        <button onClick={() => setIsEditing(true)}>Edit Profile</button>
                     </div>
                 )}
             </div>
 
-            {!showPayment && (
-                <div className="profile-edit-section">
-                    <div className="section-header">
-                        <h3>📝 Профиль</h3>
-                        {!editing && (
-                            <button className="edit-btn" onClick={() => setEditing(true)}>Редактировать</button>
-                        )}
-                    </div>
-
-                    <div className="profile-fields">
-                        <div className="profile-field">
-                            <label>Никнейм:</label>
-                            {editing ? (
-                                <input
-                                    type="text"
-                                    value={formData.username}
-                                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                />
-                            ) : (
-                                <span>{user?.username || 'Не указан'}</span>
-                            )}
-                        </div>
-
-                        <div className="profile-field">
-                            <label>Email:</label>
-                            {editing ? (
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                />
-                            ) : (
-                                <span>{user?.email || 'Не указан'}</span>
-                            )}
-                        </div>
-
-                        <div className="profile-field">
-                            <label>Телефон:</label>
-                            {editing ? (
-                                <input
-                                    type="tel"
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                />
-                            ) : (
-                                <span>{user?.phone || 'Не указан'}</span>
-                            )}
-                        </div>
-
-                        <div className="profile-field bio-field">
-                            <label>О себе:</label>
-                            {editing ? (
-                                <textarea
-                                    value={formData.bio}
-                                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                                    rows={4}
-                                />
-                            ) : (
-                                <span>{user?.bio || 'Ничего не рассказал о себе'}</span>
-                            )}
-                        </div>
-
-                        <div className="profile-field">
-                            <label>Дата регистрации:</label>
-                            <span>{user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : '-'}</span>
-                        </div>
-
-                        <div className="profile-field">
-                            <label>Последняя активность:</label>
-                            <span>{user?.lastActiveAt ? new Date(user.lastActiveAt).toLocaleString('ru-RU') : '-'}</span>
-                        </div>
-                    </div>
-
-                    {editing && (
-                        <div className="edit-actions">
-                            <button className="save-btn" onClick={handleSave} disabled={saving}>
-                                {saving ? 'Сохранение...' : '💾 Сохранить'}
-                            </button>
-                            <button className="cancel-btn" onClick={() => {
-                                setEditing(false);
-                                setFormData({
-                                    username: user?.username || '',
-                                    email: user?.email || '',
-                                    phone: user?.phone || '',
-                                    bio: user?.bio || ''
-                                });
-                            }}>
-                                Отмена
-                            </button>
-                        </div>
-                    )}
+            <div className="payments-section">
+                <h3>Subscription</h3>
+                <div className="payment-options">
+                    <button onClick={() => createPayment(1)}>1 month - 1500 RUB</button>
+                    <button onClick={() => createPayment(3)}>3 months - 4000 RUB</button>
+                    <button onClick={() => createPayment(6)}>6 months - 7500 RUB</button>
+                    <button onClick={() => createPayment(12)}>12 months - 14000 RUB</button>
                 </div>
-            )}
 
-            {needsPayment && !showPayment && !paymentId && (
-                <div className="payment-section">
-                    <h3>💳 Оформление подписки</h3>
-                    <p className="payment-description">Выберите период подписки</p>
+                <h4>Payment History</h4>
+                {payments.length === 0 ? (
+                    <p>No payments yet</p>
+                ) : (
+                    <table className="payments-table">
+                        <thead>
+                            <tr><th>Date</th><th>Amount</th><th>Status</th><th>Months</th></tr>
+                        </thead>
+                        <tbody>
+                            {payments.map(p => (
+                                <tr key={p.id}>
+                                    <td>{new Date(p.createdAt).toLocaleDateString()}</td>
+                                    <td>{p.amount} {p.currency}</td>
+                                    <td className={`status-${p.status?.toLowerCase()}`}>{p.status}</td>
+                                    <td>{p.subscriptionMonths}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
 
-                    <div className="periods-grid">
-                        {periods.map((period) => (
-                            <div
-                                key={period.months}
-                                className={`period-card ${selectedPeriod === period.months ? 'selected' : ''}`}
-                                onClick={() => setSelectedPeriod(period.months)}
-                            >
-                                {period.discount && (
-                                    <div className="period-discount">-{period.discount}</div>
-                                )}
-                                <div className="period-label">{period.label}</div>
-                                <div className="period-price">{period.price.toLocaleString('ru-RU')} ₽</div>
-                                {period.discount && (
-                                    <>
-                                        <div className="period-per-month">{period.pricePerMonth.toLocaleString('ru-RU')} ₽/мес</div>
-                                        <div className="period-savings">Экономия {period.savings.toLocaleString('ru-RU')} ₽</div>
-                                    </>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    <button className="payment-button" onClick={handlePayment}>
-                        {loading ? '⏳ Генерация QR-кода...' : `💳 Оплатить ${selectedPeriodData.price.toLocaleString('ru-RU')} ₽`}
-                    </button>
-                </div>
-            )}
-
-            {needsPayment && paymentId && (
-                <div className="payment-qr-section">
-                    <h3>📱 Оплата через СБП</h3>
-
-                    <div className="payment-info-box">
-                        <div className="payment-info-item">
-                            <span className="info-label">Сумма к оплате:</span>
-                            <span className="info-value">{selectedPeriodData.price.toLocaleString('ru-RU')} ₽</span>
+            {/* QR Code Modal */}
+            {qrCode && currentPayment && (
+                <div className="qr-modal">
+                    <div className="qr-modal-content">
+                        <h3>Оплата подписки</h3>
+                        <img src={qrCode} alt="QR-код для оплаты" />
+                        <p>Сумма: {currentPayment.amount} RUB</p>
+                        <p>Платёж действителен до: {new Date(currentPayment.expiresAt).toLocaleString()}</p>
+                        <div className="bank-details">
+                            <h4>Реквизиты получателя:</h4>
+                            <p>БФАДД</p>
+                            <p>ИНН: 9715470089 | КПП: 771501001</p>
+                            <p>р/с: 40703810512000002359</p>
+                            <p>Банк: ВОЛОГОДСКОЕ ОТДЕЛЕНИЕ N8638 ПАО СБЕРБАНК г. Вологда</p>
+                            <p>к/с: 30101810900000000644</p>
+                            <p>БИК: 041909644</p>
                         </div>
-                        <div className="payment-info-item">
-                            <span className="info-label">Период:</span>
-                            <span className="info-value">{selectedPeriodData.label}</span>
-                        </div>
-                        <div className="payment-info-item">
-                            <span className="info-label">ID платежа:</span>
-                            <span className="info-value payment-id">
-                                {paymentId}
-                                <button className="copy-btn" onClick={() => copyToClipboard(paymentId)} title="Копировать">📋</button>
-                            </span>
-                        </div>
+                        <button onClick={() => setQrCode(null)}>Закрыть</button>
                     </div>
-
-                    <div className="qr-code-container">
-                        <h4>Отсканируйте QR-код в приложении банка:</h4>
-                        {qrCodeUrl ? (
-                            <img src={qrCodeUrl} alt="QR-код для оплаты" className="qr-code-image" />
-                        ) : (
-                            <div className="qr-code-placeholder">
-                                <span className="qr-icon">⏳</span>
-                                <p>Генерация QR-кода...</p>
-                            </div>
-                        )}
-                        <p className="qr-instruction">
-                            1. Откройте приложение вашего банка<br/>
-                            2. Найдите раздел "Оплата по QR"<br/>
-                            3. Отсканируйте код выше<br/>
-                            4. Подтвердите платеж
-                        </p>
-                    </div>
-
-                    <div className="bank-details-section">
-                        <h4>🏦 Или переведите по реквизитам:</h4>
-                        <p className="bank-details-note">
-                            ⚠️ ВАЖНО: В назначении платежа обязательно укажите: <strong>{paymentId}</strong>
-                        </p>
-
-                        <div className="bank-details-grid">
-                            <div className="bank-detail-item">
-                                <span className="detail-label">Получатель:</span>
-                                <span className="detail-value">{bankDetails.name}</span>
-                            </div>
-                            <div className="bank-detail-item">
-                                <span className="detail-label">ИНН:</span>
-                                <span className="detail-value">{bankDetails.inn}</span>
-                            </div>
-                            <div className="bank-detail-item">
-                                <span className="detail-label">КПП:</span>
-                                <span className="detail-value">{bankDetails.kpp}</span>
-                            </div>
-                            <div className="bank-detail-item full-width">
-                                <span className="detail-label">Расчетный счет:</span>
-                                <span className="detail-value">{bankDetails.account}</span>
-                            </div>
-                            <div className="bank-detail-item full-width">
-                                <span className="detail-label">Банк:</span>
-                                <span className="detail-value">{bankDetails.bank}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="payment-actions">
-                        <button className="back-btn" onClick={() => { setPaymentId(null); setQrCodeUrl(null); }}>
-                            ← Выбрать другой тариф
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {!needsPayment && (
-                <div className="subscription-active">
-                    <div className="active-icon">✅</div>
-                    <h3>Подписка активна</h3>
-                    <p>У вас есть полный доступ ко всем функциям платформы</p>
                 </div>
             )}
         </div>

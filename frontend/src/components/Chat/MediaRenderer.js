@@ -57,6 +57,10 @@ const MediaRenderer = ({ mediaUrl, mediaType, fileName, onLoadError, compact = f
         console.error('Media load error:', e);
     };
 
+    const clearError = () => {
+        setError(null);
+    };
+
     const handlePlayClick = (e) => {
         e?.stopPropagation();
 

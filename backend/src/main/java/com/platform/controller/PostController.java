@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -44,7 +45,7 @@ public class PostController {
     @PostMapping
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<PostDto> createPost(
-            @RequestBody PostDto.CreateRequest request,
+            @Valid @RequestBody PostDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         PostDto post = postService.createPost(request, jwt);
@@ -55,7 +56,7 @@ public class PostController {
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<PostDto> updatePost(
             @PathVariable String id,
-            @RequestBody PostDto.UpdateRequest request,
+            @Valid @RequestBody PostDto.UpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         PostDto post = postService.updatePost(id, request, jwt);

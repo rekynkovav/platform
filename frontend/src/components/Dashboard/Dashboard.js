@@ -46,6 +46,7 @@ const Dashboard = () => {
     const recordingTimerRef = useRef(null);
     const blobUrlsRef = useRef([]);
     const [menuData, setMenuData] = useState({});
+    const [error, setError] = useState(null);
 
     // Состояния для модального окна подтверждения удаления
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -54,18 +55,21 @@ const Dashboard = () => {
 
     const demoRole = localStorage.getItem('demoRole');
     const isAdmin = useMemo(() =>
-        demoRole === 'admin_moderator' ||
-        demoRole === 'developer' ||
-        demoRole === 'super_admin'
+        demoRole === 'MODERATOR_ADMIN' ||
+        demoRole === 'DEVELOPER' ||
+        demoRole === 'SUPER_ADMIN' ||
+        demoRole === 'VYACHESLAV'
     , [demoRole]);
 
     const canEdit = useMemo(() =>
-        demoRole === 'admin_moderator' ||
-        demoRole === 'super_admin'
+        demoRole === 'MODERATOR_ADMIN' ||
+        demoRole === 'SUPER_ADMIN' ||
+        demoRole === 'VYACHESLAV'
     , [demoRole]);
 
     const isSuperAdmin = useMemo(() =>
-        demoRole === 'super_admin'
+        demoRole === 'SUPER_ADMIN' ||
+        demoRole === 'VYACHESLAV'
     , [demoRole]);
 
     // Отладка: выводим роль и статус админа
@@ -479,113 +483,119 @@ const Dashboard = () => {
             ];
 
     useEffect(() => {
-        const savedData = localStorage.getItem('dashboardMenuData');
-        if (savedData) {
-            const parsedData = JSON.parse(savedData);
-            // Проверяем, есть ли уже данные, если нет или их мало - добавляем/обновляем
-            let needsUpdate = false;
+        try {
+            const savedData = localStorage.getItem('dashboardMenuData');
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                // Проверяем, есть ли уже данные, если нет или их мало - добавляем/обновляем
+                let needsUpdate = false;
 
-            if (!parsedData.broadcasts || parsedData.broadcasts.length < 50) {
-                parsedData.broadcasts = initialBroadcasts;
-                needsUpdate = true;
-            }
-            if (!parsedData['broadcasts-guests'] || parsedData['broadcasts-guests'].length < 50) {
-                parsedData['broadcasts-guests'] = initialBroadcastsGuests;
-                needsUpdate = true;
-            }
-            if (!parsedData.exercises || parsedData.exercises.length < 50) {
-                parsedData.exercises = initialExercises;
-                needsUpdate = true;
-            }
-            if (!parsedData.recommendations || parsedData.recommendations.length < 50) {
-                parsedData.recommendations = initialRecommendations;
-                needsUpdate = true;
-            }
-            if (!parsedData.hardening || parsedData.hardening.length < 50) {
-                parsedData.hardening = initialHardening;
-                needsUpdate = true;
-            }
-            if (!parsedData.about || parsedData.about.length < 50) {
-                parsedData.about = initialAbout;
-                needsUpdate = true;
-            }
-            if (!parsedData.newbies || parsedData.newbies.length < 50) {
-                parsedData.newbies = initialNewbies;
-                needsUpdate = true;
-            }
-            if (!parsedData['heart-voice'] || parsedData['heart-voice'].length < 50) {
-                parsedData['heart-voice'] = initialHeartVoice;
-                needsUpdate = true;
-            }
-            if (!parsedData.reflection || parsedData.reflection.length < 50) {
-                parsedData.reflection = initialReflection;
-                needsUpdate = true;
-            }
-            if (!parsedData.interviews || parsedData.interviews.length < 50) {
-                parsedData.interviews = initialInterviews;
-                needsUpdate = true;
-            }
-            if (!parsedData.participants || parsedData.participants.length < 50) {
-                parsedData.participants = initialParticipants;
-                needsUpdate = true;
-            }
-            if (!parsedData.motivation || parsedData.motivation.length < 50) {
-                parsedData.motivation = initialMotivation;
-                needsUpdate = true;
-            }
-            if (!parsedData.reviews || parsedData.reviews.length < 50) {
-                parsedData.reviews = initialReviews;
-                needsUpdate = true;
-            }
-            if (!parsedData.music || parsedData.music.length < 50) {
-                parsedData.music = initialMusic;
-                needsUpdate = true;
-            }
-            if (!parsedData.movies || parsedData.movies.length < 50) {
-                parsedData.movies = initialMovies;
-                needsUpdate = true;
-            }
-            if (!parsedData.literature || parsedData.literature.length < 50) {
-                parsedData.literature = initialLiterature;
-                needsUpdate = true;
-            }
-            if (!parsedData['about-timoshenko'] || parsedData['about-timoshenko'].length < 50) {
-                parsedData['about-timoshenko'] = initialAboutTimoshenko;
-                needsUpdate = true;
-            }
-            if (!parsedData.challenge || parsedData.challenge.length < 50) {
-                parsedData.challenge = initialChallenge;
-                needsUpdate = true;
-            }
+                if (!parsedData.broadcasts || parsedData.broadcasts.length < 50) {
+                    parsedData.broadcasts = initialBroadcasts;
+                    needsUpdate = true;
+                }
+                if (!parsedData['broadcasts-guests'] || parsedData['broadcasts-guests'].length < 50) {
+                    parsedData['broadcasts-guests'] = initialBroadcastsGuests;
+                    needsUpdate = true;
+                }
+                if (!parsedData.exercises || parsedData.exercises.length < 50) {
+                    parsedData.exercises = initialExercises;
+                    needsUpdate = true;
+                }
+                if (!parsedData.recommendations || parsedData.recommendations.length < 50) {
+                    parsedData.recommendations = initialRecommendations;
+                    needsUpdate = true;
+                }
+                if (!parsedData.hardening || parsedData.hardening.length < 50) {
+                    parsedData.hardening = initialHardening;
+                    needsUpdate = true;
+                }
+                if (!parsedData.about || parsedData.about.length < 50) {
+                    parsedData.about = initialAbout;
+                    needsUpdate = true;
+                }
+                if (!parsedData.newbies || parsedData.newbies.length < 50) {
+                    parsedData.newbies = initialNewbies;
+                    needsUpdate = true;
+                }
+                if (!parsedData['heart-voice'] || parsedData['heart-voice'].length < 50) {
+                    parsedData['heart-voice'] = initialHeartVoice;
+                    needsUpdate = true;
+                }
+                if (!parsedData.reflection || parsedData.reflection.length < 50) {
+                    parsedData.reflection = initialReflection;
+                    needsUpdate = true;
+                }
+                if (!parsedData.interviews || parsedData.interviews.length < 50) {
+                    parsedData.interviews = initialInterviews;
+                    needsUpdate = true;
+                }
+                if (!parsedData.participants || parsedData.participants.length < 50) {
+                    parsedData.participants = initialParticipants;
+                    needsUpdate = true;
+                }
+                if (!parsedData.motivation || parsedData.motivation.length < 50) {
+                    parsedData.motivation = initialMotivation;
+                    needsUpdate = true;
+                }
+                if (!parsedData.reviews || parsedData.reviews.length < 50) {
+                    parsedData.reviews = initialReviews;
+                    needsUpdate = true;
+                }
+                if (!parsedData.music || parsedData.music.length < 50) {
+                    parsedData.music = initialMusic;
+                    needsUpdate = true;
+                }
+                if (!parsedData.movies || parsedData.movies.length < 50) {
+                    parsedData.movies = initialMovies;
+                    needsUpdate = true;
+                }
+                if (!parsedData.literature || parsedData.literature.length < 50) {
+                    parsedData.literature = initialLiterature;
+                    needsUpdate = true;
+                }
+                if (!parsedData['about-timoshenko'] || parsedData['about-timoshenko'].length < 50) {
+                    parsedData['about-timoshenko'] = initialAboutTimoshenko;
+                    needsUpdate = true;
+                }
+                if (!parsedData.challenge || parsedData.challenge.length < 50) {
+                    parsedData.challenge = initialChallenge;
+                    needsUpdate = true;
+                }
 
-            if (needsUpdate) {
-                localStorage.setItem('dashboardMenuData', JSON.stringify(parsedData));
+                if (needsUpdate) {
+                    localStorage.setItem('dashboardMenuData', JSON.stringify(parsedData));
+                }
+                setMenuData(parsedData);
+            } else {
+                // Инициализация со всеми данными
+                const initialData = {
+                    broadcasts: initialBroadcasts,
+                    'broadcasts-guests': initialBroadcastsGuests,
+                    exercises: initialExercises,
+                    recommendations: initialRecommendations,
+                    hardening: initialHardening,
+                    about: initialAbout,
+                    newbies: initialNewbies,
+                    'heart-voice': initialHeartVoice,
+                    reflection: initialReflection,
+                    interviews: initialInterviews,
+                    participants: initialParticipants,
+                    motivation: initialMotivation,
+                    reviews: initialReviews,
+                    music: initialMusic,
+                    movies: initialMovies,
+                    literature: initialLiterature,
+                    'about-timoshenko': initialAboutTimoshenko,
+                    challenge: initialChallenge
+                };
+                setMenuData(initialData);
+                localStorage.setItem('dashboardMenuData', JSON.stringify(initialData));
             }
-            setMenuData(parsedData);
-        } else {
-            // Инициализация со всеми данными
-            const initialData = {
-                broadcasts: initialBroadcasts,
-                'broadcasts-guests': initialBroadcastsGuests,
-                exercises: initialExercises,
-                recommendations: initialRecommendations,
-                hardening: initialHardening,
-                about: initialAbout,
-                newbies: initialNewbies,
-                'heart-voice': initialHeartVoice,
-                reflection: initialReflection,
-                interviews: initialInterviews,
-                participants: initialParticipants,
-                motivation: initialMotivation,
-                reviews: initialReviews,
-                music: initialMusic,
-                movies: initialMovies,
-                literature: initialLiterature,
-                'about-timoshenko': initialAboutTimoshenko,
-                challenge: initialChallenge
-            };
-            setMenuData(initialData);
-            localStorage.setItem('dashboardMenuData', JSON.stringify(initialData));
+            setError(null);
+        } catch (err) {
+            console.error('Ошибка загрузки данных дашборда:', err);
+            setError('Не удалось загрузить данные дашборда');
         }
     }, []);
 
@@ -601,8 +611,14 @@ const Dashboard = () => {
     }, []);
 
     const saveMenuData = useCallback((data) => {
-        setMenuData(data);
-        localStorage.setItem('dashboardMenuData', JSON.stringify(data));
+        try {
+            setMenuData(data);
+            localStorage.setItem('dashboardMenuData', JSON.stringify(data));
+            setError(null);
+        } catch (err) {
+            console.error('Ошибка сохранения данных дашборда:', err);
+            setError('Не удалось сохранить данные дашборда');
+        }
     }, []);
 
     const navigationMenus = useMemo(() => [
@@ -837,70 +853,89 @@ const Dashboard = () => {
     }, []);
 
     const cleanupBlobUrls = useCallback(() => {
+        // Очищаем текущий URL
         if (newItemMediaUrl && newItemMediaUrl.startsWith('blob:')) {
             URL.revokeObjectURL(newItemMediaUrl);
         }
+
+        // Очищаем все blob URLs из ref
+        blobUrlsRef.current.forEach(url => {
+            if (url && url.startsWith('blob:')) {
+                URL.revokeObjectURL(url);
+            }
+        });
+        blobUrlsRef.current = [];
     }, [newItemMediaUrl]);
 
     const handleSaveContent = useCallback(() => {
         if (!newItemTitle.trim()) return;
 
-        const updatedData = { ...menuData };
+        try {
+            const updatedData = { ...menuData };
 
-        if (editingItem) {
-            // Редактирование существующего элемента
-            if (!updatedData[selectedMenuId]) {
-                updatedData[selectedMenuId] = [];
-            }
-            updatedData[selectedMenuId] = updatedData[selectedMenuId].map(item =>
-                item.id === editingItem.id
-                    ? {
-                        ...item,
-                        title: newItemTitle,
-                        description: newItemDescription,
-                        mediaUrl: newItemMediaUrl,
-                        mediaType: newItemMediaType,
-                        editedAt: new Date().toISOString()
-                    }
-                    : item
-            );
-            setEditingItem(null);
-        } else {
-            // Создание нового элемента
-            const newItem = {
-                id: Date.now(),
-                title: newItemTitle,
-                description: newItemDescription,
-                mediaUrl: newItemMediaUrl,
-                mediaType: newItemMediaType
-            };
+            if (editingItem) {
+                // Редактирование существующего элемента
+                if (!updatedData[selectedMenuId]) {
+                    updatedData[selectedMenuId] = [];
+                }
+                updatedData[selectedMenuId] = updatedData[selectedMenuId].map(item =>
+                    item.id === editingItem.id
+                        ? {
+                            ...item,
+                            title: newItemTitle,
+                            description: newItemDescription,
+                            mediaUrl: newItemMediaUrl,
+                            mediaType: newItemMediaType,
+                            editedAt: new Date().toISOString()
+                        }
+                        : item
+                );
+                setEditingItem(null);
+            } else {
+                // Создание нового элемента
+                const newItem = {
+                    id: Date.now(),
+                    title: newItemTitle,
+                    description: newItemDescription,
+                    mediaUrl: newItemMediaUrl,
+                    mediaType: newItemMediaType
+                };
 
-            if (!updatedData[selectedMenuId]) {
-                updatedData[selectedMenuId] = [];
+                if (!updatedData[selectedMenuId]) {
+                    updatedData[selectedMenuId] = [];
+                }
+                updatedData[selectedMenuId].push(newItem);
             }
-            updatedData[selectedMenuId].push(newItem);
+
+            saveMenuData(updatedData);
+
+            cleanupBlobUrls();
+            setNewItemTitle('');
+            setNewItemDescription('');
+            setNewItemMediaUrl('');
+            setNewItemMediaType('');
+            setIsRecording(false);
+            setRecordingTime(0);
+            setShowAddModal(false);
+            setSelectedMenuId(null);
+        } catch (err) {
+            console.error('Ошибка сохранения контента:', err);
+            setError('Не удалось сохранить контент');
         }
-
-        saveMenuData(updatedData);
-
-        cleanupBlobUrls();
-        setNewItemTitle('');
-        setNewItemDescription('');
-        setNewItemMediaUrl('');
-        setNewItemMediaType('');
-        setIsRecording(false);
-        setRecordingTime(0);
-        setShowAddModal(false);
-        setSelectedMenuId(null);
     }, [newItemTitle, newItemDescription, newItemMediaUrl, newItemMediaType, menuData, selectedMenuId, editingItem, saveMenuData, cleanupBlobUrls]);
 
     const handleFileUpload = useCallback((e, type) => {
-        const file = e.target.files[0];
-        if (file) {
-            const url = URL.createObjectURL(file);
-            blobUrlsRef.current.push(url);
-            setNewItemMediaUrl(url);
-            setNewItemMediaType(type);
+        try {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                blobUrlsRef.current.push(url);
+                setNewItemMediaUrl(url);
+                setNewItemMediaType(type);
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки файла:', err);
+            setError('Не удалось загрузить файл');
         }
     }, []);
 
@@ -917,12 +952,17 @@ const Dashboard = () => {
             };
 
             recorder.onstop = () => {
-                const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-                blobUrlsRef.current.push(audioUrl);
-                setNewItemMediaUrl(audioUrl);
-                setNewItemMediaType('audio');
-                stream.getTracks().forEach(track => track.stop());
+                try {
+                    const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    blobUrlsRef.current.push(audioUrl);
+                    setNewItemMediaUrl(audioUrl);
+                    setNewItemMediaType('audio');
+                    stream.getTracks().forEach(track => track.stop());
+                } catch (err) {
+                    console.error('Ошибка обработки записи:', err);
+                    setError('Не удалось обработать запись');
+                }
             };
 
             recorder.start();
@@ -935,7 +975,7 @@ const Dashboard = () => {
             }, 1000);
         } catch (err) {
             console.error('Ошибка доступа к микрофону:', err);
-            alert('Не удалось получить доступ к микрофону');
+            setError('Не удалось получить доступ к микрофону');
         }
     }, []);
 
@@ -974,16 +1014,21 @@ const Dashboard = () => {
     const executeDeleteItem = useCallback(() => {
         if (!itemToDelete) return;
 
-        const updatedData = { ...menuData };
-        if (updatedData[itemToDelete.menuId]) {
-            updatedData[itemToDelete.menuId] = updatedData[itemToDelete.menuId].filter(
-                item => item.id !== itemToDelete.itemId
-            );
-            saveMenuData(updatedData);
-        }
+        try {
+            const updatedData = { ...menuData };
+            if (updatedData[itemToDelete.menuId]) {
+                updatedData[itemToDelete.menuId] = updatedData[itemToDelete.menuId].filter(
+                    item => item.id !== itemToDelete.itemId
+                );
+                saveMenuData(updatedData);
+            }
 
-        setShowDeleteConfirm(false);
-        setItemToDelete(null);
+            setShowDeleteConfirm(false);
+            setItemToDelete(null);
+        } catch (err) {
+            console.error('Ошибка удаления элемента:', err);
+            setError('Не удалось удалить элемент');
+        }
     }, [itemToDelete, menuData, saveMenuData]);
 
     const handleEditItem = useCallback((menuId, item) => {
@@ -1053,8 +1098,26 @@ const Dashboard = () => {
         setItemToDelete(null);
     }, []);
 
+    const clearError = useCallback(() => {
+        setError(null);
+    }, []);
+
     return (
         <div className="dashboard">
+            {/* Компонент для отображения ошибок */}
+            {error && (
+                <div className="error-container">
+                    <div className="error-alert">
+                        <div className="error-alert-content">
+                            <div className="error-alert-title">Ошибка</div>
+                            <div className="error-alert-message">{error}</div>
+                        </div>
+                        <button className="error-alert-close" onClick={clearError}>
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
             <div className="navigation-menus-section">
                 <div className="navigation-menus-grid">
                     {navigationMenus.map((menu) => (
@@ -1092,7 +1155,7 @@ const Dashboard = () => {
                             currentMenu.items.map((item) => (
                                 <div
                                     key={item.id}
-                                    className="menu-dropdown-item"
+                                    className={`menu-dropdown-item ${item.hasSubmenu ? 'has-submenu' : ''}`}
                                     onClick={(e) => {
                                         if (!item.hasSubmenu) {
                                             handleItemClick(item);
@@ -1113,6 +1176,7 @@ const Dashboard = () => {
                                     <div className="menu-item-content">
                                         <div>
                                             <div className="menu-item-title">
+                                                {item.hasSubmenu && <span className="submenu-icon">📁 </span>}
                                                 {item.title}
                                                 {item.editedAt && <span className="edited-badge"> (изменено)</span>}
                                             </div>

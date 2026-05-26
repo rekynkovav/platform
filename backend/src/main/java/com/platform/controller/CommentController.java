@@ -29,7 +29,7 @@ public class CommentController {
     @PostMapping
     public ResponseEntity<CommentDto> createComment(
             @PathVariable String postId,
-            @RequestBody CommentDto.CreateRequest request,
+            @Valid @RequestBody CommentDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         CommentDto comment = commentService.createComment(postId, request, jwt);

@@ -22,6 +22,7 @@ const ScheduledEvents = () => {
     // Состояния для редактирования
     const [editingEventId, setEditingEventId] = useState(null);
     const [showEditForm, setShowEditForm] = useState(false);
+    const [error, setError] = useState(null);
 
     const notificationTimeoutRef = useRef(null);
 
@@ -40,35 +41,46 @@ const ScheduledEvents = () => {
         return `${hours}:${minutes}`;
     };
 
+    const clearError = () => {
+        setError(null);
+    };
+
     useEffect(() => {
-        const savedEvents = localStorage.getItem('scheduledEvents');
-        if (savedEvents) {
-            const parsed = JSON.parse(savedEvents);
-            // Сортируем события по дате и времени (ближайшие сверху)
-            const sorted = parsed.sort((a, b) => {
-                const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
-                const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
-                return dateA - dateB;
-            });
-            setEvents(sorted);
-        } else {
-            const initialEvents = [
-                { id: 1, title: "Открытие сезона", date: "2025-04-10", time: "15:00", description: "Открытие весеннего сезона. Первая встреча в новом формате." },
-                { id: 2, title: "Практикум по дыханию", date: "2025-04-12", time: "11:00", description: "Практикум по дыхательным техникам." },
-                { id: 3, title: "Лекция о силе духа", date: "2025-04-15", time: "18:30", description: "Лекция о силе духа." }
-            ];
-            setEvents(initialEvents);
-            localStorage.setItem('scheduledEvents', JSON.stringify(initialEvents));
+        try {
+            const savedEvents = localStorage.getItem('scheduledEvents');
+            if (savedEvents) {
+                const parsed = JSON.parse(savedEvents);
+                // Сортируем события по дате и времени (ближайшие сверху)
+                const sorted = parsed.sort((a, b) => {
+                    const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
+                    const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
+                    return dateA - dateB;
+                });
+                setEvents(sorted);
+            } else {
+                const initialEvents = [
+                    { id: 1, title: "Открытие сезона", date: "2025-04-10", time: "15:00", description: "Открытие весеннего сезона. Первая встреча в новом формате." },
+                    { id: 2, title: "Практикум по дыханию", date: "2025-04-12", time: "11:00", description: "Практикум по дыхательным техникам." },
+                    { id: 3, title: "Лекция о силе духа", date: "2025-04-15", time: "18:30", description: "Лекция о силе духа." }
+                ];
+                setEvents(initialEvents);
+                localStorage.setItem('scheduledEvents', JSON.stringify(initialEvents));
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки событий:', error);
+            setError('Не удалось загрузить события. Данные повреждены.');
+            localStorage.removeItem('scheduledEvents');
+            setEvents([]);
         }
 
         // Получаем роль из localStorage (от переключателя)
         const demoRole = localStorage.getItem('demoRole');
         let roles = [];
 
-        if (demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin') {
-            roles = ['admin', 'user'];
-        } else if (demoRole === 'user') {
-            roles = ['user'];
+        if (demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') {
+            roles = ['MODERATOR_ADMIN', 'USER_0'];
+        } else if (demoRole === 'USER_0' || demoRole === 'USER_1' || demoRole === 'USER_2') {
+            roles = ['USER_0'];
         } else {
             roles = getUserRoles();
         }
@@ -93,8 +105,8 @@ const ScheduledEvents = () => {
 
     // Проверяем роль из localStorage напрямую
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
-    const canEdit = demoRole === 'admin_moderator' || demoRole === 'super_admin';
+    const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
+    const canEdit = demoRole === 'MODERATOR_ADMIN' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -206,7 +218,7 @@ const ScheduledEvents = () => {
         if (!eventToDelete) return;
 
         const demoRole = localStorage.getItem('demoRole');
-        const canDelete = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
+        const canDelete = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
         if (!canDelete) {
             alert('Только администратор может удалять события!');
             setShowDeleteConfirm(false);
@@ -244,6 +256,15 @@ const ScheduledEvents = () => {
 
     return (
         <div className="scheduled-events">
+            {/* Отображение ошибок */}
+            {error && (
+                <div className="error-message">
+                    <span className="error-icon">⚠️</span>
+                    <span>{error}</span>
+                    <button className="error-close" onClick={clearError}>×</button>
+                </div>
+            )}
+
             {/* Модальное окно подтверждения удаления */}
             {showDeleteConfirm && eventToDelete && (
                 <div className="modal-overlay" onClick={cancelDeleteEvent}>
@@ -395,7 +416,7 @@ const ScheduledEvents = () => {
                                     <span className="event-date">{formatDate(event.date)} {event.time}</span>
                                 </div>
                                 <div className="event-actions">
-                                    {/* Кнопка редактирования - только для admin_moderator и super_admin */}
+                                    {/* Кнопка редактирования - только для MODERATOR_ADMIN и SUPER_ADMIN */}
                                     {canEdit && (
                                         <button
                                             className="edit-event-btn"
@@ -408,7 +429,7 @@ const ScheduledEvents = () => {
                                             ✏️
                                         </button>
                                     )}
-                                    {/* Кнопка удаления - только для admin_moderator и super_admin */}
+                                    {/* Кнопка удаления - только для MODERATOR_ADMIN и SUPER_ADMIN */}
                                     {canEdit && (
                                         <button
                                             className="delete-event-btn"

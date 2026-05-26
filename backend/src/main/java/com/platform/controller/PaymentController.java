@@ -22,9 +22,9 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping("/create")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER_0')")
     public ResponseEntity<PaymentDto> createPayment(
-            @RequestBody PaymentDto.CreateRequest request,
+            @Valid @RequestBody PaymentDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         Payment payment = paymentService.createPayment(request.getSubscriptionMonths(), jwt);
@@ -32,7 +32,7 @@ public class PaymentController {
     }
 
     @GetMapping("/{paymentId}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER_0')")
     public ResponseEntity<PaymentDto> getPayment(
             @PathVariable String paymentId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -41,8 +41,18 @@ public class PaymentController {
         return ResponseEntity.ok(toDto(payment));
     }
 
+    @GetMapping("/{paymentId}/qr")
+    @PreAuthorize("hasRole('USER_0')")
+    public ResponseEntity<PaymentDto> getPaymentQR(
+            @PathVariable String paymentId,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        Payment payment = paymentService.getPayment(paymentId, jwt);
+        return ResponseEntity.ok(toDto(payment));
+    }
+
     @GetMapping("/my")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER_0')")
     public ResponseEntity<List<PaymentDto>> getMyPayments(
             @AuthenticationPrincipal Jwt jwt) {
 
@@ -51,7 +61,7 @@ public class PaymentController {
     }
 
     @GetMapping("/{paymentId}/status")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER_0')")
     public ResponseEntity<PaymentDto> checkPaymentStatus(
             @PathVariable String paymentId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -61,10 +71,10 @@ public class PaymentController {
     }
 
     @PostMapping("/{paymentId}/confirm")
-    @PreAuthorize("hasAnyRole('ADMIN', 'VYACHESLAV', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'VYACHESLAV', 'SUPER_ADMIN')")
     public ResponseEntity<PaymentDto> confirmPayment(
             @PathVariable String paymentId,
-            @RequestBody PaymentDto.ConfirmRequest request,
+            @Valid @RequestBody PaymentDto.ConfirmRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         Payment payment = paymentService.confirmPayment(paymentId, request.getNotes(), jwt);
@@ -72,7 +82,7 @@ public class PaymentController {
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasAnyRole('ADMIN', 'VYACHESLAV', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'VYACHESLAV', 'SUPER_ADMIN')")
     public ResponseEntity<List<PaymentDto>> getPendingPayments() {
 
         List<Payment> payments = paymentService.getPendingPayments();

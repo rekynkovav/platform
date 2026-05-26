@@ -5,17 +5,23 @@ import com.platform.model.dto.ChatRoomDto;
 import com.platform.model.ChatRoom;
 import com.platform.service.ChatService;
 import com.platform.service.ChatRoomService;
-import com.github.vladimir_bukhtoyarov.bucket4j.spring.boot.starter.annotation.Bucket4j;
+import com.platform.exception.ResourceNotFoundException;
+// import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/chat")
 @RequiredArgsConstructor
@@ -32,38 +38,55 @@ public class ChatController {
      * Универсальный метод получения сообщений по slug комнаты — с проверкой прав
      */
     @GetMapping("/{roomSlug}")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 60, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<List<MessageDto>> getMessagesByRoom(
             @PathVariable String roomSlug,
             @RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) String before,
             @AuthenticationPrincipal Jwt jwt) {
 
-        String userRole = jwt.getClaimAsString("realm_access.roles") != null
-                ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                : "ROLE_USER";
+        try {
+            log.debug("Getting messages for room: {}, limit: {}, before: {}", roomSlug, limit, before);
 
-        Instant beforeInstant = before != null ? Instant.parse(before) : null;
-        return ResponseEntity.ok(chatService.getMessagesByRoom(roomSlug, limit, beforeInstant, userRole));
+            String userRole = jwt.getClaimAsString("realm_access.roles") != null
+                    ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
+                    : "ROLE_USER_0";
+
+            Instant beforeInstant = before != null ? Instant.parse(before) : null;
+            List<MessageDto> messages = chatService.getMessagesByRoom(roomSlug, limit, beforeInstant, userRole);
+
+            log.debug("Successfully retrieved {} messages for room {}", messages.size(), roomSlug);
+            return ResponseEntity.ok(messages);
+
+        } catch (DateTimeParseException e) {
+            log.warn("Invalid date format for 'before' parameter: {}", before, e);
+            return ResponseEntity.badRequest()
+                    .body(List.of());
+        } catch (ResourceNotFoundException e) {
+            log.warn("Chat room not found: {}", roomSlug, e);
+            return ResponseEntity.notFound().build();
+        } catch (AccessDeniedException e) {
+            log.warn("Access denied for room {}: {}", roomSlug, e.getMessage(), e);
+            return ResponseEntity.status(403).build();
+        } catch (Exception e) {
+            log.error("Error getting messages for room {}: {}", roomSlug, e.getMessage(), e);
+            return ResponseEntity.status(500).build();
+        }
     }
 
     /**
      * Универсальный метод отправки сообщения в комнату — с проверкой прав
      */
     @PostMapping("/{roomSlug}")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<MessageDto> sendMessageToRoom(
             @PathVariable String roomSlug,
-            @RequestBody MessageDto.SendRequest request,
+            @Valid @RequestBody MessageDto.SendRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         String userRole = jwt.getClaimAsString("realm_access.roles") != null
                 ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                : "ROLE_USER";
+                : "ROLE_USER_0";
 
         return ResponseEntity.ok(chatService.sendMessageToRoom(
                 roomSlug,
@@ -78,9 +101,7 @@ public class ChatController {
     // ==================================================================
 
     @GetMapping("/general")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 60, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<List<MessageDto>> getGeneralMessages(
             @RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) String before,
@@ -89,20 +110,16 @@ public class ChatController {
     }
 
     @PostMapping("/general")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<MessageDto> sendToGeneralChat(
-            @RequestBody MessageDto.SendRequest request,
+            @Valid @RequestBody MessageDto.SendRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         return sendMessageToRoom("user1", request, jwt);
     }
 
     @GetMapping("/admin-group")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 60, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<List<MessageDto>> getAdminGroupMessages(
             @RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) String before,
@@ -111,20 +128,16 @@ public class ChatController {
     }
 
     @PostMapping("/admin-group")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<MessageDto> sendToAdminGroup(
-            @RequestBody MessageDto.SendRequest request,
+            @Valid @RequestBody MessageDto.SendRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         return sendMessageToRoom("admins", request, jwt);
     }
 
     // private чаты пока оставляем как есть (можно позже перевести на roomSlug = "private_" + userId)
     @GetMapping("/private/{userId}")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 60, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<List<MessageDto>> getPrivateMessages(
             @PathVariable String userId,
             @RequestParam(defaultValue = "50") int limit,
@@ -135,12 +148,10 @@ public class ChatController {
     }
 
     @PostMapping("/private/{userId}")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<MessageDto> sendPrivateMessage(
             @PathVariable String userId,
-            @RequestBody MessageDto.SendRequest request,
+            @Valid @RequestBody MessageDto.SendRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(chatService.sendPrivateMessage(jwt.getSubject(),
                 userId, request.getContent(), request.getMediaId()));
@@ -148,17 +159,13 @@ public class ChatController {
 
     // остальные legacy методы (unread, markAsRead) оставляем без изменений
     @GetMapping("/unread")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<Long> getUnreadCount(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(chatService.getUnreadCount(jwt.getSubject()));
     }
 
     @PutMapping("/messages/{messageId}/read")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<Void> markAsRead(
             @PathVariable String messageId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -175,9 +182,7 @@ public class ChatController {
      * Возвращает список всех доступных комнат вопросов
      */
     @GetMapping("/questions/rooms")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<List<ChatRoomDto>> getQuestionRooms() {
         return ResponseEntity.ok(chatRoomService.getQuestionRoomsDto());
     }
@@ -186,9 +191,7 @@ public class ChatController {
      * Получить сообщения из комнаты вопросов (по режиму: general / nutrition / vyacheslav)
      */
     @GetMapping("/questions/{mode}")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 60, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<List<MessageDto>> getQuestionMessages(
             @PathVariable String mode,
             @RequestParam(defaultValue = "50") int limit,
@@ -200,7 +203,7 @@ public class ChatController {
 
         String userRole = jwt.getClaimAsString("realm_access.roles") != null
                 ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                : "ROLE_USER";
+                : "ROLE_USER_0";
 
         return ResponseEntity.ok(chatService.getMessagesByRoom(room.getSlug(), limit, beforeInstant, userRole));
     }
@@ -209,19 +212,17 @@ public class ChatController {
      * Отправить вопрос / ответ в комнату вопросов
      */
     @PostMapping("/questions/{mode}")
-    @Bucket4j(name = "chat-api", bandwidths = {
-        @Bucket4j.Bandwidth(limit = 30, duration = 1, unit = "MINUTES")
-    })
+    // @RateLimiting(name = "chat-limit")
     public ResponseEntity<MessageDto> sendQuestionMessage(
             @PathVariable String mode,
-            @RequestBody MessageDto.SendRequest request,
+            @Valid @RequestBody MessageDto.SendRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         ChatRoom room = chatRoomService.getQuestionRoomByMode(mode);
 
         String userRole = jwt.getClaimAsString("realm_access.roles") != null
                 ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                : "ROLE_USER";
+                : "ROLE_USER_0";
 
         return ResponseEntity.ok(chatService.sendMessageToRoom(
                 room.getSlug(),

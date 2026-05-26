@@ -4,7 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
@@ -15,34 +17,39 @@ import java.util.Map;
 @Component
 public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
 
+    private final JwtDecoder jwtDecoder;
+
+    public WebSocketHandshakeInterceptor(JwtDecoder jwtDecoder) {
+        this.jwtDecoder = jwtDecoder;
+    }
+
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
-                                   WebSocketHandler wsHandler, Map<String, Object> attributes) {
+                                   WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
+
         // Извлекаем токен из query параметров
         String query = request.getURI().getQuery();
         if (query != null && query.contains("token=")) {
             String token = query.split("token=")[1].split("&")[0];
-            attributes.put("token", token);
-            log.debug("Token extracted from query");
-        }
-
-        // Извлекаем userId из заголовков
-        String userId = request.getHeaders().getFirst("X-User-Id");
-        if (userId != null) {
-            attributes.put("userId", userId);
-            log.debug("UserId from header: {}", userId);
-        } else {
-            log.debug("No X-User-Id header found");
-        }
-
-        // Получаем principal из SecurityContext
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            Object principal = authentication.getPrincipal();
-            if (principal != null) {
-                attributes.put("userId", principal.getName());
-                attributes.put("userRole", principal.getAuthorities().iterator().next().getAuthority());
+            try {
+                // Валидируем JWT токен
+                jwtDecoder.decode(token);
+                attributes.put("token", token);
+                log.debug("Token validated successfully");
+            } catch (Exception e) {
+                log.error("Invalid token in WebSocket handshake");
+                return false;
             }
+        }
+
+        // Получение аутентификации из SecurityContext
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            attributes.put("userId", auth.getName());
+            attributes.put("userRole", auth.getAuthorities().stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElse("USER_0"));
         }
 
         log.debug("WebSocket handshake from: {}", request.getRemoteAddress());

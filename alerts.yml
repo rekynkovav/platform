@@ -1,0 +1,57 @@
+groups:
+  - name: platform_alerts
+    interval: 30s
+    rules:
+      - alert: BackendDown
+        expr: up{job="platform-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend is down"
+          description: "Backend has been unreachable for more than 1 minute"
+
+      - alert: HighErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "More than 10% of requests are failing"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance is not responding"
+
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database is down"
+          description: "PostgreSQL is not responding"
+
+      - alert: HighMemoryUsage
+        expr: (sum(jvm_memory_used_bytes) / sum(jvm_memory_max_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "JVM memory usage is above 85% for 5 minutes"
+
+      - alert: HighCPULoad
+        expr: system_cpu_usage > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU load"
+          description: "System CPU usage is above 80% for 5 minutes"

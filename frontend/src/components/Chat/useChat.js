@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { chatApi, mediaApi } from '../../services/api';
+import chatLogger from '../../utils/chatLogger';
 
 export const useChat = (chatRoom, config = {}) => {
     const {
@@ -14,11 +15,13 @@ export const useChat = (chatRoom, config = {}) => {
     const [currentRoom, setCurrentRoom] = useState(chatRoom || 'default');
     const [canSwitch, setCanSwitch] = useState(canSwitchRooms);
     const [currentUserAuthor, setCurrentUserAuthor] = useState('');
+    const [currentUserAvatar, setCurrentUserAvatar] = useState('');
     const [isRecording, setIsRecording] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const [recordingTime, setRecordingTime] = useState(0);
     const [recordingInterval, setRecordingInterval] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState(null);
 
     // Кэш для URL медиа файлов
     const mediaUrlCache = useRef(new Map());
@@ -28,23 +31,41 @@ export const useChat = (chatRoom, config = {}) => {
     useEffect(() => {
         const demoRole = localStorage.getItem('demoRole');
         let author = 'Пользователь';
+        let avatarUrl = '';
 
-        if (demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin') {
+        if (demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') {
             author = 'Админ';
-        } else if (demoRole === 'user1') {
+            // Аватар для админа
+            avatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin&backgroundColor=dc3545&hairColor=000000&accessories=sunglasses';
+        } else if (demoRole === 'USER_0') {
             author = 'Пользователь 1';
-        } else if (demoRole === 'user2') {
+            // Аватар для USER_0 (демо)
+            avatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=user0&backgroundColor=4a90e2&hairColor=2c1b18&accessories=round&facialHair=beardLight';
+        } else if (demoRole === 'USER_1') {
             author = 'Пользователь 2';
+            // Аватар для USER_1
+            avatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=user1&backgroundColor=28a745&hairColor=2c1b18&accessories=prescription02';
+        } else {
+            // Для других ролей - общий аватар
+            avatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (demoRole || 'user') + '&backgroundColor=6c757d&hairColor=2c1b18';
         }
 
         setCurrentUserAuthor(author);
+        setCurrentUserAvatar(avatarUrl);
 
         // Настройка прав переключения комнат
-        if (demoRole === 'user_1') {
-            setCurrentRoom('user1');
-            setCanSwitch(false);
-        } else if (demoRole === 'user_2') {
-            setCanSwitch(true);
+        // Только для общих чатов (user1, user2) применяем ограничения
+        if (chatRoom === 'user1' || chatRoom === 'user2') {
+            if (demoRole === 'USER_0') {
+                setCurrentRoom('user1');
+                setCanSwitch(false);
+            } else if (demoRole === 'USER_1') {
+                setCurrentRoom('user1'); // USER_1 тоже видит только чат новичков
+                setCanSwitch(false); // Убираем переключатель для USER_1
+            }
+        } else {
+            // Для специализированных чатов (nutrition и других) оставляем как есть
+            setCurrentRoom(chatRoom);
         }
     }, []);
 
@@ -59,7 +80,7 @@ export const useChat = (chatRoom, config = {}) => {
     // Загрузка сообщений с API
     const loadMessagesFromApi = useCallback(async (room) => {
         try {
-            const response = await chatApi.getMessages(50);
+            const response = await chatApi.getMessages(room, 0, 50);
 
             // Преобразуем сообщения с медиа
             const msgs = await Promise.all(response.data.map(async (msg) => {
@@ -84,6 +105,7 @@ export const useChat = (chatRoom, config = {}) => {
             setLoading(false);
         } catch (error) {
             console.error('Failed to load messages from API:', error);
+            setError('Не удалось загрузить сообщения. Проверьте подключение к интернету.');
             // Fallback к localStorage
             loadMessagesFromStorage(room);
         }
@@ -94,22 +116,186 @@ export const useChat = (chatRoom, config = {}) => {
         const key = `${storageKeyPrefix}_${room}`;
         const savedMessages = localStorage.getItem(key);
 
-        if (savedMessages) {
+        // Флаг для принудительной загрузки тестовых сообщений (можно изменить на false после тестирования)
+        const FORCE_TEST_MESSAGES = true;
+
+        if (savedMessages && !FORCE_TEST_MESSAGES) {
             try {
-                setMessages(JSON.parse(savedMessages));
+                let messages = JSON.parse(savedMessages);
+
+                // Добавляем avatarUrl к старым сообщениям, если его нет
+                messages = messages.map(msg => {
+                    if (!msg.avatarUrl) {
+                        // Генерируем аватар на основе имени автора
+                        let avatarSeed = msg.author.toLowerCase().replace(/\s+/g, '');
+                        let backgroundColor = '6c757d'; // серый по умолчанию
+
+                        if (msg.author === 'Админ' || msg.author.includes('Админ')) {
+                            backgroundColor = 'dc3545'; // красный для админов
+                        } else if (msg.author === 'Система') {
+                            backgroundColor = '0d6efd'; // синий для системы
+                        } else if (msg.author.includes('1')) {
+                            backgroundColor = '4a90e2'; // синий для пользователя 1
+                        } else if (msg.author.includes('2')) {
+                            backgroundColor = '28a745'; // зеленый для пользователя 2
+                        }
+
+                        return {
+                            ...msg,
+                            avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}&backgroundColor=${backgroundColor}&hairColor=2c1b18`
+                        };
+                    }
+                    return msg;
+                });
+
+                setMessages(messages);
             } catch (e) {
                 console.warn('Corrupted localStorage data:', e);
                 setMessages([]);
             }
         } else {
-            const initialMessage = {
-                id: 1,
-                author: 'Система',
-                content: 'Добро пожаловать в чат!',
-                timestamp: new Date().toISOString()
-            };
-            setMessages([initialMessage]);
-            localStorage.setItem(key, JSON.stringify([initialMessage]));
+            // Тестовая переписка для разных чатов
+            let initialMessages = [];
+
+            if (room.includes('user1') || room.includes('general')) {
+                // Общий чат / General Chat
+                initialMessages = [
+                    {
+                        id: 1,
+                        author: 'Система',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=system&backgroundColor=0d6efd&hairColor=000000&accessories=prescription01',
+                        content: 'Добро пожаловать в общий чат! Здесь вы можете задавать вопросы и общаться с другими пользователями.',
+                        timestamp: new Date(Date.now() - 3600000 * 24 * 2).toISOString()
+                    },
+                    {
+                        id: 2,
+                        author: 'Алексей',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alexey&backgroundColor=4a90e2&hairColor=2c1b18&facialHair=beardLight',
+                        content: 'Привет всем! Я новичок в спорте, с чего лучше начать?',
+                        timestamp: new Date(Date.now() - 3600000 * 24).toISOString()
+                    },
+                    {
+                        id: 3,
+                        author: 'Мария',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=maria&backgroundColor=e91e63&hairColor=ffc0cb&accessories=round',
+                        content: 'Привет! Я начала с утренней зарядки и прогулок. Главное - регулярность!',
+                        timestamp: new Date(Date.now() - 3600000 * 23).toISOString()
+                    },
+                    {
+                        id: 4,
+                        author: 'Иван',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ivan&backgroundColor=ff9800&hairColor=2c1b18&accessories=prescription02',
+                        content: 'Советую начать с базовых упражнений: приседания, отжимания, планка. Не торопитесь увеличивать нагрузку.',
+                        timestamp: new Date(Date.now() - 3600000 * 22).toISOString()
+                    },
+                    {
+                        id: 5,
+                        author: 'Алексей',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alexey&backgroundColor=4a90e2&hairColor=2c1b18&facialHair=beardLight',
+                        content: 'Спасибо за советы! Буду пробовать. Кто-то занимается дома или только в зале?',
+                        timestamp: new Date(Date.now() - 3600000 * 21).toISOString()
+                    }
+                ];
+            } else if (room.includes('user2')) {
+                // Чат продвинутых
+                initialMessages = [
+                    {
+                        id: 1,
+                        author: 'Система',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=system&backgroundColor=0d6efd&hairColor=000000&accessories=prescription01',
+                        content: 'Добро пожаловать в чат продвинутых! Здесь обсуждаем продвинутые техники и программы тренировок.',
+                        timestamp: new Date(Date.now() - 3600000 * 24 * 2).toISOString()
+                    },
+                    {
+                        id: 2,
+                        author: 'Сергей',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sergey&backgroundColor=2196f3&hairColor=2c1b18&facialHair=beardMajestic',
+                        content: 'Коллеги, кто пробовал программу 5/3/1? Какие результаты?',
+                        timestamp: new Date(Date.now() - 3600000 * 20).toISOString()
+                    },
+                    {
+                        id: 3,
+                        author: 'Ольга',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=olga&backgroundColor=9c27b0&hairColor=ffc0cb&accessories=sunglasses',
+                        content: 'Я на 5/3/1 уже 3 месяца. Присед +20кг, жим +15кг. Отличная программа для силовых!',
+                        timestamp: new Date(Date.now() - 3600000 * 19).toISOString()
+                    },
+                    {
+                        id: 4,
+                        author: 'Дмитрий',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dmitry&backgroundColor=4caf50&hairColor=2c1b18&accessories=prescription01',
+                        content: 'А как с восстановлением? У меня после тяжелых тренировок крепатура на 3 дня.',
+                        timestamp: new Date(Date.now() - 3600000 * 18).toISOString()
+                    },
+                    {
+                        id: 5,
+                        author: 'Ольга',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=olga&backgroundColor=9c27b0&hairColor=ffc0cb&accessories=sunglasses',
+                        content: 'Важно питание и сон. Я пью BCAA, магний, и сплю минимум 8 часов. Помогает!',
+                        timestamp: new Date(Date.now() - 3600000 * 17).toISOString()
+                    }
+                ];
+            } else if (room.includes('nutrition')) {
+                // Чат по питанию
+                initialMessages = [
+                    {
+                        id: 1,
+                        author: 'Система',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=system&backgroundColor=0d6efd&hairColor=000000&accessories=prescription01',
+                        content: 'Добро пожаловать в чат по питанию! Здесь обсуждаем диеты, БЖУ, добавки и здоровое питание.',
+                        timestamp: new Date(Date.now() - 3600000 * 24 * 2).toISOString()
+                    },
+                    {
+                        id: 2,
+                        author: 'Консультант Питание',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=nutrition_consultant&backgroundColor=fd7e14&hairColor=2c1b18&accessories=prescription02',
+                        content: 'Приветствую! Я консультант по питанию. Задавайте вопросы по диетам, БЖУ, добавкам.',
+                        timestamp: new Date(Date.now() - 3600000 * 15).toISOString()
+                    },
+                    {
+                        id: 3,
+                        author: 'Анна',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=anna&backgroundColor=ff5722&hairColor=ffc0cb&accessories=round',
+                        content: 'Здравствуйте! Хочу набрать мышечную массу. Сколько белка нужно в день при весе 60кг?',
+                        timestamp: new Date(Date.now() - 3600000 * 14).toISOString()
+                    },
+                    {
+                        id: 4,
+                        author: 'Консультант Питание',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=nutrition_consultant&backgroundColor=fd7e14&hairColor=2c1b18&accessories=prescription02',
+                        content: 'При наборе массы рекомендуется 1.6-2.2г белка на кг веса. Для вас это 96-132г в день.',
+                        timestamp: new Date(Date.now() - 3600000 * 13).toISOString()
+                    },
+                    {
+                        id: 5,
+                        author: 'Максим',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=maxim&backgroundColor=00bcd4&hairColor=2c1b18&facialHair=beardLight',
+                        content: 'А креатин действительно работает? Стоит ли принимать?',
+                        timestamp: new Date(Date.now() - 3600000 * 12).toISOString()
+                    },
+                    {
+                        id: 6,
+                        author: 'Консультант Питание',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=nutrition_consultant&backgroundColor=fd7e14&hairColor=2c1b18&accessories=prescription02',
+                        content: 'Креатин - одна из самых исследованных добавок. Увеличивает силу и мышечную массу. Рекомендую 5г в день.',
+                        timestamp: new Date(Date.now() - 3600000 * 11).toISOString()
+                    }
+                ];
+            } else {
+                // Общий чат по умолчанию
+                initialMessages = [
+                    {
+                        id: 1,
+                        author: 'Система',
+                        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=system&backgroundColor=0d6efd&hairColor=000000&accessories=prescription01',
+                        content: 'Добро пожаловать в чат!',
+                        timestamp: new Date().toISOString()
+                    }
+                ];
+            }
+
+            setMessages(initialMessages);
+            localStorage.setItem(key, JSON.stringify(initialMessages));
         }
         setLoading(false);
     }, [storageKeyPrefix]);
@@ -137,10 +323,20 @@ export const useChat = (chatRoom, config = {}) => {
     const sendMessage = useCallback(async (content, mediaId = null) => {
         if (!content?.trim() && !mediaId) return;
 
+        // Логирование текстового сообщения
+        if (content?.trim()) {
+            const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+            const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
+                           currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
+
+            chatLogger.logTextMessage(chatType, currentRoom, demoRole, content);
+        }
+
         const tempId = `temp_${Date.now()}`;
         const tempMessage = {
             id: tempId,
             author: currentUserAuthor,
+            avatarUrl: currentUserAvatar,
             content: content?.trim() || '',
             mediaId,
             timestamp: new Date().toISOString(),
@@ -153,11 +349,11 @@ export const useChat = (chatRoom, config = {}) => {
         if (useApi) {
             try {
                 const response = await chatApi.sendMessage(content, mediaId);
-                // Заменяем временное сообщение реальным
+                // Заменяем временное сообщение реальным, сохраняя avatarUrl
                 setMessages(prev =>
                     prev.map(msg =>
                         msg.id === tempId
-                            ? { ...response.data, pending: false }
+                            ? { ...response.data, avatarUrl: currentUserAvatar, pending: false }
                             : msg
                     )
                 );
@@ -166,6 +362,7 @@ export const useChat = (chatRoom, config = {}) => {
                 console.error('Failed to send message:', error);
                 // Удаляем временное сообщение при ошибке
                 setMessages(prev => prev.filter(msg => msg.id !== tempId));
+                setError('Не удалось отправить сообщение. Проверьте подключение к интернету.');
                 throw error;
             }
         } else {
@@ -173,6 +370,7 @@ export const useChat = (chatRoom, config = {}) => {
             const message = {
                 id: Date.now(),
                 author: currentUserAuthor,
+                avatarUrl: currentUserAvatar,
                 content: content.trim(),
                 mediaId,
                 timestamp: new Date().toISOString()
@@ -204,6 +402,13 @@ export const useChat = (chatRoom, config = {}) => {
     const uploadMedia = useCallback(async (file) => {
         setUploading(true);
 
+        // Логирование загрузки файла
+        const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+        const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
+                       currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
+
+        chatLogger.logFileUpload(chatType, currentRoom, demoRole, file);
+
         try {
             const type = getMediaType(file.type);
             const response = await mediaApi.upload(file, type);
@@ -234,6 +439,13 @@ export const useChat = (chatRoom, config = {}) => {
 
     // Старая функция для совместимости (localStorage)
     const uploadFile = useCallback((file) => {
+        // Логирование загрузки файла (localStorage режим)
+        const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+        const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
+                       currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
+
+        chatLogger.logFileUpload(chatType, currentRoom, demoRole, file);
+
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
 
@@ -273,6 +485,17 @@ export const useChat = (chatRoom, config = {}) => {
     const editMessage = useCallback((msgId, newContent) => {
         if (!newContent.trim()) return;
 
+        // Логирование редактирования
+        const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+        const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
+                       currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
+
+        // Находим старое сообщение для логирования
+        const oldMessage = messages.find(msg => msg.id === msgId);
+        if (oldMessage) {
+            chatLogger.logMessageEdit(chatType, currentRoom, demoRole, msgId, oldMessage.content, newContent);
+        }
+
         if (useApi) {
             // TODO: API для редактирования
             console.warn('Edit via API not implemented yet');
@@ -295,6 +518,13 @@ export const useChat = (chatRoom, config = {}) => {
     // Удаление сообщения
     const deleteMessage = useCallback((msgId) => {
         if (!window.confirm('Удалить это сообщение?')) return false;
+
+        // Логирование удаления
+        const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+        const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
+                       currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
+
+        chatLogger.logMessageDelete(chatType, currentRoom, demoRole, msgId);
 
         if (useApi) {
             // TODO: API для удаления
@@ -336,6 +566,13 @@ export const useChat = (chatRoom, config = {}) => {
                 stream.getTracks().forEach(track => track.stop());
 
                 if (useApi) {
+                    // Логирование голосового сообщения (API режим)
+                    const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+                    const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
+                                   currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
+
+                    chatLogger.logVoiceMessage(chatType, currentRoom, demoRole, recordingTime);
+
                     // Загружаем на сервер
                     try {
                         setUploading(true);
@@ -364,6 +601,13 @@ export const useChat = (chatRoom, config = {}) => {
                         setUploading(false);
                     }
                 } else {
+                    // Логирование голосового сообщения (localStorage режим)
+                    const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+                    const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
+                                   currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
+
+                    chatLogger.logVoiceMessage(chatType, currentRoom, demoRole, recordingTime);
+
                     // LocalStorage - сохраняем как base64
                     const reader = new FileReader();
                     reader.onload = (event) => {
@@ -461,6 +705,7 @@ export const useChat = (chatRoom, config = {}) => {
         isRecording,
         recordingTime,
         uploading,
+        error,
 
         // Действия
         changeRoom,
@@ -473,7 +718,8 @@ export const useChat = (chatRoom, config = {}) => {
         stopRecording,
         formatRecordingTime,
         getMediaUrl,
-        loadMessages
+        loadMessages,
+        clearError: () => setError(null)
     };
 };
 

@@ -2,28 +2,113 @@ spring:
   datasource:
     url: jdbc:postgresql://postgres:5432/platform_db
     username: platform_user
-    password: platform_pass_2026
+    password: ${DB_PASSWORD:platform_pass_2026}
     hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 600000
       connection-test-query: SELECT 1
+      validation-timeout: 5000
+      leak-detection-threshold: 30000
+      pool-name: PlatformHikariPool
+
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: ${REDIS_PASSWORD:redis_pass}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 2
+          max-wait: -1ms
+      shutdown-timeout: 2000ms
+
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: validate
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
-    defer-datasource-initialization: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        default_batch_fetch_size: 20
+    defer-datasource-initialization: false
+
   liquibase:
-    enabled: false
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+  main:
+    allow-circular-references: false
+
+server:
+  port: 8081
+  error:
+    include-stacktrace: never
+    include-message: never
+  shutdown: graceful
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    min-response-size: 2048
 
 logging:
   level:
-    com.platform: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.tool.schema: TRACE
+    com.platform: INFO
+    org.springframework.web: WARN
+    org.hibernate: WARN
+    liquibase: INFO
+  pattern:
+    console: "%d{ISO8601} %-5level [%thread] %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus,info
+      base-path: /actuator
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: platform
+      environment: prod
 
 app:
   media:
     upload-path: /app/uploads
     base-url: https://platform.local/media
+    max-file-size: 100MB
+    allowed-formats: mp4,mp3,jpg,png,gif,webm
+
+security:
+  cors:
+    allowed-origins:
+      - https://platform.example.com
+      - https://admin.platform.example.com
+
+bucket4j:
+  enabled: true
+  cache-to-use: redis
+  filters:
+    - cache-name: buckets
+      url: /api/.*
+      http-status-code: 429
+      rate-limits:
+        - bandwidths:
+            - capacity: 100
+              time: 1
+              unit: minutes
+              refill-speed: interval
+
+

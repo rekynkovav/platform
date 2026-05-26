@@ -22,6 +22,7 @@ public class PaymentDto {
     private String status;
     private String paymentMethod;
     private String qrCodeData;
+    private String qrCodeBase64;
     private LocalDateTime expiresAt;
     private LocalDateTime paidAt;
     private LocalDateTime createdAt;

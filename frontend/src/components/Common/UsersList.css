@@ -1,0 +1,386 @@
+.users-list {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.users-list.loading,
+.users-list.error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+    color: #666;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+}
+
+.users-header {
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.users-header h3 {
+    margin: 0 0 12px 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.users-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0.9;
+}
+
+.stat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.users-container {
+    flex: 1;
+    overflow: hidden;
+}
+
+.user-row {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.user-row:hover {
+    background: #f9fafb;
+    transform: translateX(4px);
+}
+
+.user-row.selected {
+    background: #e0e7ff;
+    border-left: 4px solid #667eea;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 18px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.user-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+    color: #1f2937;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-text {
+    font-weight: 500;
+}
+
+.last-seen {
+    opacity: 0.7;
+    font-size: 11px;
+}
+
+.user-roles {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.role-badge {
+    background: #e0e7ff;
+    color: #4f46e5;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.role-more {
+    background: #f3f4f6;
+    color: #6b7280;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.user-detail-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #6b7280;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+.user-detail-info {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.user-detail-info h4 {
+    margin: 0 0 16px 0;
+    color: #1f2937;
+    font-size: 18px;
+}
+
+.detail-item {
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.detail-item strong {
+    display: inline-block;
+    width: 160px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.detail-roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.detail-role-badge {
+    background: #4f46e5;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .users-header {
+        padding: 16px;
+    }
+
+    .users-header h3 {
+        font-size: 18px;
+    }
+
+    .user-row {
+        padding: 12px 16px;
+    }
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+
+    .user-name {
+        font-size: 14px;
+    }
+
+    .modal-content {
+        padding: 20px;
+        width: 95%;
+    }
+
+    .detail-item strong {
+        width: 120px;
+    }
+}
+
+/* Темная тема */
+@media (prefers-color-scheme: dark) {
+    .users-list {
+        background: #1f2937;
+        color: white;
+    }
+
+    .users-header {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        border-bottom-color: #374151;
+    }
+
+    .user-row {
+        background: #1f2937;
+        border-bottom-color: #374151;
+    }
+
+    .user-row:hover {
+        background: #374151;
+    }
+
+    .user-row.selected {
+        background: #374151;
+        border-left-color: #4f46e5;
+    }
+
+    .user-name {
+        color: #f3f4f6;
+    }
+
+    .user-status-indicator {
+        color: #d1d5db;
+    }
+
+    .role-badge {
+        background: #374151;
+        color: #a5b4fc;
+    }
+
+    .role-more {
+        background: #374151;
+        color: #9ca3af;
+    }
+
+    .modal-content {
+        background: #1f2937;
+        color: white;
+    }
+
+    .user-detail-info {
+        border-top-color: #374151;
+    }
+
+    .user-detail-info h4 {
+        color: #f3f4f6;
+    }
+
+    .detail-item strong {
+        color: #9ca3af;
+    }
+
+    .modal-close {
+        color: #9ca3af;
+    }
+
+    .modal-close:hover {
+        background: #374151;
+        color: #f3f4f6;
+    }
+}

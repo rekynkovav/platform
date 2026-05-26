@@ -108,7 +108,5 @@ databaseChangeLog:
             referencedTableName: users
             referencedColumnNames: id
             onDelete: CASCADE
-        - addCheckConstraint:
-            constraintName: chk_posts_media_type
-            tableName: posts
-            checkCondition: media_type IN ('image', 'video', NULL)
+        - sql:
+            sql: ALTER TABLE posts ADD CONSTRAINT chk_posts_media_type CHECK (media_type IN ('image', 'video', NULL))

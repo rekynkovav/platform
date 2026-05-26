@@ -4,18 +4,24 @@ import './GlobalEventNotification.css';
 const GlobalEventNotification = ({ onEventClick }) => {
     const [activeEvent, setActiveEvent] = useState(null);
     const [timeLeft, setTimeLeft] = useState({});
+    const [error, setError] = useState(null);
     const previousEventIdRef = useRef(null);
+
+    const clearError = () => {
+        setError(null);
+    };
 
     useEffect(() => {
         const checkEvents = () => {
-            const savedEvents = localStorage.getItem('scheduledEvents');
-            if (!savedEvents) {
-                setActiveEvent(null);
-                return;
-            }
+            try {
+                const savedEvents = localStorage.getItem('scheduledEvents');
+                if (!savedEvents) {
+                    setActiveEvent(null);
+                    return;
+                }
 
-            const events = JSON.parse(savedEvents);
-            const now = new Date();
+                const events = JSON.parse(savedEvents);
+                const now = new Date();
 
             // Фильтруем только будущие события и сортируем по дате
             const upcomingEvents = events.filter(event => {
@@ -51,6 +57,10 @@ const GlobalEventNotification = ({ onEventClick }) => {
                 setActiveEvent(null);
                 previousEventIdRef.current = null;
             }
+        } catch (error) {
+            console.error('Ошибка при проверке событий:', error);
+            setError('Не удалось загрузить события. Проверьте данные в localStorage.');
+        }
         };
 
         checkEvents();
@@ -113,6 +123,15 @@ const GlobalEventNotification = ({ onEventClick }) => {
 
     return (
         <div className="global-event-notification" onClick={() => onEventClick && onEventClick()}>
+            {/* Отображение ошибок */}
+            {error && (
+                <div className="error-message">
+                    <span className="error-icon">⚠️</span>
+                    <span>{error}</span>
+                    <button className="error-close" onClick={clearError}>×</button>
+                </div>
+            )}
+
             <div className="notification-bubble-glass">
                 <div className="bubble-content-glass">
                     <div className="bubble-label-glass">До Ближайшего События</div>

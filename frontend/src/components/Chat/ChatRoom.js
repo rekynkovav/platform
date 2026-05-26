@@ -18,6 +18,8 @@ const ChatRoom = ({
     onStopRecording,
     isRecording,
     recordingTime,
+    error: externalError,
+    onClearError,
     uploading = false
 }) => {
     const [newMessage, setNewMessage] = useState('');
@@ -27,7 +29,15 @@ const ChatRoom = ({
     const [filePreview, setFilePreview] = useState(null);
     const [mediaType, setMediaType] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
-    const [error, setError] = useState(null);
+    const [internalError, setInternalError] = useState(null);
+
+    // Объединяем внутреннюю и внешнюю ошибки
+    const error = externalError || internalError;
+
+    const clearError = () => {
+        setInternalError(null);
+        onClearError?.();
+    };
 
     const fileInputRef = useRef(null);
     const messagesEndRef = useRef(null);
@@ -58,11 +68,11 @@ const ChatRoom = ({
         // Проверка размера (макс 50MB)
         const maxSize = 50 * 1024 * 1024;
         if (file.size > maxSize) {
-            setError('Файл слишком большой. Максимум 50MB');
+            setInternalError('Файл слишком большой. Максимум 50MB');
             return;
         }
 
-        setError(null);
+        setInternalError(null);
         setSelectedFile(file);
         setMediaType(getMediaTypeFromFile(file));
 
@@ -89,30 +99,44 @@ const ChatRoom = ({
         setSelectedFile(null);
         setFilePreview(null);
         setMediaType(null);
-        setError(null);
+        setInternalError(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
+    };
+
+    const handleClearError = () => {
+        setInternalError(null);
+        if (onClearError) onClearError();
     };
 
     // Отправка сообщения с файлом
     const handleSend = async () => {
         if (!newMessage.trim() && !selectedFile) return;
 
+        let uploadedMediaId = null;
+
         // Если есть файл - загружаем сначала
-        if (selectedFile && onFileUpload) {
+        if (selectedFile) {
             setIsUploading(true);
-            setError(null);
+            setInternalError(null);
 
             try {
-                // Для старого API (localStorage) - используем old function
-                if (typeof onFileUpload === 'function') {
-                    await onFileUpload(selectedFile);
+                // Если предоставлен onFileUpload callback, используем его
+                if (onFileUpload && typeof onFileUpload === 'function') {
+                    uploadedMediaId = await onFileUpload(selectedFile);
+                } else {
+                    // TODO: Реализовать загрузку через mediaApi.upload
+                    // const response = await mediaApi.upload(selectedFile);
+                    // uploadedMediaId = response.id;
+                    console.warn('Загрузка файлов через API пока не реализована');
+                    setInternalError('Загрузка файлов временно недоступна');
+                    setIsUploading(false);
+                    return;
                 }
-                // TODO: для нового API - использовать uploadMedia
             } catch (err) {
                 console.error('Upload failed:', err);
-                setError('Не удалось загрузить файл');
+                setInternalError('Не удалось загрузить файл');
                 setIsUploading(false);
                 return;
             }
@@ -120,9 +144,31 @@ const ChatRoom = ({
             setIsUploading(false);
         }
 
-        // Отправка текстового сообщения
-        if (newMessage.trim()) {
-            if (onSendMessage) onSendMessage(newMessage);
+        // Отправка сообщения (текст и/или медиа)
+        if (onSendMessage) {
+            try {
+                let messageData;
+
+                if (newMessage.trim() && uploadedMediaId) {
+                    // Текст + медиа
+                    messageData = { content: newMessage, mediaId: uploadedMediaId };
+                } else if (newMessage.trim()) {
+                    // Только текст
+                    messageData = newMessage;
+                } else if (uploadedMediaId) {
+                    // Только медиа
+                    messageData = { content: '', mediaId: uploadedMediaId };
+                } else {
+                    // Ничего не отправляем
+                    return;
+                }
+
+                await onSendMessage(messageData);
+            } catch (err) {
+                console.error('Failed to send message:', err);
+                setInternalError('Не удалось отправить сообщение');
+                return;
+            }
         }
 
         // Очищаем
@@ -143,11 +189,18 @@ const ChatRoom = ({
         setEditingContent(msg.content);
     };
 
-    const handleSaveEdit = (msgId) => {
+    const handleSaveEdit = async (msgId) => {
         if (!editingContent.trim()) return;
-        if (onEditMessage) onEditMessage(msgId, editingContent);
-        setEditingMessageId(null);
-        setEditingContent('');
+        if (onEditMessage) {
+            try {
+                await onEditMessage(msgId, editingContent);
+                setEditingMessageId(null);
+                setEditingContent('');
+            } catch (err) {
+                console.error('Failed to edit message:', err);
+                setInternalError('Не удалось отредактировать сообщение');
+            }
+        }
     };
 
     const handleCancelEdit = () => {
@@ -155,8 +208,15 @@ const ChatRoom = ({
         setEditingContent('');
     };
 
-    const handleDeleteMessage = (msgId) => {
-        if (onDeleteMessage) onDeleteMessage(msgId);
+    const handleDeleteMessage = async (msgId) => {
+        if (onDeleteMessage) {
+            try {
+                await onDeleteMessage(msgId);
+            } catch (err) {
+                console.error('Failed to delete message:', err);
+                setInternalError('Не удалось удалить сообщение');
+            }
+        }
     };
 
     const getRoomTitle = () => {
@@ -203,6 +263,15 @@ const ChatRoom = ({
 
     return (
         <div className="chat-container">
+            {/* Отображение ошибок */}
+            {error && (
+                <div className="error-message">
+                    <span className="error-icon">⚠️</span>
+                    <span>{error}</span>
+                    <button className="error-close" onClick={clearError}>×</button>
+                </div>
+            )}
+
             {/* Переключатель чатов */}
             {canSwitch && availableRooms && availableRooms.length > 0 && (
                 <div className="chat-room-switcher">
@@ -228,32 +297,53 @@ const ChatRoom = ({
                         key={msg.id}
                         className={`chat-message ${msg.author === currentUserAuthor ? 'own' : ''} ${msg.pending ? 'pending' : ''}`}
                     >
-                        <div className="message-header">
-                            <strong>{msg.author}</strong>
-                            <span className="timestamp">
-                                {new Date(msg.timestamp).toLocaleTimeString()}
-                                {msg.edited && <span className="edited-label"> (изменено)</span>}
-                            </span>
-                            {msg.pending && <span className="pending-label">Отправляется...</span>}
-                            {msg.author === currentUserAuthor && !msg.pending && (
-                                <div className="message-actions">
-                                    <button
-                                        className="edit-message-btn"
-                                        onClick={() => handleEditMessage(msg)}
-                                        title="Редактировать"
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        className="delete-message-btn"
-                                        onClick={() => handleDeleteMessage(msg.id)}
-                                        title="Удалить"
-                                    >
-                                        🗑️
-                                    </button>
-                                </div>
-                            )}
+                        <div className="message-avatar">
+                            {msg.avatarUrl ? (
+                                <img
+                                    src={msg.avatarUrl}
+                                    alt={`Аватар ${msg.author}`}
+                                    className="avatar-image"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentElement.querySelector('.avatar-placeholder').style.display = 'flex';
+                                    }}
+                                />
+                            ) : null}
+                            <div className={`avatar-placeholder ${msg.avatarUrl ? 'hidden' : ''}`}>
+                                <span className="avatar-icon">
+                                    {msg.author === 'Система' ? '🤖' :
+                                     msg.author === 'Админ' ? '🛡️' : '👤'}
+                                </span>
+                            </div>
                         </div>
+
+                        <div className="message-content-wrapper">
+                            <div className="message-header">
+                                <strong>{msg.author}</strong>
+                                <span className="timestamp">
+                                    {new Date(msg.timestamp).toLocaleTimeString()}
+                                    {msg.edited && <span className="edited-label"> (изменено)</span>}
+                                </span>
+                                {msg.pending && <span className="pending-label">Отправляется...</span>}
+                                {msg.author === currentUserAuthor && !msg.pending && (
+                                    <div className="message-actions">
+                                        <button
+                                            className="edit-message-btn"
+                                            onClick={() => handleEditMessage(msg)}
+                                            title="Редактировать"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            className="delete-message-btn"
+                                            onClick={() => handleDeleteMessage(msg.id)}
+                                            title="Удалить"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
                         {editingMessageId === msg.id ? (
                             <div className="edit-message-form">
@@ -279,6 +369,7 @@ const ChatRoom = ({
                                 )}
                             </>
                         )}
+                        </div>
                     </div>
                 ))}
                 <div ref={messagesEndRef} />
@@ -303,7 +394,13 @@ const ChatRoom = ({
                                 <span className="file-name">{selectedFile.name}</span>
                             </div>
                         )}
-                        {error && <div className="upload-error">{error}</div>}
+                        {error && (
+                            <div className="upload-error">
+                                <span className="error-icon">⚠️</span>
+                                <span>{error}</span>
+                                <button className="error-close" onClick={handleClearError}>×</button>
+                            </div>
+                        )}
                     </div>
                     <button className="cancel-file-btn" onClick={handleCancelFile}>✕</button>
                 </div>
@@ -325,7 +422,7 @@ const ChatRoom = ({
                         className={`voice-record-btn ${isRecording ? 'recording' : ''}`}
                         onClick={isRecording ? onStopRecording : onStartRecording}
                         title={isRecording ? 'Остановить запись' : 'Записать голосовое'}
-                        disabled={isUploading}
+                        disabled={isUploading || !onStartRecording || !onStopRecording}
                     >
                         {isRecording ? '⏹️' : '🎤'}
                     </button>

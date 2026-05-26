@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/users")
@@ -44,7 +45,7 @@ public class UserController {
     @PutMapping("/me")
     public ResponseEntity<UserDto> updateCurrentUser(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody UserDto.UpdateRequest request) {
+            @Valid @RequestBody UserDto.UpdateRequest request) {
 
         String userId = jwt.getSubject();
         return userService.updateUserProfile(userId, request)

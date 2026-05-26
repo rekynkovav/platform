@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import io.micrometer.core.annotation.Timed;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,6 +24,7 @@ public class MediaStorageService {
     @Value("${app.media.base-url:https://api.platform.com/media}")
     private String baseUrl;
 
+    @Timed(value = "media.save", description = "Time to save media")
     public PostDto.MediaUploadResponse saveMedia(MultipartFile file, String type) {
         try {
             String mediaType = determineMediaType(file, type);

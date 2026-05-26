@@ -10,6 +10,9 @@ import com.platform.repository.PostRepository;
 import com.platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,19 +31,15 @@ public class AdminService {
     private final CommentService commentService;
     private final EventService eventService;
 
-    public List<UserDto> getAllUsers(String search, int limit, int offset) {
-        List<User> users;
+    public Page<UserDto> getAllUsers(String search, Pageable pageable) {
+        Page<User> users;
         if (search != null && !search.isEmpty()) {
-            users = userRepository.findByUsernameContainingIgnoreCase(search);
+            users = userRepository.findByUsernameContainingIgnoreCase(search, pageable);
         } else {
-            users = userRepository.findAll();
+            users = userRepository.findAll(pageable);
         }
 
-        return users.stream()
-                .skip(offset)
-                .limit(limit)
-                .map(this::toUserDto)
-                .collect(Collectors.toList());
+        return users.map(this::toUserDto);
     }
 
     public UserDto getUserById(String userId) {
@@ -174,10 +173,10 @@ public class AdminService {
 
     private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
         List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "user";
+        if (roles == null) return "USER_0";
         if (roles.contains("SUPER_ADMIN")) return "SUPER_ADMIN";
         if (roles.contains("MODERATOR_ADMIN")) return "MODERATOR_ADMIN";
         if (roles.contains("VYACHESLAV")) return "VYACHESLAV";
-        return "user";
+        return "USER_0";
     }
 }

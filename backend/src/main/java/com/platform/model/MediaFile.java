@@ -5,8 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -21,52 +19,52 @@ public class MediaFile {
     @Id
     private String id;
 
-    @Column(name = "owner_id", nullable = false)
+    @Column(nullable = false)
     private String ownerId;
 
-    @Column(name = "s3_key", nullable = false)
+    @Column(nullable = false)
     private String s3Key;
 
-    @Column(name = "encryption_iv", nullable = false)
+    @Column(nullable = false)
     private String encryptionIv;
 
-    @Column(name = "file_type", nullable = false)
-    private String fileType; // video, audio, voice, image
+    @Column(nullable = false)
+    private String fileType;
 
-    @Column(name = "original_filename")
+    @Column(nullable = false)
     private String originalFilename;
 
-    @Column(name = "content_type")
     private String contentType;
 
-    @Column(name = "file_size")
     private Long fileSize;
 
-    private Integer duration; // для видео/аудио в секундах
+    private Integer duration;
 
-    @Column(name = "watermark_data", columnDefinition = "TEXT")
-    private String watermarkData; // JSON: {userId, timestamp, position}
+    @Column(length = 1000)
+    private String watermarkData;
 
-    @Column(name = "access_level")
-    private String accessLevel; // public, premium, private
+    private String hlsPlaylistUrl;
 
-    @Column(name = "hls_playlist_url")
-    private String hlsPlaylistUrl; // для HLS стриминга
+    private String accessLevel;
 
-    @Column(name = "thumbnail_url")
-    private String thumbnailUrl;
+    private Integer viewsCount;
 
-    @Column(name = "views_count")
-    private Integer viewsCount = 0;
+    private Integer downloadCount;
 
-    @Column(name = "download_count")
-    private Integer downloadCount = 0;
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (viewsCount == null) viewsCount = 0;
+        if (downloadCount == null) downloadCount = 0;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

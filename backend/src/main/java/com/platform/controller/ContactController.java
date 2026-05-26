@@ -27,7 +27,7 @@ public class ContactController {
 
     @PostMapping
     public ResponseEntity<ContactDto> addContact(
-            @RequestBody ContactDto.AddRequest request,
+            @Valid @RequestBody ContactDto.AddRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         return ResponseEntity.ok(contactService.addContact(jwt.getSubject(), request.getContactUserId(), request.getNickname()));
@@ -45,7 +45,7 @@ public class ContactController {
     @PutMapping("/{contactId}")
     public ResponseEntity<ContactDto> updateContactNickname(
             @PathVariable String contactId,
-            @RequestBody ContactDto.UpdateRequest request,
+            @Valid @RequestBody ContactDto.UpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         return ResponseEntity.ok(contactService.updateContactNickname(jwt.getSubject(), contactId, request.getNickname()));

@@ -14,6 +14,7 @@ const EventsHub = () => {
     const [editingMaterial, setEditingMaterial] = useState(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [materialToDelete, setMaterialToDelete] = useState(null);
+    const [error, setError] = useState(null);
 
     // Состояния для записи аудио
     const [isRecording, setIsRecording] = useState(false);
@@ -41,7 +42,7 @@ const EventsHub = () => {
 
     // Получаем роль из localStorage
     const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin_moderator' || demoRole === 'developer' || demoRole === 'super_admin';
+    const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
     const currentUser = getUsername();
 
     // Отладка: выводим роль и статус админа
@@ -64,10 +65,10 @@ const EventsHub = () => {
     useEffect(() => {
         const savedRoles = localStorage.getItem('demoRole');
         let roles = [];
-        if (savedRoles === 'admin') {
-            roles = ['admin', 'user'];
-        } else if (savedRoles === 'user') {
-            roles = ['user'];
+        if (savedRoles === 'MODERATOR_ADMIN' || savedRoles === 'SUPER_ADMIN' || savedRoles === 'VYACHESLAV' || savedRoles === 'DEVELOPER') {
+            roles = ['MODERATOR_ADMIN', 'USER_0'];
+        } else if (savedRoles === 'USER_0' || savedRoles === 'USER_1' || savedRoles === 'USER_2') {
+            roles = ['USER_0'];
         }
         setUserRoles(roles);
     }, []);
@@ -153,7 +154,7 @@ const EventsHub = () => {
 
         } catch (err) {
             console.error('Ошибка доступа к микрофону:', err);
-            alert('Не удалось получить доступ к микрофону. Проверьте разрешения.');
+            setError('Не удалось получить доступ к микрофону. Проверьте разрешения.');
         }
     };
 
@@ -171,6 +172,10 @@ const EventsHub = () => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const clearError = () => {
+        setError(null);
     };
 
     // Отправка отзыва/предложения
@@ -321,6 +326,15 @@ const EventsHub = () => {
 
     return (
         <div className="events-hub">
+            {/* Отображение ошибок */}
+            {error && (
+                <div className="error-message">
+                    <span className="error-icon">⚠️</span>
+                    <span>{error}</span>
+                    <button className="error-close" onClick={clearError}>×</button>
+                </div>
+            )}
+
             {notification && (
                 <div className="hub-notification">
                     <div className="notification-content">

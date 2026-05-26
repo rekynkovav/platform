@@ -8,6 +8,7 @@ import lombok.Builder;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "messages")
@@ -19,13 +20,13 @@ public class Message {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    private UUID id;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "user_id", nullable = false)
-    private String userId;
+    private UUID userId;
 
     @Column(name = "user_name")
     private String userName;
@@ -34,7 +35,7 @@ public class Message {
     private String chatType; // "general", "admin_group", "private"
 
     @Column(name = "recipient_id")
-    private String recipientId; // для личных сообщений
+    private UUID recipientId; // для личных сообщений
 
     @Column(name = "is_read")
     private Boolean isRead = false;
@@ -53,8 +54,12 @@ public class Message {
     private LocalDateTime createdAt;
 
     @Column(name = "room_id")
-    private Long roomId;
+    private UUID roomId;
 
     @Column(name = "room_slug", length = 100)
     private String roomSlug;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
 }

@@ -150,6 +150,10 @@ const NutritionFeed = () => {
     const [showAddForm, setShowAddForm] = useState(false);
     const [userRoles, setUserRoles] = useState([]);
     const [notification, setNotification] = useState(null);
+    const [error, setError] = useState(null);
+    const clearError = () => {
+        setError(null);
+    };
     const feedEndRef = useRef(null);
     const addFormRef = useRef(null);
     const [activeAudioPostId, setActiveAudioPostId] = useState(null);
@@ -200,10 +204,10 @@ const NutritionFeed = () => {
         const demoRole = localStorage.getItem('demoRole');
         let roles = [];
 
-        if (demoRole === 'admin_moderator' || demoRole === 'consultant_nutrition' || demoRole === 'developer' || demoRole === 'super_admin') {
-            roles = ['admin', 'user'];
-        } else if (demoRole === 'user1' || demoRole === 'user2') {
-            roles = ['user'];
+        if (demoRole === 'MODERATOR_ADMIN' || demoRole === 'CONSULTANT_PITANIE' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') {
+            roles = ['MODERATOR_ADMIN', 'USER_0'];
+        } else if (demoRole === 'USER_0' || demoRole === 'USER_1' || demoRole === 'USER_2') {
+            roles = ['USER_0'];
         } else {
             roles = getUserRoles();
         }
@@ -303,7 +307,7 @@ const NutritionFeed = () => {
 
     const handleAddPost = () => {
         const demoRole = localStorage.getItem('demoRole');
-        const isNutritionConsultant = demoRole === 'consultant_nutrition';
+        const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
 
         if (!isNutritionConsultant) {
             alert('Только консультант питания может добавлять записи');
@@ -324,7 +328,7 @@ const NutritionFeed = () => {
         if (!postToDelete) return;
 
         const demoRole = localStorage.getItem('demoRole');
-        const isNutritionConsultant = demoRole === 'consultant_nutrition';
+        const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
 
         if (!isNutritionConsultant) {
             alert('Только консультант питания может удалять записи');
@@ -355,7 +359,7 @@ const NutritionFeed = () => {
     // Функция для начала редактирования поста
     const handleEditPost = (post) => {
         const demoRole = localStorage.getItem('demoRole');
-        const isNutritionConsultant = demoRole === 'consultant_nutrition';
+        const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
 
         if (!isNutritionConsultant) {
             alert('Только консультант питания может редактировать записи');
@@ -411,13 +415,13 @@ const NutritionFeed = () => {
         }, 100);
     };
 
-    // Функция для скачивания материала (только для super_admin)
+    // Функция для скачивания материала (только для SUPER_ADMIN)
     const handleDownloadPost = async (post) => {
         const demoRole = localStorage.getItem('demoRole');
-        const isSuperAdmin = demoRole === 'super_admin';
+        const isSuperAdmin = demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
 
         if (!isSuperAdmin) {
-            alert('Только главный админ может скачивать материалы');
+            setError('Только главный админ может скачивать материалы');
             return;
         }
 
@@ -447,7 +451,7 @@ const NutritionFeed = () => {
             }
         } catch (error) {
             console.error('Ошибка при скачивании:', error);
-            alert('Не удалось скачать файл');
+            setError('Не удалось скачать файл');
         }
     };
 
@@ -502,7 +506,7 @@ const NutritionFeed = () => {
     };
 
     const demoRole = localStorage.getItem('demoRole');
-    const isNutritionConsultant = demoRole === 'consultant_nutrition';
+    const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
 
     // Загрузка данных меню
     useEffect(() => {
@@ -678,6 +682,15 @@ const NutritionFeed = () => {
 
     return (
         <div className="nutrition-feed-container">
+            {/* Отображение ошибок */}
+            {error && (
+                <div className="error-message">
+                    <span className="error-icon">⚠️</span>
+                    <span>{error}</span>
+                    <button className="error-close" onClick={clearError}>×</button>
+                </div>
+            )}
+
             {/* Модальное окно подтверждения удаления элемента меню */}
             {showDeleteItemConfirm && itemToDelete && (
                 <div className="modal-overlay" onClick={cancelDeleteItem}>
@@ -825,7 +838,7 @@ const NutritionFeed = () => {
                                 <div className="post-title">{post.title}</div>
                                 {isNutritionConsultant && (
                                     <div className="post-actions">
-                                        {demoRole === 'super_admin' && (
+                                        {(demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') && (
                                             <button
                                                 className="download-post"
                                                 onClick={() => handleDownloadPost(post)}
