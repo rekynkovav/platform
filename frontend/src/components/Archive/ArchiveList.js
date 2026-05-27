@@ -1,7 +1,7 @@
 // components/Archive/ArchiveList.js (Трансляции)
 import React, { useState, useEffect } from 'react';
 import './ArchiveList.css';
-import { mediaApi } from '../../services/api';
+import { mediaApi, broadcastApi, demoApi } from '../../services/api';
 import LiveBroadcastView from '../live/LiveBroadcastViewSimple';
 import EnhancedLiveBroadcastView from '../live/EnhancedLiveBroadcastView';
 import NetworkSpeedTest from '../live/NetworkSpeedTest';
@@ -47,7 +47,17 @@ const ArchiveList = () => {
     // Состояние для меню подтверждения завершения трансляции
     const [showEndConfirm, setShowEndConfirm] = useState(false);
 
-    const demoRole = localStorage.getItem('demoRole');
+    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+        ? (async () => {
+            try {
+                const role = await demoApi.getDemoRole();
+                return role || null;
+            } catch (err) {
+                console.error('Failed to load demo role:', err);
+                return sessionStorage.getItem('demoRole') || null;
+            }
+        })()
+        : null;
     const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
     const canEdit = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
     const canDownload = demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV'; // Только SUPER_ADMIN и VYACHESLAV могут скачивать
@@ -70,23 +80,40 @@ const ArchiveList = () => {
     }, []);
 
     // Загрузка счетчиков "Буду!"
-    const loadWillAttendCounts = () => {
-        const saved = localStorage.getItem('willAttendCounts');
-        if (saved) {
-            setWillAttendCounts(JSON.parse(saved));
-        } else {
-            setWillAttendCounts({});
+    const loadWillAttendCounts = async () => {
+        try {
+            const counts = await demoApi.getWillAttendCounts();
+            setWillAttendCounts(counts);
+        } catch (err) {
+            console.error('Failed to load will attend counts:', err);
+            // Fallback для разработки
+            if (process.env.NODE_ENV === 'development') {
+                const saved = sessionStorage.getItem('willAttendCounts');
+                if (saved) {
+                    setWillAttendCounts(JSON.parse(saved));
+                } else {
+                    setWillAttendCounts({});
+                }
+            }
         }
     };
 
     // Сохранение счетчиков "Буду!"
-    const saveWillAttendCounts = (counts) => {
+    const saveWillAttendCounts = async (counts) => {
         setWillAttendCounts(counts);
-        localStorage.setItem('willAttendCounts', JSON.stringify(counts));
+        try {
+            await demoApi.saveWillAttendCounts(counts);
+        } catch (err) {
+            console.error('Failed to save will attend counts:', err);
+            // Fallback для разработки
+            if (process.env.NODE_ENV === 'development') {
+                sessionStorage.setItem('willAttendCounts', JSON.stringify(counts));
+            }
+        }
     };
 
     // Обработчик кнопки "Буду!"
-    const handleWillAttend = (broadcastId) => {
+    const handleWillAttend = async (broadcastId) => {
         // Проверяем, что трансляция еще запланирована
         const broadcast = broadcasts.find(b => b.id === broadcastId);
         if (!broadcast || broadcast.status !== 'scheduled') {
@@ -94,22 +121,54 @@ const ArchiveList = () => {
             return;
         }
 
-        const userId = localStorage.getItem('demoRole') || 'USER_0';
+        const userId = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? (async () => {
+                try {
+                    const role = await demoApi.getDemoRole();
+                    return role || 'USER_0';
+                } catch (err) {
+                    console.error('Failed to load demo role:', err);
+                    return sessionStorage.getItem('demoRole') || 'USER_0';
+                }
+            })()
+            : null;
         const key = `${broadcastId}_${userId}`;
-        const hasAttended = localStorage.getItem(key);
 
-        if (hasAttended) {
-            showMessage('Вы уже откликнулись на эту трансляцию!');
-            return;
+        try {
+            // Проверяем через API, откликнулся ли пользователь
+            const hasAttended = await demoApi.hasUserAttended(broadcastId, userId);
+
+            if (hasAttended) {
+                showMessage('Вы уже откликнулись на эту трансляцию!');
+                return;
+            }
+
+            // Сохраняем отклик через API
+            await demoApi.markUserAttended(broadcastId, userId);
+
+            const newCounts = { ...willAttendCounts };
+            newCounts[broadcastId] = (newCounts[broadcastId] || 0) + 1;
+            saveWillAttendCounts(newCounts);
+
+            showMessage('Спасибо! Вы откликнулись на трансляцию.', 'success');
+        } catch (err) {
+            console.error('Failed to mark attendance:', err);
+            // Fallback для разработки
+            if (process.env.NODE_ENV === 'development') {
+                const hasAttended = sessionStorage.getItem(key);
+                if (hasAttended) {
+                    showMessage('Вы уже откликнулись на эту трансляцию!');
+                    return;
+                }
+
+                const newCounts = { ...willAttendCounts };
+                newCounts[broadcastId] = (newCounts[broadcastId] || 0) + 1;
+                saveWillAttendCounts(newCounts);
+
+                sessionStorage.setItem(key, 'true');
+                showMessage('Спасибо! Вы откликнулись на трансляцию.', 'success');
+            }
         }
-
-        const newCounts = { ...willAttendCounts };
-        newCounts[broadcastId] = (newCounts[broadcastId] || 0) + 1;
-        saveWillAttendCounts(newCounts);
-
-        // Сохраняем, что пользователь уже откликнулся
-        localStorage.setItem(key, 'true');
-        showMessage('Спасибо! Вы откликнулись на трансляцию.', 'success');
     };
 
     // Функция для расчета времени до начала трансляции
@@ -229,7 +288,9 @@ const ArchiveList = () => {
 
     // Перенос прошедших трансляций в Dashboard
     const moveCompletedBroadcastsToDashboard = (broadcastsList) => {
-        const dashboardData = JSON.parse(localStorage.getItem('dashboardMenuData') || '{}');
+        const dashboardData = process.env.NODE_ENV === 'development'
+            ? JSON.parse(sessionStorage.getItem('dashboardMenuData') || '{}')
+            : {};
         const currentBroadcasts = dashboardData['broadcasts'] || [];
 
         broadcastsList.forEach(broadcast => {
@@ -257,11 +318,15 @@ const ArchiveList = () => {
         });
 
         dashboardData['broadcasts'] = currentBroadcasts;
-        localStorage.setItem('dashboardMenuData', JSON.stringify(dashboardData));
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem('dashboardMenuData', JSON.stringify(dashboardData));
+        }
     };
 
     const loadBroadcasts = () => {
-        const saved = localStorage.getItem('broadcasts');
+        const saved = process.env.NODE_ENV === 'development'
+            ? sessionStorage.getItem('broadcasts')
+            : null;
         if (saved) {
             const broadcastsList = JSON.parse(saved);
 
@@ -275,7 +340,9 @@ const ArchiveList = () => {
             }));
 
             setBroadcasts(updatedBroadcasts);
-            localStorage.setItem('broadcasts', JSON.stringify(updatedBroadcasts));
+            if (process.env.NODE_ENV === 'development') {
+                sessionStorage.setItem('broadcasts', JSON.stringify(updatedBroadcasts));
+            }
         } else {
             const initial = [
                 {
@@ -328,7 +395,9 @@ const ArchiveList = () => {
                 }
             ];
             setBroadcasts(initial);
-            localStorage.setItem('broadcasts', JSON.stringify(initial));
+            if (process.env.NODE_ENV === 'development') {
+                sessionStorage.setItem('broadcasts', JSON.stringify(initial));
+            }
         }
     };
 
@@ -419,10 +488,14 @@ const ArchiveList = () => {
 
         const updated = [...broadcasts, broadcast];
         setBroadcasts(updated);
-        localStorage.setItem('broadcasts', JSON.stringify(updated));
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem('broadcasts', JSON.stringify(updated));
+        }
 
         // Добавляем в события
-        const events = JSON.parse(localStorage.getItem('scheduledEvents') || '[]');
+        const events = process.env.NODE_ENV === 'development'
+            ? JSON.parse(sessionStorage.getItem('scheduledEvents') || '[]')
+            : [];
         const event = {
             id: Date.now() + 1,
             title: `📡 ${broadcast.title}`,
@@ -431,7 +504,9 @@ const ArchiveList = () => {
             description: `Прямая ${broadcast.type === 'audio' ? 'аудио' : 'видео'} трансляция: ${broadcast.description}`
         };
         events.push(event);
-        localStorage.setItem('scheduledEvents', JSON.stringify(events));
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem('scheduledEvents', JSON.stringify(events));
+        }
 
         setNewBroadcast({ title: '', description: '', date: '', time: '', type: 'audio' });
         setShowCreateForm(false);
@@ -494,7 +569,9 @@ const ArchiveList = () => {
         );
 
         setBroadcasts(updated);
-        localStorage.setItem('broadcasts', JSON.stringify(updated));
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem('broadcasts', JSON.stringify(updated));
+        }
 
         setNewBroadcast({ title: '', description: '', date: '', time: '', type: 'audio' });
         setEditingBroadcast(null);
@@ -615,7 +692,9 @@ const ArchiveList = () => {
                 );
 
                 setBroadcasts(updated);
-                localStorage.setItem('broadcasts', JSON.stringify(updated));
+                if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem('broadcasts', JSON.stringify(updated));
+        }
 
                 // Устанавливаем активную трансляцию и показываем live view
                 setActiveLiveBroadcast({
@@ -688,7 +767,9 @@ const ArchiveList = () => {
         );
 
         setBroadcasts(updated);
-        localStorage.setItem('broadcasts', JSON.stringify(updated));
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem('broadcasts', JSON.stringify(updated));
+        }
 
         // Закрываем live view
         setActiveLiveBroadcast(null);
@@ -766,7 +847,9 @@ const ArchiveList = () => {
         );
 
         setBroadcasts(updated);
-        localStorage.setItem('broadcasts', JSON.stringify(updated));
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem('broadcasts', JSON.stringify(updated));
+        }
         alert('Настройки сохранены!');
         handleCloseSettings();
     };
@@ -794,7 +877,9 @@ const ArchiveList = () => {
 
         const updated = broadcasts.filter(b => b.id !== broadcastToDelete.id);
         setBroadcasts(updated);
-        localStorage.setItem('broadcasts', JSON.stringify(updated));
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem('broadcasts', JSON.stringify(updated));
+        }
 
         setShowDeleteConfirm(false);
         setBroadcastToDelete(null);

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { mediaApi } from '../../services/api';
 import MediaRenderer from './MediaRenderer';
 import './Chat.css';
 
@@ -126,13 +127,9 @@ const ChatRoom = ({
                 if (onFileUpload && typeof onFileUpload === 'function') {
                     uploadedMediaId = await onFileUpload(selectedFile);
                 } else {
-                    // TODO: Реализовать загрузку через mediaApi.upload
-                    // const response = await mediaApi.upload(selectedFile);
-                    // uploadedMediaId = response.id;
-                    console.warn('Загрузка файлов через API пока не реализована');
-                    setInternalError('Загрузка файлов временно недоступна');
-                    setIsUploading(false);
-                    return;
+                    // Используем mediaApi для загрузки
+                    const response = await mediaApi.upload(selectedFile);
+                    uploadedMediaId = response.id;
                 }
             } catch (err) {
                 console.error('Upload failed:', err);
@@ -225,18 +222,18 @@ const ChatRoom = ({
 
     // Рендер медиа в сообщении
     const renderMedia = (msg) => {
-        // 1. Base64 (localStorage mode)
-        if (msg.fileUrl) {
+        // 1. Медиа по mediaId (новый API)
+        if (msg.mediaId) {
             return (
                 <MediaRenderer
-                    mediaUrl={msg.fileUrl}
-                    mediaType={msg.fileType || msg.type}
+                    mediaUrl={`/api/media/stream/${msg.mediaId}`}
+                    mediaType={msg.mediaType || 'file'}
                     fileName={msg.fileName}
                 />
             );
         }
 
-        // 2..mediaUrl (новый API)
+        // 2. mediaUrl (новый API)
         if (msg.mediaUrl) {
             return (
                 <MediaRenderer
@@ -247,12 +244,12 @@ const ChatRoom = ({
             );
         }
 
-        // 3. Медиа по mediaId (нужно получить URL)
-        if (msg.mediaId) {
+        // 3. Base64 (старый формат sessionStorage) - для обратной совместимости в development
+        if (msg.fileUrl) {
             return (
                 <MediaRenderer
-                    mediaUrl={`/api/media/stream/${msg.mediaId}`}
-                    mediaType={msg.mediaType || 'file'}
+                    mediaUrl={msg.fileUrl}
+                    mediaType={msg.fileType || msg.type}
                     fileName={msg.fileName}
                 />
             );

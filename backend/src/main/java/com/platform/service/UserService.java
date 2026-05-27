@@ -146,4 +146,10 @@ public class UserService {
                     return userRepository.save(user);
                 });
     }
+
+    @Timed(value = "user.find_by_id", description = "Time to find user by ID")
+    @Cacheable(value = "users", key = "#userId")
+    public Optional<User> findByUserId(String userId) {
+        return userRepository.findById(UUID.fromString(userId));
+    }
 }

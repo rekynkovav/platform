@@ -1,91 +1,37 @@
 # Platform Project
 
-Платформа для спортивного сообщества с функциями стриминга, социальных сетей и архива событий.
+## Технологический стек
+- Backend: Spring Boot 3.2.5, Java 17, PostgreSQL, Redis
+- Frontend: React 18, Keycloak
+- DevOps: Docker, Prometheus, Grafana, ELK
 
-## Стек технологий
+## Быстрый старт
 
-### Backend
+### Требования
+- Docker Desktop
 - Java 17
-- Spring Boot 3.x
-- Spring Security (Keycloak)
-- Spring Data JPA
-- PostgreSQL
-- Liquibase
-- Redis
-- AWS S3 (Media Storage)
-- WebSocket (Chat)
+- Node.js 18+
 
-### Frontend
-- React 18
-- TypeScript
-- Tailwind CSS
-- React Query
-- Axios
-- Keycloak React Adapter
-
-## Новые возможности (v2)
-
-### Обновление системы ролей
-- Заменены роли: `admin` → `MODERATOR_ADMIN`, `super_admin` → `SUPER_ADMIN`, `vyacheslav` → `VYACHESLAV`
-- Обновлены все контроллеры и сервисы
-- Обновлена база данных (Liquibase changelog)
-
-### Безопасность медиа
-- Шифрование файлов (AES-256)
-- Водяные знаки для видео и изображений
-- HLS стриминг
-- Контроль доступа по уровням (public, premium, private)
-
-### Улучшенная модерация
-- Автоматическое флаггирование контента
-- Быстрая модерация постов и комментариев
-- Логирование действий модераторов
-
-## Структура проекта
-
-```
-platform/
-├── backend/          # Spring Boot приложение
-├── frontend/         # React приложение
-├── docker/           # Docker конфигурация
-└── scripts/          # Скрипты инициализации
-```
-
-## Запуск
-
-### Локально
-1. Запустить Keycloak и PostgreSQL
-2. `cd backend && ./gradlew bootRun`
-3. `cd frontend && npm start`
-
-### Docker
+### Запуск
 ```bash
-cd docker
-./start.sh
+# Клонирование
+git clone <repo-url>
+cd platform
+
+# Запуск инфраструктуры
+docker-compose up -d
+
+# Запуск backend
+cd backend
+./mvnw spring-boot:run
+
+# Запуск frontend
+cd frontend
+npm start
 ```
 
-## Разработка
+## Переменные окружения
+Скопируйте `.env.example` в `.env` и заполните значения.
 
-### Создание новой ветки
-```bash
-./pushNewBranch.bat
-```
-
-### Сборка
-```bash
-./gradlew build
-```
-
-## Лицензия
-
-MIT
-# New Features (10-05-2026 23-37-07) 
-# New Features (10-05-2026 23-41-15) 
-# New Features (13-05-2026 08-58-27) 
-# New Features (18-05-2026 02-33-50) 
-# New Features (18-05-2026 04-20-38) 
-# New Features (20-05-2026 18-38-30) 
-# New Features (21-05-2026 00-07-19) 
-# New Features (21-05-2026 01-25-44) 
-# New Features (21-05-2026 23-35-13) 
-# New Features (22-05-2026 23-11-07) 
+## API Документация
+Swagger UI: http://localhost:8081/swagger-ui.html 

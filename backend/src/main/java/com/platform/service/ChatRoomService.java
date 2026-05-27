@@ -45,6 +45,11 @@ public class ChatRoomService {
                 .orElseThrow(() -> new ResourceNotFoundException("Chat room not found: " + slug));
     }
 
+    public ChatRoom findBySlug(String slug) {
+        return chatRoomRepository.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Chat room not found: " + slug));
+    }
+
     public List<ChatRoom> getAllActiveRooms() {
         return chatRoomRepository.findAll().stream()
                 .filter(ChatRoom::getIsActive)

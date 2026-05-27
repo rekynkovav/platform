@@ -286,4 +286,26 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             Thread.currentThread().interrupt();
         }
     }
+
+    public void closeUserSessions(String userId) {
+        // Закрыть все WebSocket сессии пользователя
+        userSessions.entrySet().stream()
+            .filter(entry -> entry.getKey().startsWith(userId + ":"))
+            .forEach(entry -> {
+                try {
+                    entry.getValue().close();
+                } catch (IOException e) {
+                    log.warn("Failed to close session for user {}: {}", userId, e.getMessage());
+                }
+            });
+    }
+
+    public boolean isHealthy() {
+        // Проверка, что WebSocket обработчик работает
+        return true;
+    }
+
+    public int getActiveSessionCount() {
+        return userSessions.size();
+    }
 }

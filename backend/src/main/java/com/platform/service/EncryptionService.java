@@ -26,14 +26,7 @@ public class EncryptionService {
     private static final int IV_SIZE = 16;
 
     public byte[] generateFileKey(String userId, String fileId) {
-        try {
-            String keySource = masterKey + ":" + userId + ":" + fileId;
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return digest.digest(keySource.getBytes("UTF-8"));
-        } catch (Exception e) {
-            log.error("Failed to generate file key", e);
-            throw new RuntimeException("Failed to generate encryption key", e);
-        }
+        return generateHLSKey(userId, fileId);
     }
 
     public String generateIV() {
@@ -84,7 +77,7 @@ public class EncryptionService {
 
     public Cipher getCipher(int mode, byte[] key, String iv) throws Exception {
         SecretKeySpec keySpec = new SecretKeySpec(key, "AES");
-        IvParameterSpec ivSpec = new IvParameterSpec(iv.getBytes());
+        IvParameterSpec ivSpec = new IvParameterSpec(iv.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         Cipher cipher = Cipher.getInstance(algorithm);
         cipher.init(mode, keySpec, ivSpec);
         return cipher;

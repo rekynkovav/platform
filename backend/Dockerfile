@@ -1,21 +1,23 @@
-FROM eclipse-temurin:17-jdk
-
+# Stage 1: Build
+FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+COPY src ./src
+RUN mvn clean package -DskipTests -Pprod
+
+# Stage 2: Runtime
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+RUN addgroup -S platform && adduser -S platform -G platform
+USER platform
 
 # Install FFmpeg for video processing
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache ffmpeg
 
-COPY pom.xml .
-COPY src ./src
-COPY src/main/resources ./src/main/resources
+ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseStringDeduplication"
 
-RUN apt-get update && apt-get install -y maven && \
-    mvn clean package -DskipTests && \
-    mv target/*.jar app.jar && \
-    apt-get remove -y maven && apt-get autoremove -y
+COPY --from=builder /app/target/platform-*.jar app.jar
 
-EXPOSE 8080
-
-ENV JAVA_OPTS="-Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UseStringDeduplication -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/heapdump.hprof"
-
+EXPOSE 8081
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

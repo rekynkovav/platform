@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getUserRoles } from '../../keycloak';
+import { api } from '../../services/api';
 import './ScheduledEvents.css';
 
 const ScheduledEvents = () => {
@@ -45,36 +46,48 @@ const ScheduledEvents = () => {
         setError(null);
     };
 
-    useEffect(() => {
+    const loadEvents = async () => {
         try {
-            const savedEvents = localStorage.getItem('scheduledEvents');
-            if (savedEvents) {
-                const parsed = JSON.parse(savedEvents);
-                // Сортируем события по дате и времени (ближайшие сверху)
-                const sorted = parsed.sort((a, b) => {
-                    const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
-                    const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
-                    return dateA - dateB;
-                });
-                setEvents(sorted);
-            } else {
-                const initialEvents = [
-                    { id: 1, title: "Открытие сезона", date: "2025-04-10", time: "15:00", description: "Открытие весеннего сезона. Первая встреча в новом формате." },
-                    { id: 2, title: "Практикум по дыханию", date: "2025-04-12", time: "11:00", description: "Практикум по дыхательным техникам." },
-                    { id: 3, title: "Лекция о силе духа", date: "2025-04-15", time: "18:30", description: "Лекция о силе духа." }
-                ];
-                setEvents(initialEvents);
-                localStorage.setItem('scheduledEvents', JSON.stringify(initialEvents));
+            setError(null);
+            const data = await api.get('/scheduled-events');
+            const sorted = (data || []).sort((a, b) => {
+                const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
+                const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
+                return dateA - dateB;
+            });
+            setEvents(sorted);
+        } catch (err) {
+            console.error('Failed to load events:', err);
+            setError('Не удалось загрузить события');
+            // fallback на sessionStorage при ошибке API (только для разработки)
+            if (process.env.NODE_ENV === 'development') {
+                try {
+                    const savedEvents = process.env.NODE_ENV === 'development'
+                        ? sessionStorage.getItem('scheduledEvents')
+                        : null;
+                    if (savedEvents) {
+                        const parsed = JSON.parse(savedEvents);
+                        const sorted = parsed.sort((a, b) => {
+                            const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
+                            const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
+                            return dateA - dateB;
+                        });
+                        setEvents(sorted);
+                    }
+                } catch (localError) {
+                    console.error('LocalStorage fallback error:', localError);
+                }
             }
-        } catch (error) {
-            console.error('Ошибка загрузки событий:', error);
-            setError('Не удалось загрузить события. Данные повреждены.');
-            localStorage.removeItem('scheduledEvents');
-            setEvents([]);
         }
+    };
 
-        // Получаем роль из localStorage (от переключателя)
-        const demoRole = localStorage.getItem('demoRole');
+    useEffect(() => {
+        loadEvents();
+
+        // Получаем роль из sessionStorage (только для development)
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
         let roles = [];
 
         if (demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') {
@@ -103,8 +116,10 @@ const ScheduledEvents = () => {
         };
     }, []);
 
-    // Проверяем роль из localStorage напрямую
-    const demoRole = localStorage.getItem('demoRole');
+    // Проверяем роль из sessionStorage (только для development)
+    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+        ? sessionStorage.getItem('demoRole')
+        : null;
     const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
     const canEdit = demoRole === 'MODERATOR_ADMIN' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
 
@@ -114,7 +129,7 @@ const ScheduledEvents = () => {
         return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
     };
 
-    const handleAddEvent = () => {
+    const handleAddEvent = async () => {
         if (!isAdmin) {
             alert('Только администратор может добавлять события');
             return;
@@ -125,54 +140,41 @@ const ScheduledEvents = () => {
             return;
         }
 
-        if (editingEventId) {
-            // Редактирование существующего события
-            const updatedEvents = events.map(event =>
-                event.id === editingEventId
-                    ? { ...event, ...newEvent, edited: true }
-                    : event
-            );
-            const sorted = updatedEvents.sort((a, b) => {
-                const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
-                const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
-                return dateA - dateB;
+        try {
+            if (editingEventId) {
+                // Редактирование существующего события
+                await api.put(`/scheduled-events/${editingEventId}`, newEvent);
+                setEditingEventId(null);
+                setShowEditForm(false);
+            } else {
+                // Создание нового события
+                const eventData = {
+                    ...newEvent,
+                    time: newEvent.time || '00:00'
+                };
+                const createdEvent = await api.post('/scheduled-events', eventData);
+
+                // Показываем уведомление
+                setNotificationEvent(createdEvent);
+
+                // Автоматически скрываем через 30 секунд
+                notificationTimeoutRef.current = setTimeout(() => {
+                    setNotificationEvent(null);
+                }, 30000);
+            }
+
+            await loadEvents();
+            setNewEvent({
+                title: '',
+                date: getCurrentDate(),
+                time: getCurrentTime(),
+                description: ''
             });
-            setEvents(sorted);
-            localStorage.setItem('scheduledEvents', JSON.stringify(sorted));
-            setEditingEventId(null);
-            setShowEditForm(false);
-        } else {
-            // Создание нового события
-            const event = {
-                id: Date.now(),
-                ...newEvent,
-            };
-
-            const updatedEvents = [...events, event];
-            const sorted = updatedEvents.sort((a, b) => {
-                const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
-                const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
-                return dateA - dateB;
-            });
-            setEvents(sorted);
-            localStorage.setItem('scheduledEvents', JSON.stringify(sorted));
-
-            // Показываем уведомление
-            setNotificationEvent(event);
-
-            // Автоматически скрываем через 30 секунд
-            notificationTimeoutRef.current = setTimeout(() => {
-                setNotificationEvent(null);
-            }, 30000);
+            setShowAddForm(false);
+        } catch (err) {
+            console.error('Failed to save event:', err);
+            alert('Ошибка сохранения события');
         }
-
-        setNewEvent({
-            title: '',
-            date: getCurrentDate(),
-            time: getCurrentTime(),
-            description: ''
-        });
-        setShowAddForm(false);
     };
 
     // Функция для открытия модального окна подтверждения удаления
@@ -214,10 +216,12 @@ const ScheduledEvents = () => {
     };
 
     // Функция для фактического удаления
-    const executeDeleteEvent = () => {
+    const executeDeleteEvent = async () => {
         if (!eventToDelete) return;
 
-        const demoRole = localStorage.getItem('demoRole');
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
         const canDelete = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
         if (!canDelete) {
             alert('Только администратор может удалять события!');
@@ -226,16 +230,20 @@ const ScheduledEvents = () => {
             return;
         }
 
-        const updatedEvents = events.filter(event => event.id !== eventToDelete.id);
-        setEvents(updatedEvents);
-        localStorage.setItem('scheduledEvents', JSON.stringify(updatedEvents));
+        try {
+            await api.delete(`/scheduled-events/${eventToDelete.id}`);
+            await loadEvents();
 
-        // Показываем уведомление об удалении
-        setDeleteNotification(eventToDelete?.title);
-        notificationTimeoutRef.current = setTimeout(() => setDeleteNotification(null), 3000);
+            // Показываем уведомление об удалении
+            setDeleteNotification(eventToDelete?.title);
+            notificationTimeoutRef.current = setTimeout(() => setDeleteNotification(null), 3000);
 
-        setShowDeleteConfirm(false);
-        setEventToDelete(null);
+            setShowDeleteConfirm(false);
+            setEventToDelete(null);
+        } catch (err) {
+            console.error('Failed to delete event:', err);
+            alert('Ошибка удаления события');
+        }
     };
 
     // Функция для отмены удаления

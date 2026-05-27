@@ -49,7 +49,9 @@ export const initKeycloak = async () => {
 
 export const login = () => keycloakInstance?.login();
 export const logout = () => {
-    localStorage.clear();
+    if (process.env.NODE_ENV === 'development') {
+      localStorage.clear();
+    }
     sessionStorage.clear();
     keycloakInstance?.logout({ redirectUri: window.location.origin });
 };

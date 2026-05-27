@@ -2,6 +2,7 @@ package com.platform.controller;
 
 import com.platform.model.dto.MessageDto;
 import com.platform.model.dto.ChatRoomDto;
+import com.platform.model.dto.QuestionDto;
 import com.platform.model.ChatRoom;
 import com.platform.service.ChatService;
 import com.platform.service.ChatRoomService;
@@ -16,6 +17,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -23,7 +28,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/chat")
+@RequestMapping("/api/v1/chat")
 @RequiredArgsConstructor
 public class ChatController {
 
@@ -72,6 +77,31 @@ public class ChatController {
             log.error("Error getting messages for room {}: {}", roomSlug, e.getMessage(), e);
             return ResponseEntity.status(500).build();
         }
+    }
+
+    /**
+     * Метод получения сообщений с пагинацией
+     */
+    @GetMapping("/{roomSlug}/messages")
+    // @RateLimiting(name = "chat-limit")
+    public ResponseEntity<Page<MessageDto>> getMessages(
+            @PathVariable String roomSlug,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        if (page < 0) page = 0;
+        if (size < 1) size = 1;
+        if (size > 100) size = 100;
+
+        String userRole = jwt.getClaimAsString("realm_access.roles") != null
+                ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
+                : "ROLE_USER_0";
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<MessageDto> messages = chatService.getMessagesByRoomWithPagination(roomSlug, pageable, userRole);
+
+        return ResponseEntity.ok(messages);
     }
 
     /**
@@ -230,5 +260,39 @@ public class ChatController {
                 request.getContent(),
                 request.getMediaId(),
                 userRole));
+    }
+
+    // ==================================================================
+    // === НОВЫЕ ЭНДПОИНТЫ ДЛЯ ВОПРОСОВ (QuestionDto) ===
+    // ==================================================================
+
+    @GetMapping("/questions-dto/{mode}")
+    public ResponseEntity<List<QuestionDto>> getQuestions(
+            @PathVariable String mode,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        List<QuestionDto> questions = chatService.getQuestionsByMode(mode, userId);
+        return ResponseEntity.ok(questions);
+    }
+
+    @PostMapping("/questions-dto/{mode}")
+    public ResponseEntity<QuestionDto> createQuestion(
+            @PathVariable String mode,
+            @Valid @RequestBody QuestionDto.CreateRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        QuestionDto question = chatService.createQuestion(mode, request, userId);
+        return ResponseEntity.ok(question);
+    }
+
+    @PostMapping("/questions-dto/{questionId}/answer")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV', 'CONSULTANT_PITANIE')")
+    public ResponseEntity<QuestionDto> answerQuestion(
+            @PathVariable String questionId,
+            @Valid @RequestBody QuestionDto.AnswerRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminId = jwt.getSubject();
+        QuestionDto question = chatService.answerQuestion(questionId, request, adminId);
+        return ResponseEntity.ok(question);
     }
 }

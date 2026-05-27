@@ -171,4 +171,9 @@ public class PaymentService {
         return String.format("PAY-%d-%s", timestamp, random);
     }
 
+    @Timed(value = "payment.find_by_user_and_status", description = "Time to find payments by user and status")
+    public List<Payment> findByUserIdAndStatus(String userId, Payment.PaymentStatus status) {
+        return paymentRepository.findByUserIdAndStatus(userId, status);
+    }
+
 }

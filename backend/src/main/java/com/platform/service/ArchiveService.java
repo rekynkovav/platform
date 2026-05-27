@@ -5,6 +5,7 @@ import com.platform.exception.ResourceNotFoundException;
 import com.platform.model.Archive;
 import com.platform.model.dto.ArchiveDto;
 import com.platform.repository.ArchiveRepository;
+import com.platform.util.RoleUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -141,15 +142,10 @@ public class ArchiveService {
     }
 
     private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
-        List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "USER_0";
-        if (roles.contains("MODERATOR_ADMIN")) return "MODERATOR_ADMIN";
-        if (roles.contains("SUPER_ADMIN")) return "SUPER_ADMIN";
-        if (roles.contains("VYACHESLAV")) return "VYACHESLAV";
-        return "USER_0";
+        return RoleUtils.getUserRole(jwt);
     }
 
     private boolean isAdmin(String role) {
-        return "MODERATOR_ADMIN".equals(role) || "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
+        return RoleUtils.isAdmin(role);
     }
 }

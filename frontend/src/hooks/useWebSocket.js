@@ -21,7 +21,10 @@ export const useWebSocket = (roomSlug, onMessage, options = {}) => {
                 token = getToken();
             }
 
-            const wsUrl = `${WS_URL}/chat?room=${roomSlug}&token=${token}`;
+            // WebSocket не поддерживает заголовки напрямую, используем query param
+            // для production рекомендуется использовать wss и передавать токен в URL
+            // с защитой через TLS (параметр не виден в plain text)
+            const wsUrl = `${WS_URL}/chat?room=${roomSlug}&token=${encodeURIComponent(token)}`;
             const ws = new WebSocket(wsUrl);
             wsRef.current = ws;
 

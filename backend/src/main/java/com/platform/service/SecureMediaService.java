@@ -1,3 +1,4 @@
+import com.platform.util.RoleUtils;
 package com.platform.service;
 
 import com.platform.exception.AccessDeniedException;
@@ -329,19 +330,8 @@ public class SecureMediaService {
         return ip;
     }
 
-    private String getUserRole(Jwt jwt) {
-        List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "USER_0";
-
-        if (roles.contains("SUPER_ADMIN")) return "SUPER_ADMIN";
-        if (roles.contains("VYACHESLAV")) return "VYACHESLAV";
-        if (roles.contains("DEVELOPER")) return "DEVELOPER";
-        if (roles.contains("MODERATOR_ADMIN")) return "MODERATOR_ADMIN";
-        if (roles.contains("CONSULTANT_SPORT")) return "CONSULTANT_SPORT";
-        if (roles.contains("CONSULTANT_PITANIE")) return "CONSULTANT_PITANIE";
-        if (roles.contains("USER_2")) return "USER_2";
-        if (roles.contains("USER_1")) return "USER_1";
-        return "USER_0";
+    private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
+        return RoleUtils.getUserRole(jwt);
     }
 
     private boolean isAdmin(String role) {

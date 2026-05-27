@@ -1,17 +1,41 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './RoleSwitcher.css';
 import { ROLES, ROLE_LABELS, ROLE_ICONS } from '../../constants/roles';
+import { demoApi } from '../../services/api';
 
 const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'development';
 
 const RoleSwitcher = ({ onRoleChange }) => {
-    // Не показываем в production
-    if (!isDevelopment) {
-        return null;
-    }
     const [currentRole, setCurrentRole] = useState(() => {
-        return localStorage.getItem('demoRole') || ROLES.USER_0;
+        // Только для development
+        if (process.env.REACT_APP_ENVIRONMENT === 'development') {
+            return sessionStorage.getItem('demoRole') || 'USER_0';
+        }
+        // В production — реальные роли из Keycloak
+        const roles = getUserRoles();
+        return roles.length > 0 ? roles[0] : 'USER_0';
     });
+
+    useEffect(() => {
+        const loadDemoRole = async () => {
+            try {
+                const role = await demoApi.getDemoRole();
+                if (role) {
+                    setCurrentRole(role);
+                }
+            } catch (err) {
+                console.error('Failed to load demo role:', err);
+                const savedRole = sessionStorage.getItem('demoRole');
+                if (savedRole) {
+                    setCurrentRole(savedRole);
+                }
+            }
+        };
+
+        if (process.env.REACT_APP_ENVIRONMENT === 'development') {
+            loadDemoRole();
+        }
+    }, []);
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -44,22 +68,12 @@ const RoleSwitcher = ({ onRoleChange }) => {
     }, [isOpen]);
 
     const handleRoleChange = (roleId) => {
+        if (process.env.REACT_APP_ENVIRONMENT !== 'development') return;
+
         setCurrentRole(roleId);
-        localStorage.setItem('demoRole', roleId);
+        sessionStorage.setItem('demoRole', roleId);
 
-        if (window.keycloakMock) {
-            const isAdmin = roleId.includes('ADMIN') ||
-                           roleId.includes('CONSULTANT') ||
-                           roleId === ROLES.DEVELOPER ||
-                           roleId === ROLES.VYACHESLAV ||
-                           roleId === ROLES.SUPER_ADMIN;
-            window.keycloakMock.roles = isAdmin ? [ROLES.MODERATOR_ADMIN, ROLES.USER_2] : [roleId];
-        }
-
-        if (onRoleChange) {
-            onRoleChange(roleId);
-        }
-
+        if (onRoleChange) onRoleChange(roleId);
         setIsOpen(false);
         window.location.reload();
     };

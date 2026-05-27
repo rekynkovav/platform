@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import './Dashboard.css';
+import { dashboardApi, demoApi } from '../../services/api';
 import {
     initialBroadcastsGuests,
     initialExercises,
@@ -53,7 +54,26 @@ const Dashboard = () => {
     const [itemToDelete, setItemToDelete] = useState(null);
     const [editingItem, setEditingItem] = useState(null);
 
-    const demoRole = localStorage.getItem('demoRole');
+    const [demoRole, setDemoRole] = useState(null);
+
+    useEffect(() => {
+        const loadDemoRole = async () => {
+            if (process.env.REACT_APP_ENVIRONMENT === 'development') {
+                try {
+                    const role = await demoApi.getDemoRole();
+                    setDemoRole(role || null);
+                } catch (err) {
+                    console.error('Failed to load demo role:', err);
+                    const savedRole = sessionStorage.getItem('demoRole');
+                    setDemoRole(savedRole || null);
+                }
+            } else {
+                setDemoRole(null);
+            }
+        };
+
+        loadDemoRole();
+    }, []);
     const isAdmin = useMemo(() =>
         demoRole === 'MODERATOR_ADMIN' ||
         demoRole === 'DEVELOPER' ||
@@ -483,120 +503,139 @@ const Dashboard = () => {
             ];
 
     useEffect(() => {
-        try {
-            const savedData = localStorage.getItem('dashboardMenuData');
-            if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                // Проверяем, есть ли уже данные, если нет или их мало - добавляем/обновляем
-                let needsUpdate = false;
+        const loadDashboardData = async () => {
+            try {
+                const data = await dashboardApi.getMenuData();
+                setMenuData(data);
+                setError(null);
+            } catch (err) {
+                console.error('Error loading dashboard data from API:', err);
+                // Fallback для разработки
+                if (process.env.NODE_ENV === 'development') {
+                    try {
+                        const savedData = process.env.NODE_ENV === 'development'
+                            ? sessionStorage.getItem('dashboardMenuData')
+                            : null;
+                        if (savedData) {
+                            const parsedData = JSON.parse(savedData);
+                            // Проверяем, есть ли уже данные, если нет или их мало - добавляем/обновляем
+                            let needsUpdate = false;
 
-                if (!parsedData.broadcasts || parsedData.broadcasts.length < 50) {
-                    parsedData.broadcasts = initialBroadcasts;
-                    needsUpdate = true;
-                }
-                if (!parsedData['broadcasts-guests'] || parsedData['broadcasts-guests'].length < 50) {
-                    parsedData['broadcasts-guests'] = initialBroadcastsGuests;
-                    needsUpdate = true;
-                }
-                if (!parsedData.exercises || parsedData.exercises.length < 50) {
-                    parsedData.exercises = initialExercises;
-                    needsUpdate = true;
-                }
-                if (!parsedData.recommendations || parsedData.recommendations.length < 50) {
-                    parsedData.recommendations = initialRecommendations;
-                    needsUpdate = true;
-                }
-                if (!parsedData.hardening || parsedData.hardening.length < 50) {
-                    parsedData.hardening = initialHardening;
-                    needsUpdate = true;
-                }
-                if (!parsedData.about || parsedData.about.length < 50) {
-                    parsedData.about = initialAbout;
-                    needsUpdate = true;
-                }
-                if (!parsedData.newbies || parsedData.newbies.length < 50) {
-                    parsedData.newbies = initialNewbies;
-                    needsUpdate = true;
-                }
-                if (!parsedData['heart-voice'] || parsedData['heart-voice'].length < 50) {
-                    parsedData['heart-voice'] = initialHeartVoice;
-                    needsUpdate = true;
-                }
-                if (!parsedData.reflection || parsedData.reflection.length < 50) {
-                    parsedData.reflection = initialReflection;
-                    needsUpdate = true;
-                }
-                if (!parsedData.interviews || parsedData.interviews.length < 50) {
-                    parsedData.interviews = initialInterviews;
-                    needsUpdate = true;
-                }
-                if (!parsedData.participants || parsedData.participants.length < 50) {
-                    parsedData.participants = initialParticipants;
-                    needsUpdate = true;
-                }
-                if (!parsedData.motivation || parsedData.motivation.length < 50) {
-                    parsedData.motivation = initialMotivation;
-                    needsUpdate = true;
-                }
-                if (!parsedData.reviews || parsedData.reviews.length < 50) {
-                    parsedData.reviews = initialReviews;
-                    needsUpdate = true;
-                }
-                if (!parsedData.music || parsedData.music.length < 50) {
-                    parsedData.music = initialMusic;
-                    needsUpdate = true;
-                }
-                if (!parsedData.movies || parsedData.movies.length < 50) {
-                    parsedData.movies = initialMovies;
-                    needsUpdate = true;
-                }
-                if (!parsedData.literature || parsedData.literature.length < 50) {
-                    parsedData.literature = initialLiterature;
-                    needsUpdate = true;
-                }
-                if (!parsedData['about-timoshenko'] || parsedData['about-timoshenko'].length < 50) {
-                    parsedData['about-timoshenko'] = initialAboutTimoshenko;
-                    needsUpdate = true;
-                }
-                if (!parsedData.challenge || parsedData.challenge.length < 50) {
-                    parsedData.challenge = initialChallenge;
-                    needsUpdate = true;
-                }
+                            if (!parsedData.broadcasts || parsedData.broadcasts.length < 50) {
+                                parsedData.broadcasts = initialBroadcasts;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData['broadcasts-guests'] || parsedData['broadcasts-guests'].length < 50) {
+                                parsedData['broadcasts-guests'] = initialBroadcastsGuests;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.exercises || parsedData.exercises.length < 50) {
+                                parsedData.exercises = initialExercises;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.recommendations || parsedData.recommendations.length < 50) {
+                                parsedData.recommendations = initialRecommendations;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.hardening || parsedData.hardening.length < 50) {
+                                parsedData.hardening = initialHardening;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.about || parsedData.about.length < 50) {
+                                parsedData.about = initialAbout;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.newbies || parsedData.newbies.length < 50) {
+                                parsedData.newbies = initialNewbies;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData['heart-voice'] || parsedData['heart-voice'].length < 50) {
+                                parsedData['heart-voice'] = initialHeartVoice;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.reflection || parsedData.reflection.length < 50) {
+                                parsedData.reflection = initialReflection;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.interviews || parsedData.interviews.length < 50) {
+                                parsedData.interviews = initialInterviews;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.participants || parsedData.participants.length < 50) {
+                                parsedData.participants = initialParticipants;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.motivation || parsedData.motivation.length < 50) {
+                                parsedData.motivation = initialMotivation;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.reviews || parsedData.reviews.length < 50) {
+                                parsedData.reviews = initialReviews;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.music || parsedData.music.length < 50) {
+                                parsedData.music = initialMusic;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.movies || parsedData.movies.length < 50) {
+                                parsedData.movies = initialMovies;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.literature || parsedData.literature.length < 50) {
+                                parsedData.literature = initialLiterature;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData['about-timoshenko'] || parsedData['about-timoshenko'].length < 50) {
+                                parsedData['about-timoshenko'] = initialAboutTimoshenko;
+                                needsUpdate = true;
+                            }
+                            if (!parsedData.challenge || parsedData.challenge.length < 50) {
+                                parsedData.challenge = initialChallenge;
+                                needsUpdate = true;
+                            }
 
-                if (needsUpdate) {
-                    localStorage.setItem('dashboardMenuData', JSON.stringify(parsedData));
+                            if (needsUpdate) {
+                                if (process.env.NODE_ENV === 'development') {
+                                    sessionStorage.setItem('dashboardMenuData', JSON.stringify(parsedData));
+                                }
+                            }
+                            setMenuData(parsedData);
+                        } else {
+                            // Инициализация со всеми данными
+                            const initialData = {
+                                broadcasts: initialBroadcasts,
+                                'broadcasts-guests': initialBroadcastsGuests,
+                                exercises: initialExercises,
+                                recommendations: initialRecommendations,
+                                hardening: initialHardening,
+                                about: initialAbout,
+                                newbies: initialNewbies,
+                                'heart-voice': initialHeartVoice,
+                                reflection: initialReflection,
+                                interviews: initialInterviews,
+                                participants: initialParticipants,
+                                motivation: initialMotivation,
+                                reviews: initialReviews,
+                                music: initialMusic,
+                                movies: initialMovies,
+                                literature: initialLiterature,
+                                'about-timoshenko': initialAboutTimoshenko,
+                                challenge: initialChallenge
+                            };
+                            setMenuData(initialData);
+                            if (process.env.NODE_ENV === 'development') {
+                                sessionStorage.setItem('dashboardMenuData', JSON.stringify(initialData));
+                            }
+                        }
+                        setError(null);
+                    } catch (localError) {
+                        console.error('Error loading dashboard data from sessionStorage:', localError);
+                        setError('Не удалось загрузить данные дашборда');
+                    }
                 }
-                setMenuData(parsedData);
-            } else {
-                // Инициализация со всеми данными
-                const initialData = {
-                    broadcasts: initialBroadcasts,
-                    'broadcasts-guests': initialBroadcastsGuests,
-                    exercises: initialExercises,
-                    recommendations: initialRecommendations,
-                    hardening: initialHardening,
-                    about: initialAbout,
-                    newbies: initialNewbies,
-                    'heart-voice': initialHeartVoice,
-                    reflection: initialReflection,
-                    interviews: initialInterviews,
-                    participants: initialParticipants,
-                    motivation: initialMotivation,
-                    reviews: initialReviews,
-                    music: initialMusic,
-                    movies: initialMovies,
-                    literature: initialLiterature,
-                    'about-timoshenko': initialAboutTimoshenko,
-                    challenge: initialChallenge
-                };
-                setMenuData(initialData);
-                localStorage.setItem('dashboardMenuData', JSON.stringify(initialData));
             }
-            setError(null);
-        } catch (err) {
-            console.error('Ошибка загрузки данных дашборда:', err);
-            setError('Не удалось загрузить данные дашборда');
-        }
+        };
+        loadDashboardData();
     }, []);
 
     // Очистка blob URLs и таймеров при размонтировании
@@ -610,14 +649,26 @@ const Dashboard = () => {
         };
     }, []);
 
-    const saveMenuData = useCallback((data) => {
+    const saveMenuData = useCallback(async (data) => {
         try {
             setMenuData(data);
-            localStorage.setItem('dashboardMenuData', JSON.stringify(data));
+            await dashboardApi.saveMenuData(data);
             setError(null);
         } catch (err) {
             console.error('Ошибка сохранения данных дашборда:', err);
-            setError('Не удалось сохранить данные дашборда');
+            // Fallback для разработки
+            if (process.env.NODE_ENV === 'development') {
+                try {
+                    if (process.env.NODE_ENV === 'development') {
+                        sessionStorage.setItem('dashboardMenuData', JSON.stringify(data));
+                    }
+                } catch (localError) {
+                    console.error('Error saving to sessionStorage:', localError);
+                    setError('Не удалось сохранить данные дашборда');
+                }
+            } else {
+                setError('Не удалось сохранить данные дашборда');
+            }
         }
     }, []);
 

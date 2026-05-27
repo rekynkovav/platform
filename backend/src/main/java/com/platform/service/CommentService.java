@@ -1,3 +1,4 @@
+import com.platform.util.RoleUtils;
 package com.platform.service;
 
 import com.platform.exception.AccessDeniedException;
@@ -115,12 +116,7 @@ public class CommentService {
     }
 
     private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
-        List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "USER_0";
-        if (roles.contains("MODERATOR_ADMIN")) return "MODERATOR_ADMIN";
-        if (roles.contains("SUPER_ADMIN")) return "SUPER_ADMIN";
-        if (roles.contains("VYACHESLAV")) return "VYACHESLAV";
-        return "USER_0";
+        return RoleUtils.getUserRole(jwt);
     }
 
     private boolean isAdmin(String role) {

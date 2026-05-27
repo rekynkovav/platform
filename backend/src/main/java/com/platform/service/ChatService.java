@@ -339,6 +339,43 @@ public class ChatService {
     }
 
     /**
+     * Метод для получения сообщений с пагинацией
+     */
+    @Timed(value = "chat.get_messages_by_room_paginated", description = "Time to get paginated messages by room")
+    @Cacheable(value = "chatMessagesPaginated", key = "#roomSlug + '_' + #page + '_' + #size")
+    public Page<MessageDto> getMessagesByRoomWithPagination(String roomSlug, int page, int size, String userRole) {
+        try {
+            log.debug("Getting paginated messages for room: {}, page: {}, size: {}, userRole: {}",
+                     roomSlug, page, size, userRole);
+
+            ChatRoom room = chatRoomRepository.findBySlug(roomSlug)
+                    .orElseThrow(() -> new ResourceNotFoundException("Chat room not found: " + roomSlug));
+
+            // Проверка прав
+            if (!chatRoomService.hasPermission(room.getId(), userRole, "read")) {
+                log.warn("Access denied for user role {} to room {}", userRole, roomSlug);
+                throw new AccessDeniedException("Нет прав на чтение комнаты: " + roomSlug);
+            }
+
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<Message> messages = messageRepository.findByRoomId(room.getId(), pageable);
+
+            log.debug("Retrieved {} messages for room {} (page {})", messages.getNumberOfElements(), roomSlug, page);
+            return messages.map(this::toDto);
+
+        } catch (ResourceNotFoundException e) {
+            log.error("Chat room not found: {}", roomSlug, e);
+            throw e;
+        } catch (AccessDeniedException e) {
+            log.error("Access denied for room {}: {}", roomSlug, e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Error getting paginated messages for room {}: {}", roomSlug, e.getMessage(), e);
+            throw new RuntimeException("Ошибка при получении сообщений: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Потолочный метод отправки сообщения — с проверкой прав
      */
     @CacheEvict(value = {"chatMessages", "unreadNotifications", "allNotifications"}, allEntries = true)

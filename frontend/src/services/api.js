@@ -36,7 +36,9 @@ class ApiClient {
             (error) => {
                 if (error.response?.status === 401) {
                     // Token expired — logout
-                    localStorage.clear();
+                    if (process.env.NODE_ENV === 'development') {
+                        sessionStorage.clear();
+                    }
                     sessionStorage.clear();
                     window.location.href = '/';
                 }
@@ -97,15 +99,23 @@ export const chatApi = {
         api.get(`/chat/${roomSlug}/messages`, { page, size }),
     sendMessage: (roomSlug, data) =>
         api.post(`/chat/${roomSlug}/messages`, data),
+    getUsers: (roomSlug) => api.get(`/chat/${roomSlug}/users`),
     getQuestions: (mode) => api.get(`/chat/questions/${mode}`),
-    sendQuestion: (mode, data) => api.post(`/chat/questions/${mode}`, data)
+    sendQuestion: (mode, data) => api.post(`/chat/questions/${mode}`, data),
+    // Новые методы для QuestionDto
+    getQuestionsDto: (mode) => api.get(`/chat/questions-dto/${mode}`),
+    sendQuestionDto: (mode, data) => api.post(`/chat/questions-dto/${mode}`, data),
+    answerQuestionDto: (questionId, data) => api.post(`/chat/questions-dto/${questionId}/answer`, data),
+    deleteQuestionDto: (questionId) => api.delete(`/chat/questions-dto/${questionId}`),
+    archiveAnsweredQuestionsDto: (mode) => api.post(`/chat/questions-dto/${mode}/archive`)
 };
 
 export const paymentApi = {
     create: (data) => api.post('/payments', data),
     getById: (id) => api.get(`/payments/${id}`),
     getUserPayments: () => api.get('/payments/user'),
-    confirm: (id, data) => api.post(`/payments/${id}/confirm`, data)
+    confirm: (id, data) => api.post(`/payments/${id}/confirm`, data),
+    getPaymentQR: (id) => api.get(`/payments/${id}/qr`)
 };
 
 export const userApi = {
@@ -124,6 +134,34 @@ export const adminApi = {
     getStats: () => api.get('/admin/stats'),
     getUsers: (page, size) => api.get('/admin/users', { page, size }),
     updateUserRole: (userId, role) => api.put(`/admin/users/${userId}/role`, { role })
+};
+
+export const dashboardApi = {
+    getMenuData: () => api.get('/dashboard/menu'),
+    saveMenuData: (data) => api.post('/dashboard/menu', data)
+};
+
+export const feedApi = {
+    getMainFeed: () => api.get('/feed/main'),
+    getNutritionFeed: () => api.get('/feed/nutrition'),
+    createPost: (data) => api.post('/feed/posts', data),
+    updatePost: (id, data) => api.put(`/feed/posts/${id}`, data),
+    deletePost: (id) => api.delete(`/feed/posts/${id}`)
+};
+
+export const demoApi = {
+    getDemoRole: () => api.get('/demo/role'),
+    setDemoRole: (role) => api.post('/demo/role', { role }),
+    getWillAttendCounts: () => api.get('/demo/will-attend-counts'),
+    saveWillAttendCounts: (counts) => api.post('/demo/will-attend-counts', counts),
+    hasUserAttended: (broadcastId, userId) => api.get(`/demo/attended/${broadcastId}/${userId}`),
+    markUserAttended: (broadcastId, userId) => api.post(`/demo/attended/${broadcastId}/${userId}`),
+    getDashboardMenuData: () => api.get('/demo/dashboard-menu'),
+    saveDashboardMenuData: (data) => api.post('/demo/dashboard-menu', data),
+    getBroadcasts: () => api.get('/demo/broadcasts'),
+    saveBroadcasts: (broadcasts) => api.post('/demo/broadcasts', broadcasts),
+    getScheduledEvents: () => api.get('/demo/scheduled-events'),
+    saveScheduledEvents: (events) => api.post('/demo/scheduled-events', events)
 };
 
 export default api;

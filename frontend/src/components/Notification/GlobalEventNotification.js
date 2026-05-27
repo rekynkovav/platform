@@ -14,7 +14,9 @@ const GlobalEventNotification = ({ onEventClick }) => {
     useEffect(() => {
         const checkEvents = () => {
             try {
-                const savedEvents = localStorage.getItem('scheduledEvents');
+                const savedEvents = process.env.NODE_ENV === 'development'
+                    ? sessionStorage.getItem('scheduledEvents')
+                    : null;
                 if (!savedEvents) {
                     setActiveEvent(null);
                     return;
@@ -59,7 +61,7 @@ const GlobalEventNotification = ({ onEventClick }) => {
             }
         } catch (error) {
             console.error('Ошибка при проверке событий:', error);
-            setError('Не удалось загрузить события. Проверьте данные в localStorage.');
+            setError('Не удалось загрузить события. Проверьте данные в sessionStorage.');
         }
         };
 
@@ -68,9 +70,9 @@ const GlobalEventNotification = ({ onEventClick }) => {
         // Проверяем каждую секунду для быстрой реакции на изменения
         const interval = setInterval(checkEvents, 1000);
 
-        // Слушаем изменения в localStorage для немедленной реакции
+        // Слушаем изменения в sessionStorage для немедленной реакции (только в development)
         const handleStorageChange = (e) => {
-            if (e.key === 'scheduledEvents' || !e.key) {
+            if (process.env.NODE_ENV === 'development' && (e.key === 'scheduledEvents' || !e.key)) {
                 checkEvents();
             }
         };

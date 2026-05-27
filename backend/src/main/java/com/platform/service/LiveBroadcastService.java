@@ -105,7 +105,7 @@ public class LiveBroadcastService {
 
     @Timed(value = "broadcast.get_active", description = "Time to get active broadcasts")
     @Transactional(readOnly = true, timeout = 15)
-    @Cacheable(value = "broadcasts", key = "'active_' + T(java.lang.Thread).currentThread().getId() % 10")
+    @Cacheable(value = "broadcasts", key = "'active'", unless = "#result == null || #result.isEmpty()")
     public List<LiveBroadcast> getActiveBroadcasts() {
         return broadcastRepository.findByStatus(BroadcastStatus.LIVE);
     }

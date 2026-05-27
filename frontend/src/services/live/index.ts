@@ -139,7 +139,7 @@ export type {
 export function isLiveSystemReady(): boolean {
   // Проверяем, что все необходимые зависимости доступны
   const checks = {
-    localStorage: typeof localStorage !== 'undefined',
+    sessionStorage: typeof sessionStorage !== 'undefined',
     webSocket: typeof WebSocket !== 'undefined',
     mediaSource: typeof MediaSource !== 'undefined',
     fetch: typeof fetch !== 'undefined'
@@ -180,13 +180,17 @@ export async function initializeLiveSystem(options?: {
     // Инициализируем демо-данные
     try {
       // Загружаем или создаем демо-трансляции
-      const saved = localStorage.getItem('demoLiveBroadcasts');
+      const saved = process.env.NODE_ENV === 'development'
+          ? sessionStorage.getItem('demoLiveBroadcasts')
+          : null;
       if (!saved) {
         const demoBroadcasts = [
           generateDemoBroadcast({ id: 'demo-live-001', status: 'live', title: 'Прямой эфир: Основы здорового питания' }),
           generateDemoBroadcast({ id: 'demo-live-002', status: 'scheduled', title: 'Аудио трансляция: Медитация' })
         ];
-        localStorage.setItem('demoLiveBroadcasts', JSON.stringify(demoBroadcasts));
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem('demoLiveBroadcasts', JSON.stringify(demoBroadcasts));
+        }
       }
     } catch (error) {
       console.warn('[LiveSystem] Ошибка инициализации демо-данных:', error);
@@ -212,7 +216,9 @@ export function cleanupLiveSystem(): void {
     // mockWebSocket.disconnect();
 
     // Очищаем локальное хранилище (только демо-данные)
-    localStorage.removeItem('demoLiveBroadcasts');
+    if (process.env.NODE_ENV === 'development') {
+        sessionStorage.removeItem('demoLiveBroadcasts');
+    }
 
     console.log('[LiveSystem] Очистка завершена');
   } catch (error) {

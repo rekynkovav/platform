@@ -61,7 +61,9 @@ function liveSessionReducer(state: LiveSession, action: LiveSessionAction): Live
   switch (action.type) {
     case 'SET_BROADCAST':
       const broadcast = action.payload;
-      const demoRole = localStorage.getItem('demoRole') || 'USER_1';
+      const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+        ? sessionStorage.getItem('demoRole') || 'USER_1'
+        : 'USER_1';
 
       return {
         ...state,

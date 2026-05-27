@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { getUsername } from '../../keycloak';
+import { getUsername, getUserId } from '../../keycloak';
 import { chatApi } from '../../services/api';
 import './Questions.css';
 
@@ -12,6 +12,7 @@ const Questions = () => {
     const [questionMode, setQuestionMode] = useState('general'); // general, nutrition, vyacheslav
     const [vyacheslavView, setVyacheslavView] = useState('personal'); // personal, general - для Вячеслава
     const currentUser = getUsername();
+    const userId = getUserId();
 
     // Состояния для модального окна подтверждения удаления одного вопроса
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -32,8 +33,10 @@ const Questions = () => {
         setError(null);
     };
 
-    // Получаем роль из localStorage (от переключателя)
-    const demoRole = localStorage.getItem('demoRole');
+    // Получаем роль из sessionStorage (только для development)
+    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+        ? sessionStorage.getItem('demoRole')
+        : null;
 
     // Определяем ID роли (уникальный идентификатор)
     const getRoleId = (role) => {
@@ -86,17 +89,39 @@ const Questions = () => {
     };
 
     // Загружаем вопросы с бэкенда
-    useEffect(() => {
-        const loadQuestions = async () => {
-            try {
-                const data = await chatApi.getQuestions(questionMode);
-                setQuestions(sortQuestions(data));
-            } catch (error) {
-                console.error('Ошибка загрузки вопросов:', error);
-                setError('Не удалось загрузить вопросы');
-            }
-        };
+    const loadQuestions = async () => {
+        try {
+            setError(null);
+            const data = await chatApi.getQuestionsDto(questionMode);
+            setQuestions(sortQuestions(data || []));
+        } catch (err) {
+            console.error('Failed to load questions:', err);
 
+            let errorMessage = 'Не удалось загрузить вопросы';
+            if (err.response?.status === 401) {
+                errorMessage = 'Требуется авторизация';
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Нет доступа к этому разделу';
+            } else if (err.response?.status === 404) {
+                errorMessage = 'Раздел не найден';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Слишком много запросов. Попробуйте позже';
+            } else if (err.response?.status >= 500) {
+                errorMessage = 'Ошибка сервера';
+            }
+
+            setError(errorMessage);
+            // fallback на sessionStorage при ошибке API (только для разработки)
+            if (process.env.NODE_ENV === 'development') {
+                const savedQuestions = process.env.NODE_ENV === 'development'
+                    ? sessionStorage.getItem(`questions_${questionMode}`)
+                    : null;
+                if (savedQuestions) setQuestions(sortQuestions(JSON.parse(savedQuestions)));
+            }
+        }
+    };
+
+    useEffect(() => {
         loadQuestions();
 
         // Опционально: обновляем вопросы каждые 30 секунд
@@ -130,23 +155,29 @@ const Questions = () => {
         }
 
         try {
-            const questionData = {
-                content: newQuestion.trim(),
-                mode: questionMode
-            };
-
-            await chatApi.sendQuestion(questionMode, questionData);
-
-            // Обновляем список вопросов
-            const data = await chatApi.getQuestions(questionMode);
-            setQuestions(sortQuestions(data));
+            await chatApi.sendQuestionDto(questionMode, {
+                question: newQuestion.trim()
+            });
+            await loadQuestions();
             setNewQuestion('');
-
-            // Показываем уведомление об отправке
             showQuestionSentNotification();
-        } catch (error) {
-            console.error('Ошибка отправки вопроса:', error);
-            alert('Не удалось отправить вопрос. Попробуйте позже.');
+        } catch (err) {
+            console.error('Failed to send question:', err);
+
+            let errorMessage = 'Ошибка отправки вопроса';
+            if (err.response?.status === 401) {
+                errorMessage = 'Требуется авторизация';
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Нет прав для отправки вопроса в этот раздел';
+            } else if (err.response?.status === 404) {
+                errorMessage = 'Раздел не найден';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Слишком много запросов. Попробуйте позже';
+            } else if (err.response?.status >= 500) {
+                errorMessage = 'Ошибка сервера';
+            }
+
+            alert(errorMessage);
         }
     };
 
@@ -202,23 +233,31 @@ const Questions = () => {
         const { questionId, answer } = pendingAnswerData;
 
         try {
-            // Отправляем ответ на бэкенд
-            await chatApi.sendMessage(`questions-${questionMode}`, {
-                content: answer,
-                questionId: questionId,
-                isAnswer: true
-            });
-
-            // Обновляем список вопросов
-            const data = await chatApi.getQuestions(questionMode);
-            setQuestions(sortQuestions(data));
-
+            // Отправляем ответ на бэкенд через новый эндпоинт
+            await chatApi.answerQuestionDto(questionId, { answer: answer.trim() });
+            await loadQuestions();
             setAnswerText({ ...answerText, [questionId]: '' });
             setShowAnswerConfirm(false);
             setPendingAnswerData(null);
-        } catch (error) {
-            console.error('Ошибка отправки ответа:', error);
-            alert('Не удалось отправить ответ. Попробуйте позже.');
+        } catch (err) {
+            console.error('Failed to send answer:', err);
+
+            let errorMessage = 'Ошибка отправки ответа';
+            if (err.response?.status === 401) {
+                errorMessage = 'Требуется авторизация';
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Нет прав для ответа на этот вопрос';
+            } else if (err.response?.status === 404) {
+                errorMessage = 'Вопрос не найден';
+            } else if (err.response?.status === 409) {
+                errorMessage = 'На этот вопрос уже дан ответ';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Слишком много запросов. Попробуйте позже';
+            } else if (err.response?.status >= 500) {
+                errorMessage = 'Ошибка сервера';
+            }
+
+            alert(errorMessage);
         }
     };
 
@@ -256,18 +295,29 @@ const Questions = () => {
 
         try {
             // Удаляем вопрос через API
-            // TODO: Добавить endpoint для удаления вопросов в бэкенде
-            // await chatApi.deleteQuestion(questionToDelete.id);
-
-            // Пока просто обновляем список
-            const data = await chatApi.getQuestions(questionMode);
-            setQuestions(sortQuestions(data));
-
+            await chatApi.deleteQuestionDto(questionToDelete.id);
+            await loadQuestions();
             setShowDeleteConfirm(false);
             setQuestionToDelete(null);
-        } catch (error) {
-            console.error('Ошибка удаления вопроса:', error);
-            alert('Не удалось удалить вопрос. Попробуйте позже.');
+        } catch (err) {
+            console.error('Failed to delete question:', err);
+
+            let errorMessage = 'Ошибка удаления вопроса';
+            if (err.response?.status === 401) {
+                errorMessage = 'Требуется авторизация';
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Нет прав для удаления этого вопроса';
+            } else if (err.response?.status === 404) {
+                errorMessage = 'Вопрос не найден';
+            } else if (err.response?.status === 409) {
+                errorMessage = 'Нельзя удалить неотвеченный вопрос';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Слишком много запросов. Попробуйте позже';
+            } else if (err.response?.status >= 500) {
+                errorMessage = 'Ошибка сервера';
+            }
+
+            alert(errorMessage);
         }
     };
 
@@ -290,17 +340,26 @@ const Questions = () => {
     // Функция для очистки отвеченных вопросов (архивирование)
     const executeBulkDelete = async () => {
         try {
-            // TODO: Добавить endpoint для массового архивирования вопросов в бэкенде
-            // await chatApi.archiveAnsweredQuestions(questionMode);
-
-            // Пока просто обновляем список
-            const data = await chatApi.getQuestions(questionMode);
-            setQuestions(sortQuestions(data));
-
+            await chatApi.archiveAnsweredQuestionsDto(questionMode);
+            await loadQuestions();
             setShowBulkDeleteConfirm(false);
-        } catch (error) {
-            console.error('Ошибка очистки вопросов:', error);
-            alert('Не удалось очистить список вопросов. Попробуйте позже.');
+        } catch (err) {
+            console.error('Failed to archive questions:', err);
+
+            let errorMessage = 'Ошибка архивации';
+            if (err.response?.status === 401) {
+                errorMessage = 'Требуется авторизация';
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Нет прав для архивации вопросов';
+            } else if (err.response?.status === 404) {
+                errorMessage = 'Раздел не найден';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Слишком много запросов. Попробуйте позже';
+            } else if (err.response?.status >= 500) {
+                errorMessage = 'Ошибка сервера';
+            }
+
+            alert(errorMessage);
         }
     };
 

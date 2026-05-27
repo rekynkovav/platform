@@ -56,7 +56,8 @@ function App() {
     };
 
     const handleLogin = () => {
-        const loginUrl = 'http://localhost:8080/auth/realms/platform/protocol/openid-connect/auth?client_id=platform-frontend&redirect_uri=' + encodeURIComponent(window.location.origin) + '&response_type=code&scope=openid';
+        const keycloakUrl = process.env.REACT_APP_KEYCLOAK_URL || 'http://localhost:8080/auth';
+        const loginUrl = `${keycloakUrl}/realms/platform/protocol/openid-connect/auth?client_id=platform-frontend&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=code&scope=openid`;
         window.location.href = loginUrl;
     };
 

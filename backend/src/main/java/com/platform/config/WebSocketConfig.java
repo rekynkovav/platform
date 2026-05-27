@@ -20,14 +20,22 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        // Чат (существующий функционал с SockJS и interceptor)
+        // Чат с поддержкой заголовков и CORS
         registry.addHandler(chatWebSocketHandler, "/ws/chat")
                 .addInterceptors(handshakeInterceptor)
-                .setAllowedOrigins("*")
+                .setAllowedOrigins(
+                    "http://localhost:3000",
+                    "http://localhost:3001",
+                    "https://platform.local"
+                )
                 .withSockJS();
 
-        // Статистика трансляций (новый функционал без SockJS)
+        // Статистика трансляций
         registry.addHandler(broadcastStatsWebSocketHandler, "/ws/broadcast/{broadcastId}/stats")
-                .setAllowedOrigins("*");
+                .setAllowedOrigins(
+                    "http://localhost:3000",
+                    "http://localhost:3001",
+                    "https://platform.local"
+                );
     }
 }

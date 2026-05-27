@@ -46,4 +46,8 @@ public class ChatRoom {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
 }

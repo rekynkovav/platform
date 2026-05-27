@@ -69,7 +69,9 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
 
   // Определяем текущего пользователя и права доступа
   useEffect(() => {
-    const demoRole = localStorage.getItem('demoRole');
+    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+        ? sessionStorage.getItem('demoRole')
+        : null;
     let author = 'Пользователь';
     let avatarUrl = '';
 
@@ -140,15 +142,17 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
     } catch (error) {
       console.error('Failed to load messages from API:', error);
       setError('Не удалось загрузить сообщения. Проверьте подключение к интернету.');
-      // Fallback к localStorage
+      // Fallback к sessionStorage
       loadMessagesFromStorage(room);
     }
   }, []);
 
-  // Загрузка из localStorage
+  // Загрузка из sessionStorage
   const loadMessagesFromStorage = useCallback((room: string) => {
     const key = `${storageKeyPrefix}_${room}`;
-    const savedMessages = localStorage.getItem(key);
+    const savedMessages = process.env.NODE_ENV === 'development'
+        ? sessionStorage.getItem(key)
+        : null;
 
     const FORCE_TEST_MESSAGES = true;
 
@@ -182,7 +186,7 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
 
         setMessages(messages);
       } catch (e) {
-        console.warn('Corrupted localStorage data:', e);
+        console.warn('Corrupted sessionStorage data:', e);
         setError('Ошибка загрузки данных из локального хранилища');
         setMessages([]);
       }
@@ -265,7 +269,9 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
       }
 
       setMessages(initialMessages);
-      localStorage.setItem(key, JSON.stringify(initialMessages));
+      if (process.env.NODE_ENV === 'development') {
+          sessionStorage.setItem(key, JSON.stringify(initialMessages));
+      }
     }
     setLoading(false);
   }, [storageKeyPrefix]);
@@ -298,7 +304,9 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
 
     // Логирование текстового сообщения
     if (content?.trim()) {
-      const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+      const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+          ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
+          : 'UNKNOWN';
       const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                      currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
@@ -375,13 +383,17 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
       const key = `${storageKeyPrefix}_${currentRoom}`;
       let existing: ChatMessage[];
       try {
-        const saved = localStorage.getItem(key);
+        const saved = process.env.NODE_ENV === 'development'
+            ? sessionStorage.getItem(key)
+            : null;
         existing = saved ? JSON.parse(saved) : [];
       } catch (e) {
         existing = [];
         setError('Ошибка сохранения сообщения в локальное хранилище');
       }
-      localStorage.setItem(key, JSON.stringify([...existing, message]));
+      if (process.env.NODE_ENV === 'development') {
+          sessionStorage.setItem(key, JSON.stringify([...existing, message]));
+      }
 
       return message;
     }
@@ -393,7 +405,9 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
     setError(null);
 
     // Логирование загрузки файла
-    const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+    const demoRole = process.env.NODE_ENV === 'development'
+        ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
+        : 'UNKNOWN';
     const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                    currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
@@ -428,10 +442,12 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
     }
   }, [currentRoom]);
 
-  // Старая функция для совместимости (localStorage)
+  // Старая функция для совместимости (sessionStorage)
   const uploadFile = useCallback((file: File): Promise<ChatMessage> => {
-    // Логирование загрузки файла (localStorage режим)
-    const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+    // Логирование загрузки файла (sessionStorage режим)
+    const demoRole = process.env.NODE_ENV === 'development'
+        ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
+        : 'UNKNOWN';
     const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                    currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
@@ -462,13 +478,17 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
         const key = `${storageKeyPrefix}_${currentRoom}`;
         let existing: ChatMessage[];
         try {
-          const saved = localStorage.getItem(key);
+          const saved = process.env.NODE_ENV === 'development'
+            ? sessionStorage.getItem(key)
+            : null;
           existing = saved ? JSON.parse(saved) : [];
         } catch (e) {
           existing = [];
           setError('Ошибка сохранения файла в локальное хранилище');
         }
-        localStorage.setItem(key, JSON.stringify([...existing, message]));
+        if (process.env.NODE_ENV === 'development') {
+          sessionStorage.setItem(key, JSON.stringify([...existing, message]));
+      }
 
         resolve(message);
       };
@@ -486,7 +506,9 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
     if (!newContent.trim()) return;
 
     // Логирование редактирования
-    const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+    const demoRole = process.env.NODE_ENV === 'development'
+        ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
+        : 'UNKNOWN';
     const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                    currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
@@ -508,7 +530,9 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
       );
       if (!useApi) {
         const key = `${storageKeyPrefix}_${currentRoom}`;
-        localStorage.setItem(key, JSON.stringify(updated));
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem(key, JSON.stringify(updated));
+        }
       }
       return updated;
     });
@@ -519,7 +543,9 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
     if (!window.confirm('Удалить это сообщение?')) return false;
 
     // Логирование удаления
-    const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+    const demoRole = process.env.NODE_ENV === 'development'
+        ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
+        : 'UNKNOWN';
     const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                    currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
@@ -538,7 +564,9 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
       const updated = prev.filter(msg => msg.id !== msgId);
       if (!useApi) {
         const key = `${storageKeyPrefix}_${currentRoom}`;
-        localStorage.setItem(key, JSON.stringify(updated));
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem(key, JSON.stringify(updated));
+        }
       }
       return updated;
     });
@@ -565,7 +593,9 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
 
         if (useApi) {
           // Логирование голосового сообщения (API режим)
-          const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+          const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+          ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
+          : 'UNKNOWN';
           const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                          currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
@@ -600,8 +630,10 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
             setUploading(false);
           }
         } else {
-          // Логирование голосового сообщения (localStorage режим)
-          const demoRole = localStorage.getItem('demoRole') || 'UNKNOWN';
+          // Логирование голосового сообщения (sessionStorage режим)
+          const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+          ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
+          : 'UNKNOWN';
           const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                          currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
@@ -628,7 +660,9 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
             setMessages(prev => {
               const updated = [...prev, message];
               const key = `${storageKeyPrefix}_${currentRoom}`;
-              localStorage.setItem(key, JSON.stringify(updated));
+              if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem(key, JSON.stringify(updated));
+        }
               return updated;
             });
           };

@@ -152,7 +152,7 @@ export class MockWebSocketService {
   private initialize(): void {
     console.log('[MockWebSocket] Инициализация мок-сервиса');
 
-    // Загружаем демо-трансляции из localStorage или создаем по умолчанию
+    // Загружаем демо-трансляции из sessionStorage или создаем по умолчанию (только в development)
     this.loadDemoBroadcasts();
 
     // Имитация периодического пинга
@@ -168,7 +168,9 @@ export class MockWebSocketService {
 
   private loadDemoBroadcasts(): void {
     try {
-      const saved = localStorage.getItem('demoLiveBroadcasts');
+      const saved = process.env.NODE_ENV === 'development'
+        ? sessionStorage.getItem('demoLiveBroadcasts')
+        : null;
       if (saved) {
         this.config.demoBroadcasts = JSON.parse(saved);
         console.log('[MockWebSocket] Загружены демо-трансляции:', this.config.demoBroadcasts.length);
@@ -183,7 +185,9 @@ export class MockWebSocketService {
   }
 
   private saveDemoBroadcasts(): void {
-    localStorage.setItem('demoLiveBroadcasts', JSON.stringify(this.config.demoBroadcasts));
+    if (process.env.NODE_ENV === 'development') {
+      sessionStorage.setItem('demoLiveBroadcasts', JSON.stringify(this.config.demoBroadcasts));
+    }
   }
 
   private generateDemoBroadcasts(): LiveBroadcast[] {

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getUsername } from '../../keycloak';
+import { eventsApi, feedbackApi } from '../../services/api';
 import './EventsHub.css';
 
 const EventsHub = () => {
@@ -40,8 +41,10 @@ const EventsHub = () => {
         { id: 'challenge', title: 'Годовой челлендж', isHighlighted: true, subItems: [] }
     ];
 
-    // Получаем роль из localStorage
-    const demoRole = localStorage.getItem('demoRole');
+    // Получаем роль из sessionStorage (только для development)
+    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+        ? sessionStorage.getItem('demoRole')
+        : null;
     const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
     const currentUser = getUsername();
 
@@ -63,7 +66,9 @@ const EventsHub = () => {
     }, []);
 
     useEffect(() => {
-        const savedRoles = localStorage.getItem('demoRole');
+        const savedRoles = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
         let roles = [];
         if (savedRoles === 'MODERATOR_ADMIN' || savedRoles === 'SUPER_ADMIN' || savedRoles === 'VYACHESLAV' || savedRoles === 'DEVELOPER') {
             roles = ['MODERATOR_ADMIN', 'USER_0'];
@@ -85,11 +90,14 @@ const EventsHub = () => {
     }, []);
 
     // Загрузка материалов для раздела
-    const getMaterialsForSection = (sectionId) => {
-        const savedArchive = localStorage.getItem('archiveMaterials');
-        if (!savedArchive) return [];
-        const archive = JSON.parse(savedArchive);
-        return archive.filter(m => m.menuId === sectionId);
+    const getMaterialsForSection = async (sectionId) => {
+        try {
+            const materials = await eventsApi.getMaterialsBySection(sectionId);
+            return materials;
+        } catch (err) {
+            console.error('Failed to load materials for section:', sectionId, err);
+            return [];
+        }
     };
 
     // Функция для определения типа файла
@@ -195,27 +203,46 @@ const EventsHub = () => {
             isRead: false
         };
 
-        const savedFeedbacks = localStorage.getItem('userFeedbacks');
-        let feedbacks = savedFeedbacks ? JSON.parse(savedFeedbacks) : [];
-        feedbacks.unshift(feedback);
-        localStorage.setItem('userFeedbacks', JSON.stringify(feedbacks));
+        try {
+            // Сохраняем отзыв через API
+            await feedbackApi.submitFeedback(feedback);
 
-        const savedQuestions = localStorage.getItem('userQuestions');
-        let questions = savedQuestions ? JSON.parse(savedQuestions) : [];
+            // Создаем вопрос на основе отзыва
+            const questionFeedback = {
+                id: Date.now(),
+                question: `Отзыв/Предложение от ${currentUser}: ${feedbackText.substring(0, 100)}${feedbackText.length > 100 ? '...' : ''}`,
+                fullText: feedbackText,
+                answer: '',
+                author: currentUser,
+                date: new Date().toISOString().split('T')[0],
+                isAnswered: false,
+                isFeedback: true
+            };
 
-        const questionFeedback = {
-            id: Date.now(),
-            question: `Отзыв/Предложение от ${currentUser}: ${feedbackText.substring(0, 100)}${feedbackText.length > 100 ? '...' : ''}`,
-            fullText: feedbackText,
-            answer: '',
-            author: currentUser,
-            date: new Date().toISOString().split('T')[0],
-            isAnswered: false,
-            isFeedback: true
-        };
+            await feedbackApi.submitQuestion(questionFeedback);
+        } catch (err) {
+            console.error('Failed to submit feedback:', err);
+            // Fallback для разработки
+            if (process.env.NODE_ENV === 'development') {
+                const savedFeedbacks = process.env.NODE_ENV === 'development'
+                    ? sessionStorage.getItem('userFeedbacks')
+                    : null;
+                let feedbacks = savedFeedbacks ? JSON.parse(savedFeedbacks) : [];
+                feedbacks.unshift(feedback);
+                if (process.env.NODE_ENV === 'development') {
+                    sessionStorage.setItem('userFeedbacks', JSON.stringify(feedbacks));
+                }
 
-        questions.unshift(questionFeedback);
-        localStorage.setItem('userQuestions', JSON.stringify(questions));
+                const savedQuestions = process.env.NODE_ENV === 'development'
+                    ? sessionStorage.getItem('userQuestions')
+                    : null;
+                let questions = savedQuestions ? JSON.parse(savedQuestions) : [];
+                questions.unshift(questionFeedback);
+                if (process.env.NODE_ENV === 'development') {
+                    sessionStorage.setItem('userQuestions', JSON.stringify(questions));
+                }
+            }
+        }
 
         setNotification('Ваш отзыв отправлен администратору!');
         setTimeout(() => setNotification(null), 3000);
@@ -225,7 +252,7 @@ const EventsHub = () => {
         setActiveMenu(null);
     };
 
-    const handleAddMaterial = () => {
+    const handleAddMaterial = async () => {
         if (!isAdmin) {
             alert('Только администратор может добавлять материалы');
             return;
@@ -236,42 +263,37 @@ const EventsHub = () => {
             return;
         }
 
-        const savedArchive = localStorage.getItem('archiveMaterials');
-        let archive = savedArchive ? JSON.parse(savedArchive) : [];
+        try {
+            if (editingMaterial) {
+                // Редактирование существующего материала
+                const updatedMaterialData = {
+                    ...newMaterial,
+                    editedAt: new Date().toISOString()
+                };
+                await eventsApi.updateMaterial(editingMaterial.id, updatedMaterialData);
+                setNotification('Материал обновлён!');
+                setEditingMaterial(null);
+            } else {
+                // Создание нового материала
+                const materialData = {
+                    ...newMaterial,
+                    date: new Date().toISOString().split('T')[0],
+                    time: new Date().toLocaleTimeString(),
+                    author: 'Admin',
+                    menuId: activeMenu
+                };
+                await eventsApi.createMaterial(materialData);
+                setNotification('Материал добавлен в архив!');
+            }
 
-        if (editingMaterial) {
-            // Редактирование существующего материала
-            archive = archive.map(m =>
-                m.id === editingMaterial.id
-                    ? {
-                        ...m,
-                        ...newMaterial,
-                        editedAt: new Date().toISOString()
-                    }
-                    : m
-            );
-            setNotification('Материал обновлён!');
-            setEditingMaterial(null);
-        } else {
-            // Создание нового материала
-            const material = {
-                id: Date.now(),
-                ...newMaterial,
-                date: new Date().toISOString().split('T')[0],
-                time: new Date().toLocaleTimeString(),
-                author: 'Admin',
-                menuId: activeMenu
-            };
-            archive.unshift(material);
-            setNotification('Материал добавлен в архив!');
+            setTimeout(() => setNotification(null), 3000);
+            setNewMaterial({ type: 'text', title: '', content: '', url: '' });
+            setShowAddForm(false);
+            setActiveMenu(null);
+        } catch (err) {
+            console.error('Failed to save material:', err);
+            alert('Не удалось сохранить материал');
         }
-
-        localStorage.setItem('archiveMaterials', JSON.stringify(archive));
-        setTimeout(() => setNotification(null), 3000);
-
-        setNewMaterial({ type: 'text', title: '', content: '', url: '' });
-        setShowAddForm(false);
-        setActiveMenu(null);
     };
 
     const handleEditMaterial = (material) => {
@@ -300,18 +322,18 @@ const EventsHub = () => {
         setShowDeleteConfirm(true);
     };
 
-    const confirmDeleteMaterial = () => {
-        const savedArchive = localStorage.getItem('archiveMaterials');
-        let archive = savedArchive ? JSON.parse(savedArchive) : [];
+    const confirmDeleteMaterial = async () => {
+        try {
+            await eventsApi.deleteMaterial(materialToDelete.id);
+            setNotification('Материал удалён!');
+            setTimeout(() => setNotification(null), 3000);
 
-        archive = archive.filter(m => m.id !== materialToDelete.id);
-        localStorage.setItem('archiveMaterials', JSON.stringify(archive));
-
-        setNotification('Материал удалён!');
-        setTimeout(() => setNotification(null), 3000);
-
-        setShowDeleteConfirm(false);
-        setMaterialToDelete(null);
+            setShowDeleteConfirm(false);
+            setMaterialToDelete(null);
+        } catch (err) {
+            console.error('Failed to delete material:', err);
+            alert('Не удалось удалить материал');
+        }
     };
 
     const cancelDeleteMaterial = () => {

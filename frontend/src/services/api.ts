@@ -66,7 +66,9 @@ class ApiClient {
 
         if (status === 401) {
           // Token expired — logout
-          localStorage.clear();
+          if (process.env.NODE_ENV === 'development') {
+            sessionStorage.clear();
+          }
           sessionStorage.clear();
           window.location.href = '/';
         } else if (status === 403) {

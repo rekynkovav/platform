@@ -47,4 +47,8 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     List<Message> findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(UUID roomId, Instant before, Pageable pageable);
     List<Message> findByRoomIdAndIdLessThanOrderByCreatedAtDesc(UUID roomId, UUID cursor, Pageable pageable);
     List<Message> findByRoomId(UUID roomId, Pageable pageable);
+
+    // Метод для архивации старых сообщений
+    List<Message> findByCreatedAtBefore(LocalDateTime cutoff);
+    Page<Message> findByRoomId(UUID roomId, Pageable pageable);
 }

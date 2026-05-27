@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { getUserRoles } from '../../keycloak';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import ContentModal from '../Common/ContentModal';
+import { feedApi } from '../../services/api';
 import './MainFeed.css';
 import './NutritionFeed.css';
 
@@ -199,9 +200,11 @@ const NutritionFeed = () => {
         formatTime
     } = useAudioPlayer();
 
-    // Функция для обновления ролей из localStorage
+    // Функция для обновления ролей из sessionStorage (только для development)
     const updateRoles = () => {
-        const demoRole = localStorage.getItem('demoRole');
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
         let roles = [];
 
         if (demoRole === 'MODERATOR_ADMIN' || demoRole === 'CONSULTANT_PITANIE' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') {
@@ -230,32 +233,37 @@ const NutritionFeed = () => {
 
     // Загрузка постов и ролей
     useEffect(() => {
-        const savedPosts = localStorage.getItem('nutritionFeedPosts');
-        if (savedPosts) {
-            setPosts(JSON.parse(savedPosts));
-        } else {
-            const initialPosts = [
-                {
-                    id: 1,
-                    type: 'text',
-                    title: '🥗 Основы здорового питания',
-                    content: 'Правильное питание - основа здоровья. Узнайте о принципах сбалансированного рациона.',
-                    date: '2025-03-15',
-                    author: 'Admin'
-                },
-                {
-                    id: 2,
-                    type: 'text',
-                    title: '🍎 Польза фруктов',
-                    content: 'Фрукты - источник витаминов и минералов. Включайте их в свой ежедневный рацион.',
-                    date: '2025-03-16',
-                    author: 'Admin'
-                }
-            ];
-            setPosts(initialPosts);
-            localStorage.setItem('nutritionFeedPosts', JSON.stringify(initialPosts));
-        }
+        const loadPosts = async () => {
+            try {
+                const data = await feedApi.getNutritionFeed();
+                setPosts(data);
+            } catch (err) {
+                console.error('Failed to load nutrition feed:', err);
+                setError('Не удалось загрузить ленту питания');
+                // Fallback к демо-данным
+                const initialPosts = [
+                    {
+                        id: 1,
+                        type: 'text',
+                        title: '🥗 Основы здорового питания',
+                        content: 'Правильное питание - основа здоровья. Узнайте о принципах сбалансированного рациона.',
+                        date: '2025-03-15',
+                        author: 'Admin'
+                    },
+                    {
+                        id: 2,
+                        type: 'text',
+                        title: '🍎 Польза фруктов',
+                        content: 'Фрукты - источник витаминов и минералов. Включайте их в свой ежедневный рацион.',
+                        date: '2025-03-16',
+                        author: 'Admin'
+                    }
+                ];
+                setPosts(initialPosts);
+            }
+        };
 
+        loadPosts();
         updateRoles();
     }, []);
 
@@ -306,7 +314,9 @@ const NutritionFeed = () => {
     };
 
     const handleAddPost = () => {
-        const demoRole = localStorage.getItem('demoRole');
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
         const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
 
         if (!isNutritionConsultant) {
@@ -324,10 +334,12 @@ const NutritionFeed = () => {
     };
 
     // Функция для фактического удаления
-    const executeDeletePost = () => {
+    const executeDeletePost = async () => {
         if (!postToDelete) return;
 
-        const demoRole = localStorage.getItem('demoRole');
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
         const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
 
         if (!isNutritionConsultant) {
@@ -337,13 +349,13 @@ const NutritionFeed = () => {
             return;
         }
 
-        const updatedPosts = posts.filter(post => post.id !== postToDelete.id);
-        setPosts(updatedPosts);
-        localStorage.setItem('nutritionFeedPosts', JSON.stringify(updatedPosts));
+        try {
+            await feedApi.deletePost(postToDelete.id);
+            setPosts(prev => prev.filter(post => post.id !== postToDelete.id));
 
-        if (currentTrack?.id === postToDelete.id) {
-            stopTrack();
-        }
+            if (currentTrack?.id === postToDelete.id) {
+                stopTrack();
+            }
 
         setShowDeleteConfirm(false);
         setPostToDelete(null);
@@ -358,7 +370,9 @@ const NutritionFeed = () => {
 
     // Функция для начала редактирования поста
     const handleEditPost = (post) => {
-        const demoRole = localStorage.getItem('demoRole');
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
         const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
 
         if (!isNutritionConsultant) {
@@ -371,53 +385,56 @@ const NutritionFeed = () => {
     };
 
     // Обновляем handleSavePost для поддержки редактирования
-    const handleSavePost = (data) => {
-        if (editingPost) {
-            // Редактирование существующего поста
-            const updatedPosts = posts.map(post =>
-                post.id === editingPost.id
-                    ? {
-                        ...post,
-                        type: data.mediaType || 'text',
-                        title: data.title,
-                        content: data.description,
-                        url: data.mediaUrl || '',
-                        editedAt: new Date().toISOString()
-                    }
-                    : post
-            );
-            setPosts(updatedPosts);
-            localStorage.setItem('nutritionFeedPosts', JSON.stringify(updatedPosts));
-            setEditingPost(null);
-        } else {
-            // Создание нового поста
-            const post = {
-                id: Date.now(),
-                type: data.mediaType || 'text',
-                title: data.title,
-                content: data.description,
-                url: data.mediaUrl || '',
-                date: new Date().toISOString().split('T')[0],
-                author: 'Admin'
-            };
+    const handleSavePost = async (data) => {
+        try {
+            if (editingPost) {
+                // Редактирование существующего поста
+                const updatedPostData = {
+                    type: data.mediaType || 'text',
+                    title: data.title,
+                    content: data.description,
+                    url: data.mediaUrl || '',
+                    editedAt: new Date().toISOString()
+                };
 
-            const updatedPosts = [...posts, post];
-            setPosts(updatedPosts);
-            localStorage.setItem('nutritionFeedPosts', JSON.stringify(updatedPosts));
-        }
+                const updatedPost = await feedApi.updatePost(editingPost.id, updatedPostData);
+                setPosts(prev => prev.map(post =>
+                    post.id === editingPost.id ? updatedPost : post
+                ));
+                setEditingPost(null);
+            } else {
+                // Создание нового поста
+                const postData = {
+                    type: data.mediaType || 'text',
+                    title: data.title,
+                    content: data.description,
+                    url: data.mediaUrl || '',
+                    date: new Date().toISOString().split('T')[0],
+                    author: 'Admin'
+                };
 
-        setShowContentModal(false);
-
-        setTimeout(() => {
-            if (feedEndRef.current) {
-                feedEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                const newPost = await feedApi.createPost(postData);
+                setPosts(prev => [...prev, newPost]);
             }
-        }, 100);
+
+            setShowContentModal(false);
+
+            setTimeout(() => {
+                if (feedEndRef.current) {
+                    feedEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 100);
+        } catch (err) {
+            console.error('Failed to save post:', err);
+            alert('Не удалось сохранить запись');
+        }
     };
 
     // Функция для скачивания материала (только для SUPER_ADMIN)
     const handleDownloadPost = async (post) => {
-        const demoRole = localStorage.getItem('demoRole');
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
         const isSuperAdmin = demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
 
         if (!isSuperAdmin) {
@@ -505,41 +522,47 @@ const NutritionFeed = () => {
         return currentTrack?.id === postId && isPlaying;
     };
 
-    const demoRole = localStorage.getItem('demoRole');
+    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+        ? sessionStorage.getItem('demoRole')
+        : null;
     const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
 
     // Загрузка данных меню
     useEffect(() => {
-        const savedData = localStorage.getItem('dashboardMenuData');
-        if (savedData) {
-            const parsed = JSON.parse(savedData);
-            // Если данных мало - добавляем тестовые
-            if (!parsed.nutrition || parsed.nutrition.length < 30) {
-                const initialData = {
-                    nutrition: generateTestPosts('nutrition', 30),
-                    recipes: generateTestPosts('recipes', 30),
-                    'living-kitchen': generateTestPosts('living-kitchen', 30)
-                };
-                setMenuData(initialData);
-                localStorage.setItem('dashboardMenuData', JSON.stringify(initialData));
-            } else {
-                setMenuData(parsed);
+        const loadMenuData = async () => {
+            try {
+                const data = await nutritionApi.getMenuData();
+                setMenuData(data);
+            } catch (err) {
+                console.error('Failed to load menu data:', err);
+                // Fallback для разработки
+                if (process.env.NODE_ENV === 'development') {
+                    const initialData = {
+                        nutrition: generateTestPosts('nutrition', 30),
+                        recipes: generateTestPosts('recipes', 30),
+                        'living-kitchen': generateTestPosts('living-kitchen', 30)
+                    };
+                    setMenuData(initialData);
+                }
             }
-        } else {
-            // Первая загрузка - создаём тестовые данные
-            const initialData = {
-                nutrition: generateTestPosts('nutrition', 30),
-                recipes: generateTestPosts('recipes', 30),
-                'living-kitchen': generateTestPosts('living-kitchen', 30)
-            };
-            setMenuData(initialData);
-            localStorage.setItem('dashboardMenuData', JSON.stringify(initialData));
-        }
+        };
+        loadMenuData();
+    }, []);
     }, []);
 
-    const saveMenuData = useCallback((data) => {
+    const saveMenuData = useCallback(async (data) => {
         setMenuData(data);
-        localStorage.setItem('dashboardMenuData', JSON.stringify(data));
+        try {
+            await nutritionApi.saveMenuData(data);
+        } catch (err) {
+            console.error('Failed to save menu data:', err);
+            // Fallback для разработки
+            if (process.env.NODE_ENV === 'development') {
+                if (process.env.NODE_ENV === 'development') {
+                    sessionStorage.setItem('dashboardMenuData', JSON.stringify(data));
+                }
+            }
+        }
     }, []);
 
     const nutritionMenus = useMemo(() => [

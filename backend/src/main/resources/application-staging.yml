@@ -47,10 +47,10 @@ server:
 
 logging:
   level:
-    com.platform: INFO
-    org.springframework.web: WARN
-    org.hibernate: WARN
-    liquibase: INFO
+    com.platform: DEBUG
+    org.springframework.web: INFO
+    org.springframework.data.redis: INFO
+    org.hibernate: INFO
   pattern:
     console: "%d{ISO8601} %-5level [%thread] %logger{36} - %msg%n"
 

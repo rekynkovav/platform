@@ -7,7 +7,7 @@ class ChatLogger {
     constructor() {
         this.logKey = 'chat_content_logs';
         this.maxLogs = 1000; // Максимальное количество записей
-        this.enabled = true; // Можно отключить через localStorage
+        this.enabled = true; // Можно отключить через sessionStorage
     }
 
     /**
@@ -34,8 +34,10 @@ class ChatLogger {
                 updatedLogs.length = this.maxLogs;
             }
 
-            // Сохраняем в localStorage
-            localStorage.setItem(this.logKey, JSON.stringify(updatedLogs));
+            // Сохраняем в sessionStorage (только в development)
+            if (process.env.NODE_ENV === 'development') {
+                sessionStorage.setItem(this.logKey, JSON.stringify(updatedLogs));
+            }
 
             // Также пишем в консоль для отладки
             console.log('[ChatLogger] Content added:', logEntry);
@@ -133,7 +135,9 @@ class ChatLogger {
      */
     getLogs() {
         try {
-            const logs = localStorage.getItem(this.logKey);
+            const logs = process.env.NODE_ENV === 'development'
+                ? sessionStorage.getItem(this.logKey)
+                : null;
             return logs ? JSON.parse(logs) : [];
         } catch (error) {
             console.error('[ChatLogger] Error reading logs:', error);
@@ -145,7 +149,9 @@ class ChatLogger {
      * Очистка логов
      */
     clearLogs() {
-        localStorage.removeItem(this.logKey);
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.removeItem(this.logKey);
+        }
         console.log('[ChatLogger] Logs cleared');
     }
 
@@ -172,7 +178,9 @@ class ChatLogger {
      */
     setEnabled(enabled) {
         this.enabled = enabled;
-        localStorage.setItem('chat_logger_enabled', enabled.toString());
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem('chat_logger_enabled', enabled.toString());
+        }
         console.log(`[ChatLogger] Logging ${enabled ? 'enabled' : 'disabled'}`);
     }
 
@@ -180,7 +188,9 @@ class ChatLogger {
      * Проверка статуса логирования
      */
     isEnabled() {
-        const saved = localStorage.getItem('chat_logger_enabled');
+        const saved = process.env.NODE_ENV === 'development'
+            ? sessionStorage.getItem('chat_logger_enabled')
+            : null;
         return saved ? saved === 'true' : this.enabled;
     }
 

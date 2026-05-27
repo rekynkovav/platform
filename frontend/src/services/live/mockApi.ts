@@ -157,7 +157,9 @@ export class MockLiveApi {
         // Удаляем из WebSocket сервиса
         const demoBroadcasts = mockWebSocket.getDemoBroadcasts();
         const updated = demoBroadcasts.filter(b => b.id !== broadcastId);
-        localStorage.setItem('demoLiveBroadcasts', JSON.stringify(updated));
+        if (process.env.NODE_ENV === 'development') {
+            sessionStorage.setItem('demoLiveBroadcasts', JSON.stringify(updated));
+        }
 
         console.log('[MockLiveApi] Трансляция удалена:', broadcastId);
         resolve();
@@ -331,7 +333,9 @@ export class MockLiveApi {
 
   private loadFromStorage(): void {
     try {
-      const saved = localStorage.getItem('mockLiveBroadcasts');
+      const saved = process.env.NODE_ENV === 'development'
+          ? sessionStorage.getItem('mockLiveBroadcasts')
+          : null;
       if (saved) {
         const broadcasts: LiveBroadcast[] = JSON.parse(saved);
         broadcasts.forEach(broadcast => {
@@ -339,17 +343,21 @@ export class MockLiveApi {
         });
       }
     } catch (error) {
-      console.error('[MockLiveApi] Ошибка загрузки из localStorage:', error);
+      console.error('[MockLiveApi] Ошибка загрузки из sessionStorage:', error);
     }
   }
 
   private saveToStorage(): void {
     const broadcasts = Array.from(this.broadcasts.values());
-    localStorage.setItem('mockLiveBroadcasts', JSON.stringify(broadcasts));
+    if (process.env.NODE_ENV === 'development') {
+        sessionStorage.setItem('mockLiveBroadcasts', JSON.stringify(broadcasts));
+    }
   }
 
   private saveChatToStorage(broadcastId: string, messages: LiveChatMessage[]): void {
-    localStorage.setItem(`mockLiveChat_${broadcastId}`, JSON.stringify(messages));
+    if (process.env.NODE_ENV === 'development') {
+        sessionStorage.setItem(`mockLiveChat_${broadcastId}`, JSON.stringify(messages));
+    }
   }
 
   private generateMockStats(broadcastId: string): ViewerStats[] {
@@ -390,12 +398,16 @@ export class MockLiveApi {
 
   private getCurrentUserId(): string {
     // В реальной системе здесь был бы JWT или сессия
-    const demoRole = localStorage.getItem('demoRole') || 'USER_1';
+    const demoRole = process.env.NODE_ENV === 'development'
+        ? sessionStorage.getItem('demoRole') || 'USER_1'
+        : 'USER_1';
     return `${demoRole.toLowerCase()}-${Date.now()}`;
   }
 
   private getCurrentUsername(): string {
-    const demoRole = localStorage.getItem('demoRole') || 'USER_1';
+    const demoRole = process.env.NODE_ENV === 'development'
+        ? sessionStorage.getItem('demoRole') || 'USER_1'
+        : 'USER_1';
     const names: Record<string, string> = {
       'USER_0': 'Гость',
       'USER_1': 'Анна Петрова',
@@ -408,7 +420,9 @@ export class MockLiveApi {
   }
 
   private getCurrentUserRole(): string {
-    return localStorage.getItem('demoRole') || 'USER_1';
+    return process.env.NODE_ENV === 'development'
+      ? sessionStorage.getItem('demoRole') || 'USER_1'
+      : 'USER_1';
   }
 
   private getCurrentUserAvatar(): string {
@@ -431,7 +445,9 @@ export class MockLiveApi {
     this.broadcasts.clear();
     this.chatMessages.clear();
     this.viewerStats.clear();
-    localStorage.removeItem('mockLiveBroadcasts');
+    if (process.env.NODE_ENV === 'development') {
+      sessionStorage.removeItem('mockLiveBroadcasts');
+    }
     this.initializeDemoData();
     console.log('[MockLiveApi] Демо-данные сброшены');
   }

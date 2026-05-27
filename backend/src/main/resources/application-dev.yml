@@ -26,6 +26,8 @@ logging:
   level:
     com.platform: DEBUG
     org.springframework.web: DEBUG
+    org.springframework.data.redis: DEBUG
+    org.hibernate.SQL: DEBUG
     liquibase: DEBUG
 
 app:
