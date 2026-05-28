@@ -3,7 +3,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/platform_db
     username: platform_user
-    password: platform_pass
+    password: ${DB_PASSWORD:platform_pass_2026}
     hikari:
       connection-test-query: SELECT 1
 

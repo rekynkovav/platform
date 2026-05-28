@@ -95,14 +95,14 @@ app:
 
   media:
     encryption:
-      master-key: "test-master-key-1234567890"
+      master-key: ${MEDIA_ENCRYPTION_KEY:}
       algorithm: "AES/CBC/PKCS5Padding"
 
 keycloak:
-  auth-server-url: http://localhost:8080
-  realm: platform
-  resource: platform-backend
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8080}
+  realm: ${KEYCLOAK_REALM:platform}
+  resource: ${KEYCLOAK_RESOURCE:platform-backend}
   credentials:
-    secret: "test-secret-key"
+    secret: ${KEYCLOAK_SECRET:}
 
 

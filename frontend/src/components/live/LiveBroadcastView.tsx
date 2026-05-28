@@ -4,8 +4,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { LiveBroadcast } from '../../services/live/types';
 import { useLiveBroadcast } from '../../hooks/live/useLiveBroadcast';
-import { useLiveSession } from '../../contexts/live/LiveSessionContext';
-import { LiveSessionProvider } from '../../contexts/live/LiveSessionContext';
+import { useLiveSession } from '../../context/live/LiveSessionContext';
+import { LiveSessionProvider } from '../../context/live/LiveSessionContext';
 import { LivePlayer } from './LivePlayer';
 import { LiveChat } from './LiveChat';
 import { BroadcastControls } from './BroadcastControls';

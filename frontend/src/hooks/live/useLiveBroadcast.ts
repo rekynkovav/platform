@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { LiveBroadcast, BroadcastStatus } from '../../services/live/types';
 import { mockLiveApi } from '../../services/live/mockApi';
-import { useLiveSession } from '../../contexts/live/LiveSessionContext';
+import { useLiveSession } from '../../context/live/LiveSessionContext';
 
 export function useLiveBroadcast(broadcastId?: string) {
   const [broadcast, setBroadcast] = useState<LiveBroadcast | null>(null);

@@ -25,11 +25,16 @@ if not exist ".env" (
         copy .env.example .env >nul
         echo [OK] .env создан из .env.example
     ) else (
-        echo [INFO] .env.example не найден, создаю пустой .env
-        echo # Platform Environment Variables > .env
-        echo REDIS_PASSWORD=secure_password >> .env
-        echo DB_PASSWORD=secure_password >> .env
-        echo KEYCLOAK_ADMIN_PASSWORD=secure_password >> .env
+        echo [INFO] .env.example не найден, создаю .env с базовыми настройками
+        (
+            echo REDIS_PASSWORD=redis_pass
+            echo DB_PASSWORD=platform_pass_2026
+            echo KEYCLOAK_ADMIN_PASSWORD=admin
+            echo POSTGRES_PASSWORD=platform_pass_2026
+            echo POSTGRES_USER=platform_user
+            echo POSTGRES_DB=platform_db
+        ) > .env
+        echo [OK] .env файл создан.
     )
 ) else (
     echo [OK] .env уже существует
@@ -50,20 +55,28 @@ echo [4/7] Ожидание готовности PostgreSQL...
 timeout /t 10 /nobreak >nul
 echo [OK] PostgreSQL готов
 
-REM 5. Запуск backend
+REM 5. Запуск backend через Docker
 echo [5/7] Запуск backend...
-start "Platform Backend" cmd /c "cd backend && mvnw.cmd spring-boot:run"
+docker-compose up -d backend
+if errorlevel 1 (
+    echo [ERROR] Ошибка запуска backend
+    pause
+    exit /b 1
+)
 echo [OK] Backend запущен
 
 REM 6. Запуск frontend
 echo [6/7] Запуск frontend...
 start "Platform Frontend" cmd /c "cd frontend && npm start"
-echo [OK] Frontend запущен
+if errorlevel 1 (
+    echo [WARNING] Ошибка запуска frontend, проверьте вручную
+) else (
+    echo [OK] Frontend запущен
+)
 
 REM 7. Запуск мониторинга
 echo [7/7] Запуск мониторинга...
-start "Prometheus" cmd /c "docker-compose logs -f prometheus"
-start "Grafana" cmd /c "docker-compose logs -f grafana"
+echo [INFO] Для просмотра логов мониторинга используйте logs.bat или создайте logs-monitoring.bat
 
 echo.
 echo ========================================

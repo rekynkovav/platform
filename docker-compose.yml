@@ -9,6 +9,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/postgres/seed.sql:/docker-entrypoint-initdb.d/seed.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U platform_user -d platform_db"]
       interval: 10s
@@ -66,7 +68,7 @@ services:
       - uploads:/app/uploads
       - hls:/hls:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -139,8 +141,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/platform.conf:/etc/nginx/conf.d/platform.conf:ro
-      - C:/Users/Suveren/IdeaProjects/platform/ssl:/etc/nginx/ssl:ro
+      - ./docker/nginx/conf.d/platform.conf:/etc/nginx/conf.d/platform.conf:ro
+      - ${SSL_PATH:-./ssl}:/etc/nginx/ssl:ro
       - uploads:/uploads:ro
     restart: unless-stopped
     depends_on:

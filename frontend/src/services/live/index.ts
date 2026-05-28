@@ -10,7 +10,7 @@ export { mockLiveApi, MockLiveApi } from './mockApi';
 export { mockMediaService, MockMediaService } from './mockMedia';
 
 // Контексты
-export { LiveSessionProvider, useLiveSession, useBroadcast, useChatMessages, usePlayerState, useIsAdmin, useIsViewer, useConnectionStatus } from '../../contexts/live/LiveSessionContext';
+export { LiveSessionProvider, useLiveSession, useBroadcast, useChatMessages, usePlayerState, useIsAdmin, useIsViewer, useConnectionStatus } from '../../context/live/LiveSessionContext';
 
 // Хуки
 export { useLiveBroadcast, useLiveBroadcasts, useBroadcastStats, useBroadcastAvailability } from '../../hooks/live/useLiveBroadcast';

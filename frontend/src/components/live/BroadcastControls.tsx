@@ -4,7 +4,7 @@
 import React, { useState, useCallback } from 'react';
 import { LiveBroadcast, BroadcastStatus, StreamQuality } from '../../services/live/types';
 import { useLiveBroadcast } from '../../hooks/live/useLiveBroadcast';
-import { useLiveSession } from '../../contexts/live/LiveSessionContext';
+import { useLiveSession } from '../../context/live/LiveSessionContext';
 import { mediaService } from '../../services/live';
 import {
   formatDuration,

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { LiveChatMessage } from '../../services/live/types';
-import { useLiveSession } from '../../contexts/live/LiveSessionContext';
+import { useLiveSession } from '../../context/live/LiveSessionContext';
 
 export interface ChatFilters {
   type?: LiveChatMessage['type'];

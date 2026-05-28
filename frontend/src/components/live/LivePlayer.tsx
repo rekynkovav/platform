@@ -8,7 +8,7 @@ import {
   LiveBroadcast
 } from '../../services/live/types';
 import { mediaService } from '../../services/live';
-import { usePlayerState } from '../../contexts/live/LiveSessionContext';
+import { usePlayerState } from '../../context/live/LiveSessionContext';
 import {
   formatDuration,
   formatBitrate,

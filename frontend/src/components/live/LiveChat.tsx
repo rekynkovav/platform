@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { LiveChatMessage } from '../../services/live/types';
 import { useLiveChat, useLiveReactions, useLiveQuestions } from '../../hooks/live/useLiveChat';
-import { useLiveSession } from '../../contexts/live/LiveSessionContext';
+import { useLiveSession } from '../../context/live/LiveSessionContext';
 import {
   formatMessageTime,
   getRoleColor,
