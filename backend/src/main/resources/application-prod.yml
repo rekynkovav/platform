@@ -110,4 +110,13 @@ bucket4j:
               unit: minutes
               refill-speed: interval
 
+# Yandex Cloud S3 Configuration
+yandex:
+  s3:
+    access-key: ${YANDEX_S3_ACCESS_KEY:}
+    secret-key: ${YANDEX_S3_SECRET_KEY:}
+    bucket: ${YANDEX_S3_BUCKET:platform-media}
+    endpoint: https://storage.yandexcloud.net
+    region: ru-central1
+
 

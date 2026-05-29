@@ -9,7 +9,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.AmazonS3Exception;
+import com.amazonaws.SdkClientException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -153,7 +153,7 @@ public class S3StorageService implements StorageService {
         try {
             ObjectMetadata metadata = getS3Client().getObjectMetadata(bucket, key);
             return metadata.getContentLength() == expectedSize;
-        } catch (AmazonS3Exception e) {
+        } catch (SdkClientException e) {
             log.error("File not found in S3: {}", key, e);
             return false;
         }

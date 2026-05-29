@@ -71,6 +71,20 @@ public class NotificationService {
     }
 
     /**
+     * Пометить уведомление как прочитанное с проверкой владельца
+     */
+    @CacheEvict(value = {"unreadNotifications", "allNotifications"}, key = "#userId")
+    public void markAsReadForUser(Long notificationId, String userId) {
+        notificationRepository.findById(notificationId.toString()).ifPresent(n -> {
+            if (!n.getUserId().equals(userId)) {
+                throw new SecurityException("Access denied to notification");
+            }
+            n.setRead(true);
+            notificationRepository.save(n);
+        });
+    }
+
+    /**
      * Пометить все как прочитанные
      */
     @CacheEvict(value = {"unreadNotifications", "allNotifications"}, key = "#userId")

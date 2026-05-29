@@ -33,12 +33,12 @@ public class PlatformApplication {
         registerShutdownHook();
     }
 
-    @Bean
-    public TomcatServletWebServerFactory tomcatFactory() {
-        TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
-        factory.setGracefulShutdown(true);
-        return factory;
-    }
+    // @Bean
+    // public TomcatServletWebServerFactory tomcatFactory() {
+    //     TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
+    //     factory.setGracefulShutdown(true);
+    //     return factory;
+    // }
 
     private void registerShutdownHook() {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

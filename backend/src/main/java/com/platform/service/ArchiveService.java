@@ -111,8 +111,28 @@ public class ArchiveService {
         String userId = jwt.getSubject();
         String userRole = getUserRole(jwt);
 
+        // Проверка прав администратора
         if (!isAdmin(userRole)) {
             throw new AccessDeniedException("Only admin can delete archives");
+        }
+
+        // Дополнительная проверка: суперадмины могут удалять любые архивы,
+        // модераторы могут удалять только архивы, созданные ими или недавние
+        Archive archive = archiveRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Archive not found"));
+
+        // Если пользователь не суперадмин, проверяем дополнительные условия
+        if (!RoleUtils.isSuperAdmin(userRole)) {
+            // Модераторы могут удалять архивы, созданные ими
+            if (archive.getCreatedBy() != null && archive.getCreatedBy().equals(userId)) {
+                // Разрешаем удаление собственных архивов
+            } else {
+                // Или архивы старше 30 дней
+                if (archive.getCreatedAt() != null &&
+                    archive.getCreatedAt().isAfter(java.time.LocalDateTime.now().minusDays(30))) {
+                    throw new AccessDeniedException("Moderators can only delete their own archives or archives older than 30 days");
+                }
+            }
         }
 
         archiveRepository.deleteById(id);

@@ -26,8 +26,7 @@ import java.util.UUID;
 public class BroadcastArchiveService {
 
     private final LiveBroadcastRepository broadcastRepository;
-    private final S3StorageService s3StorageService;
-    private final LocalStorageService localStorageService;
+    private final StorageService storageService;
 
     private static final String ARCHIVE_PREFIX = "archive/";
     private static final String HLS_TEMP_PREFIX = "/hls/";
@@ -89,15 +88,15 @@ public class BroadcastArchiveService {
 
             // 8. Загрузка в S3
             String mimeType = "video".equals(contentType) ? "video/mp4" : "audio/mp4";
-            s3StorageService.upload(outputFile, s3Key, mimeType);
+            storageService.upload(outputFile, s3Key, mimeType);
 
             // 9. ПРОВЕРКА: файл действительно загружен
-            if (!s3StorageService.verifyUpload(s3Key, outputFile.length())) {
+            if (!storageService.verifyUpload(s3Key, outputFile.length())) {
                 throw new RuntimeException("S3 upload verification failed");
             }
 
             // 10. ПРОВЕРКА: файл доступен и валиден
-            if (!s3StorageService.isValidMediaFile(s3Key)) {
+            if (!storageService.isValidMediaFile(s3Key)) {
                 throw new RuntimeException("Uploaded file is not accessible or invalid");
             }
 
@@ -139,7 +138,7 @@ public class BroadcastArchiveService {
         }
 
         // Прегенерированная ссылка на 1 час
-        return s3StorageService.generatePresignedUrl(broadcast.getRecordedUrl(), 3600);
+        return storageService.generatePresignedUrl(broadcast.getRecordedUrl(), 3600);
     }
 
     /**
@@ -150,7 +149,7 @@ public class BroadcastArchiveService {
         String hlsPath = HLS_TEMP_PREFIX + broadcast.getRtmpStreamKey();
 
         // Проверяем, что файл в S3 существует и валиден
-        if (s3StorageService.isValidMediaFile(s3Key)) {
+        if (storageService.isValidMediaFile(s3Key)) {
             cleanupHlsSegments(hlsPath);
             log.info("Cleaned up HLS segments for already archived broadcast: {}", broadcast.getId());
         } else {

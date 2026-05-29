@@ -21,3 +21,8 @@ spring:
 logging:
   level:
     com.platform: DEBUG
+
+# RTMP webhook secret for tests
+rtmp:
+  webhook:
+    secret: test-webhook-secret

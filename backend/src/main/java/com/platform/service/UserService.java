@@ -137,8 +137,24 @@ public class UserService {
     public Optional<User> updateUserProfile(String userId, UserDto.UpdateRequest request) {
         return userRepository.findById(UUID.fromString(userId))
                 .map(user -> {
-                    if (request.getUsername() != null) user.setUsername(request.getUsername());
-                    if (request.getEmail() != null) user.setEmail(request.getEmail());
+                    // Проверка уникальности username, если он изменяется
+                    if (request.getUsername() != null && !request.getUsername().equals(user.getUsername())) {
+                        if (userRepository.existsByUsername(request.getUsername())) {
+                            throw new IllegalArgumentException("Username already taken");
+                        }
+                        user.setUsername(request.getUsername());
+                    }
+
+                    // Проверка уникальности email, если он изменяется
+                    if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
+                        userRepository.findByEmail(request.getEmail()).ifPresent(existingUser -> {
+                            if (!existingUser.getId().equals(user.getId())) {
+                                throw new IllegalArgumentException("Email already registered");
+                            }
+                        });
+                        user.setEmail(request.getEmail());
+                    }
+
                     if (request.getPhone() != null) user.setPhone(request.getPhone());
                     if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl());
                     if (request.getBio() != null) user.setBio(request.getBio());

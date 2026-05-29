@@ -2,8 +2,10 @@ package com.platform.controller;
 
 import com.platform.dto.CreateBroadcastRequest;
 import com.platform.model.LiveBroadcast;
+import com.platform.model.dto.LiveBroadcastDto;
 import com.platform.service.LiveBroadcastService;
 import com.platform.service.MetricsService;
+import com.platform.service.BroadcastArchiveService;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.annotation.Counted;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -29,7 +32,7 @@ public class LiveBroadcastController {
 
     @PostMapping("/create")
     @PreAuthorize("hasAnyRole('CONSULTANT_PITANIE', 'CONSULTANT_SPORT', 'MODERATOR_ADMIN', 'DEVELOPER', 'VYACHESLAV', 'SUPER_ADMIN')")
-    public ResponseEntity<LiveBroadcast> createBroadcast(
+    public ResponseEntity<LiveBroadcastDto> createBroadcast(
             @jakarta.validation.Valid @RequestBody CreateBroadcastRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
@@ -43,7 +46,7 @@ public class LiveBroadcastController {
             request.getStreamType(),
             userId
         );
-        return ResponseEntity.ok(broadcast);
+        return ResponseEntity.ok(broadcastService.toDto(broadcast));
     }
 
     @PostMapping("/{id}/start")
@@ -82,16 +85,21 @@ public class LiveBroadcastController {
     }
 
     @GetMapping("/active")
-    public ResponseEntity<List<LiveBroadcast>> getActiveBroadcasts() {
+    public ResponseEntity<List<LiveBroadcastDto>> getActiveBroadcasts() {
         List<LiveBroadcast> broadcasts = broadcastService.getActiveBroadcasts();
         log.debug("Active broadcasts count: {}", broadcasts.size());
         log.debug("Количество активных трансляций: {}", broadcasts.size());
-        return ResponseEntity.ok(broadcasts);
+
+        List<LiveBroadcastDto> dtos = broadcasts.stream()
+            .map(broadcastService::toDto)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<LiveBroadcast> getBroadcast(@PathVariable String id) {
-        return ResponseEntity.ok(broadcastService.getBroadcast(id));
+    public ResponseEntity<LiveBroadcastDto> getBroadcast(@PathVariable String id) {
+        LiveBroadcast broadcast = broadcastService.getBroadcast(id);
+        return ResponseEntity.ok(broadcastService.toDto(broadcast));
     }
 
     @GetMapping("/{id}/archive")
@@ -132,7 +140,19 @@ public class LiveBroadcastController {
 
     @PostMapping("/webhook/rtmp")
     public ResponseEntity<Void> rtmpWebhook(
-            @RequestBody Map<String, String> payload) {
+            @RequestBody Map<String, String> payload,
+            @RequestHeader(value = "X-Webhook-Secret", required = false) String secret) {
+
+        String expectedSecret = System.getenv("RTMP_WEBHOOK_SECRET");
+        if (expectedSecret == null || expectedSecret.isBlank()) {
+            log.warn("RTMP_WEBHOOK_SECRET not configured - webhook security disabled");
+        } else {
+            if (secret == null || !secret.equals(expectedSecret)) {
+                log.warn("Invalid or missing webhook secret");
+                return ResponseEntity.status(403).build();
+            }
+        }
+
         String action = payload.get("action");
         String streamKey = payload.get("streamKey");
 

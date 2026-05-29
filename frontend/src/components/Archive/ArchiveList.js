@@ -641,31 +641,68 @@ const ArchiveList = () => {
 
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-            // Создаем модальное окно предпросмотра
+            // Создаем модальное окно предпросмотра безопасно
             const previewModal = document.createElement('div');
             previewModal.className = 'preview-modal-overlay';
-            previewModal.innerHTML = `
-                <div class="preview-modal-content">
-                    <div class="preview-header">
-                        <h3>Предпросмотр трансляции</h3>
-                        <p>Проверьте изображение и звук перед началом трансляции</p>
-                    </div>
-                    <div class="preview-body">
-                        ${broadcast.type === 'video' ? `
-                            <video class="preview-video" autoplay muted playsinline></video>
-                        ` : `
-                            <div class="audio-preview">
-                                <div class="audio-visualizer"></div>
-                                <p>Аудио трансляция</p>
-                            </div>
-                        `}
-                        <div class="preview-controls">
-                            <button class="preview-start-btn">Начать трансляцию</button>
-                            <button class="preview-cancel-btn">Отмена</button>
-                        </div>
-                    </div>
-                </div>
-            `;
+
+            const modalContent = document.createElement('div');
+            modalContent.className = 'preview-modal-content';
+
+            const previewHeader = document.createElement('div');
+            previewHeader.className = 'preview-header';
+
+            const headerTitle = document.createElement('h3');
+            headerTitle.textContent = 'Предпросмотр трансляции';
+
+            const headerText = document.createElement('p');
+            headerText.textContent = 'Проверьте изображение и звук перед началом трансляции';
+
+            previewHeader.appendChild(headerTitle);
+            previewHeader.appendChild(headerText);
+
+            const previewBody = document.createElement('div');
+            previewBody.className = 'preview-body';
+
+            if (broadcast.type === 'video') {
+                const videoElement = document.createElement('video');
+                videoElement.className = 'preview-video';
+                videoElement.autoplay = true;
+                videoElement.muted = true;
+                videoElement.playsInline = true;
+                previewBody.appendChild(videoElement);
+            } else {
+                const audioPreview = document.createElement('div');
+                audioPreview.className = 'audio-preview';
+
+                const audioVisualizer = document.createElement('div');
+                audioVisualizer.className = 'audio-visualizer';
+
+                const audioText = document.createElement('p');
+                audioText.textContent = 'Аудио трансляция';
+
+                audioPreview.appendChild(audioVisualizer);
+                audioPreview.appendChild(audioText);
+                previewBody.appendChild(audioPreview);
+            }
+
+            const previewControls = document.createElement('div');
+            previewControls.className = 'preview-controls';
+
+            const startBtn = document.createElement('button');
+            startBtn.className = 'preview-start-btn';
+            startBtn.textContent = 'Начать трансляцию';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'preview-cancel-btn';
+            cancelBtn.textContent = 'Отмена';
+
+            previewControls.appendChild(startBtn);
+            previewControls.appendChild(cancelBtn);
+
+            modalContent.appendChild(previewHeader);
+            modalContent.appendChild(previewBody);
+            modalContent.appendChild(previewControls);
+            previewModal.appendChild(modalContent);
 
             document.body.appendChild(previewModal);
 
@@ -676,9 +713,6 @@ const ArchiveList = () => {
             }
 
             // Обработчики кнопок
-            const startBtn = previewModal.querySelector('.preview-start-btn');
-            const cancelBtn = previewModal.querySelector('.preview-cancel-btn');
-
             startBtn.onclick = () => {
                 // Останавливаем предпросмотр
                 stream.getTracks().forEach(track => track.stop());

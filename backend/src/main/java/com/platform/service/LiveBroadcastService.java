@@ -4,6 +4,7 @@ import com.platform.exception.AccessDeniedException;
 import com.platform.exception.ResourceNotFoundException;
 import com.platform.model.BroadcastStatus;
 import com.platform.model.LiveBroadcast;
+import com.platform.model.dto.LiveBroadcastDto;
 import com.platform.repository.LiveBroadcastRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -76,7 +77,6 @@ public class LiveBroadcastService {
     }
 
     @Timed(value = "broadcast.stop", description = "Time to stop broadcast")
-    @Transactional(rollbackFor = Exception.class, timeout = 10)
     @Transactional(rollbackFor = Exception.class, timeout = 10)
     @CacheEvict(value = "broadcasts", allEntries = true)
     public void stopBroadcast(String broadcastId, String userId) {
@@ -177,6 +177,31 @@ public class LiveBroadcastService {
             broadcast.setMaxViewers(currentViewers);
             broadcastRepository.save(broadcast);
         }
+    }
+
+    /**
+     * Преобразовать LiveBroadcast в DTO (безопасный для клиента)
+     */
+    public LiveBroadcastDto toDto(LiveBroadcast broadcast) {
+        if (broadcast == null) {
+            return null;
+        }
+
+        LiveBroadcastDto dto = new LiveBroadcastDto();
+        dto.setId(broadcast.getId());
+        dto.setTitle(broadcast.getTitle());
+        dto.setDescription(broadcast.getDescription());
+        dto.setStreamType(broadcast.getStreamType());
+        dto.setUserId(broadcast.getOwnerId());
+        dto.setStatus(broadcast.getStatus() != null ? broadcast.getStatus().name() : null);
+        dto.setCreatedAt(broadcast.getCreatedAt());
+        dto.setStartedAt(broadcast.getStartedAt());
+        dto.setEndedAt(broadcast.getEndedAt());
+        dto.setViewerCount(broadcast.getViewerCount());
+        dto.setHlsPlaylistUrl(broadcast.getHlsPlaylistUrl());
+        dto.setThumbnailUrl(broadcast.getThumbnailUrl());
+
+        return dto;
     }
 
     @Timed(value = "broadcast.remove_viewer", description = "Time to remove viewer")

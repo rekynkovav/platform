@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 public class MediaCleanupService {
 
     private final MediaFileRepository mediaFileRepository;
-    private final S3StorageService s3StorageService;
+    private final StorageService storageService;
 
     @Scheduled(cron = "0 0 4 * * *") // Каждую ночь в 4:00
     @Transactional
@@ -25,7 +25,7 @@ public class MediaCleanupService {
 
         for (var segment : oldSegments) {
             try {
-                s3StorageService.delete(segment.getStorageKey());
+                storageService.delete(segment.getStorageKey());
                 mediaFileRepository.delete(segment);
                 log.info("Deleted old HLS segment: {}", segment.getId());
             } catch (Exception e) {

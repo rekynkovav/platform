@@ -1,7 +1,6 @@
-import com.platform.util.RoleUtils;
-// src/main/java/com/platform/service/EventService.java
 package com.platform.service;
 
+import com.platform.util.RoleUtils;
 import com.platform.exception.AccessDeniedException;
 import com.platform.exception.ResourceNotFoundException;
 import com.platform.model.Event;
