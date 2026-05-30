@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getUsername } from '../../keycloak';
+import { FixedSizeList as List } from 'react-window';
+import AutoSizer from 'react-virtualized-auto-sizer';
+import { getUsername, getUserId } from '../../keycloak';
+import { chatApi } from '../../services/api';
 import './Questions.css';
 
 const Questions = () => {
@@ -9,6 +12,7 @@ const Questions = () => {
     const [questionMode, setQuestionMode] = useState('general'); // general, nutrition, vyacheslav
     const [vyacheslavView, setVyacheslavView] = useState('personal'); // personal, general - для Вячеслава
     const currentUser = getUsername();
+    const userId = getUserId();
 
     // Состояния для модального окна подтверждения удаления одного вопроса
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -24,68 +28,53 @@ const Questions = () => {
     // Состояние для подтверждения полного ответа
     const [showAnswerConfirm, setShowAnswerConfirm] = useState(false);
     const [pendingAnswerData, setPendingAnswerData] = useState(null);
+    const [error, setError] = useState(null);
+    const clearError = () => {
+        setError(null);
+    };
 
-    // Миграция данных - выполняется один раз при загрузке компонента
-    useEffect(() => {
-        const migrationKey = 'questions_migration_v2_done';
-        const migrationDone = localStorage.getItem(migrationKey);
-
-        if (!migrationDone) {
-            console.log('Выполняется миграция вопросов...');
-
-            // Очищаем все категории для чистого старта
-            const categories = ['general', 'nutrition', 'vyacheslav'];
-            categories.forEach(cat => {
-                const key = `userQuestions_${cat}`;
-                const questions = JSON.parse(localStorage.getItem(key) || '[]');
-
-                // Фильтруем вопросы по правильной категории
-                const correctQuestions = questions.filter(q => q.mode === cat);
-
-                if (correctQuestions.length !== questions.length) {
-                    console.log(`Категория ${cat}: было ${questions.length}, осталось ${correctQuestions.length}`);
-                    localStorage.setItem(key, JSON.stringify(correctQuestions));
-                }
-            });
-
-            localStorage.setItem(migrationKey, 'true');
-            console.log('Миграция завершена');
-        }
-    }, []);
-
-    // Получаем роль из localStorage (от переключателя)
-    const demoRole = localStorage.getItem('demoRole');
+    // Получаем роль из sessionStorage (только для development)
+    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+        ? sessionStorage.getItem('demoRole')
+        : null;
 
     // Определяем ID роли (уникальный идентификатор)
     const getRoleId = (role) => {
         const roleIds = {
-            'admin-moderator': 'admin-moderator',
-            'admin-consultant': 'admin-consultant',
-            'admin-nutrition': 'admin-nutrition',
-            'admin-sport': 'admin-sport',
-            'vyacheslav': 'vyacheslav',
-            'developer': 'developer',
-            'super-admin': 'super-admin',
-            'user0': 'user0',
-            'user1': 'user1',
-            'user2': 'user2'
+            'MODERATOR_ADMIN': 'MODERATOR_ADMIN',
+            'CONSULTANT_PITANIE': 'CONSULTANT_PITANIE',
+            'CONSULTANT_SPORT': 'CONSULTANT_SPORT',
+            'VYACHESLAV': 'VYACHESLAV',
+            'DEVELOPER': 'DEVELOPER',
+            'SUPER_ADMIN': 'SUPER_ADMIN',
+            'USER_0': 'USER_0',
+            'USER_1': 'USER_1',
+            'USER_2': 'USER_2'
         };
         return roleIds[role] || role;
     };
 
     const currentRoleId = getRoleId(demoRole);
 
-    // Определяем роли четко
-    const isGeneralAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer';
-    const isNutritionAdmin = demoRole === 'admin-nutrition';
-    const isSportAdmin = demoRole === 'admin-sport';
-    const isVyacheslav = demoRole === 'vyacheslav';
-    const isSuperAdmin = demoRole === 'super-admin';
-    const isUser0 = demoRole === 'user0';
-    const isAnyAdmin = isGeneralAdmin || isNutritionAdmin || isSportAdmin || isVyacheslav || isSuperAdmin;
+    // Информация о комнатах вопросов из бэкенда (для будущей интеграции)
+    const questionRooms = [
+        { slug: 'questions-general', mode: 'general', name: 'Общие вопросы', description: 'Вопросы в общий раздел' },
+        { slug: 'questions-nutrition', mode: 'nutrition', name: 'Вопросы по питанию', description: 'Вопросы консультанту по питанию' },
+        { slug: 'questions-vyacheslav', mode: 'vyacheslav', name: 'Вопросы лично Вячеславу', description: 'Личные вопросы Вячеславу Тимошенко' }
+    ];
 
-    // Кто может переключать режимы (только пользователи 1 и 2)
-    const canSwitchModes = demoRole === 'user1' || demoRole === 'user2';
+    // Определяем роли четко
+    const isGeneralAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER';
+    const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
+    const isSportConsultant = demoRole === 'CONSULTANT_SPORT';
+    const isVyacheslav = demoRole === 'VYACHESLAV';
+    const isSuperAdmin = demoRole === 'SUPER_ADMIN';
+    const isUser0 = demoRole === 'USER_0';
+    const isAnyAdmin = isGeneralAdmin || isNutritionConsultant || isSportConsultant || isVyacheslav || isSuperAdmin;
+
+    // Кто может переключать режимы (ВСЕ пользователи, кроме админов в режиме ответа)
+    // Админы видят переключатель только когда отвечают на вопросы
+    const canSwitchModes = !isGeneralAdmin && !isNutritionConsultant && !isVyacheslav && !isSportConsultant && !isSuperAdmin;
 
     // Функция для сортировки вопросов: неотвеченные сверху, отвеченные снизу
     const sortQuestions = (questionsList) => {
@@ -99,110 +88,63 @@ const Questions = () => {
         });
     };
 
-    // Загружаем вопросы из localStorage
-    useEffect(() => {
-        const loadQuestions = () => {
-            // Загружаем ВСЕ вопросы из единого хранилища
-            const allQuestionsKey = 'allQuestions';
-            const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
+    // Загружаем вопросы с бэкенда
+    const loadQuestions = async () => {
+        try {
+            setError(null);
+            const data = await chatApi.getQuestionsDto(questionMode);
+            setQuestions(sortQuestions(data || []));
+        } catch (err) {
+            console.error('Failed to load questions:', err);
 
-            let questionsToShow = [];
-
-            if (isNutritionAdmin) {
-                // Админ питания видит ТОЛЬКО вопросы с recipientId = 'admin-nutrition'
-                questionsToShow = allQuestions.filter(q =>
-                    q.recipientId === 'admin-nutrition' && !q.archived
-                );
-                console.log('Админ питания: вопросы с recipientId=admin-nutrition:', questionsToShow.length);
-            } else if (isVyacheslav) {
-                // Вячеслав переключается между личными и общими
-                if (vyacheslavView === 'personal') {
-                    // Личные вопросы: recipientId = 'vyacheslav'
-                    questionsToShow = allQuestions.filter(q =>
-                        q.recipientId === 'vyacheslav' && !q.archived
-                    );
-                    console.log('Вячеслав (личные): вопросы с recipientId=vyacheslav:', questionsToShow.length);
-                } else {
-                    // Общие вопросы: recipientId пустой
-                    questionsToShow = allQuestions.filter(q =>
-                        (!q.recipientId || q.recipientId === '') && !q.archived
-                    );
-                    console.log('Вячеслав (общие): вопросы с пустым recipientId:', questionsToShow.length);
-                }
-            } else if (isGeneralAdmin || isSuperAdmin) {
-                // Общие админы и главный админ видят только вопросы с пустым recipientId
-                questionsToShow = allQuestions.filter(q =>
-                    (!q.recipientId || q.recipientId === '') && !q.archived
-                );
-                console.log('Общий/Главный админ: вопросы с пустым recipientId:', questionsToShow.length);
-            } else if (!isAnyAdmin) {
-                // Обычные пользователи видят свои вопросы из текущей категории
-                questionsToShow = allQuestions.filter(q =>
-                    q.authorId === currentRoleId &&
-                    q.mode === questionMode &&
-                    !q.archivedByUser
-                );
-                console.log('Пользователь: свои вопросы в режиме', questionMode, ':', questionsToShow.length);
+            let errorMessage = 'Не удалось загрузить вопросы';
+            if (err.response?.status === 401) {
+                errorMessage = 'Требуется авторизация';
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Нет доступа к этому разделу';
+            } else if (err.response?.status === 404) {
+                errorMessage = 'Раздел не найден';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Слишком много запросов. Попробуйте позже';
+            } else if (err.response?.status >= 500) {
+                errorMessage = 'Ошибка сервера';
             }
 
-            setQuestions(sortQuestions(questionsToShow));
-        };
+            setError(errorMessage);
+            // fallback на sessionStorage при ошибке API (только для разработки)
+            if (process.env.NODE_ENV === 'development') {
+                const savedQuestions = process.env.NODE_ENV === 'development'
+                    ? sessionStorage.getItem(`questions_${questionMode}`)
+                    : null;
+                if (savedQuestions) setQuestions(sortQuestions(JSON.parse(savedQuestions)));
+            }
+        }
+    };
 
+    useEffect(() => {
         loadQuestions();
 
-        // Слушаем изменения в localStorage для синхронизации между вкладками/ролями
-        const handleStorageChange = (e) => {
-            if (e.key === 'allQuestions') {
-                loadQuestions();
-            }
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-
-        // Также проверяем изменения каждые 2 секунды (для синхронизации в одной вкладке)
-        const interval = setInterval(loadQuestions, 2000);
+        // Опционально: обновляем вопросы каждые 30 секунд
+        const interval = setInterval(loadQuestions, 30000);
 
         return () => {
-            window.removeEventListener('storage', handleStorageChange);
             clearInterval(interval);
         };
-    }, [questionMode, vyacheslavView, isGeneralAdmin, isNutritionAdmin, isVyacheslav, isSuperAdmin, currentRoleId, isAnyAdmin]);
+    }, [questionMode]);
 
     // Устанавливаем режим по умолчанию для админа питания и Вячеслава
     useEffect(() => {
-        if (isNutritionAdmin && questionMode !== 'nutrition') {
+        if (isNutritionConsultant && questionMode !== 'nutrition') {
             setQuestionMode('nutrition');
         }
         if (isVyacheslav && questionMode !== 'vyacheslav' && questionMode !== 'general') {
             setQuestionMode('vyacheslav');
         }
-    }, [isNutritionAdmin, isVyacheslav, questionMode]);
+    }, [isNutritionConsultant, isVyacheslav, questionMode]);
 
-    // Сохраняем вопросы при изменении в единое хранилище
-    useEffect(() => {
-        if (questions.length > 0) {
-            const allQuestionsKey = 'allQuestions';
-            const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
 
-            // Обновляем существующие вопросы
-            const updatedQuestions = allQuestions.map(q => {
-                const updated = questions.find(uq => uq.id === q.id);
-                return updated || q;
-            });
-
-            // Добавляем новые вопросы
-            const newQuestions = questions.filter(q => !allQuestions.find(aq => aq.id === q.id));
-
-            // Объединяем и сортируем
-            const mergedQuestions = [...newQuestions, ...updatedQuestions];
-            const sortedMerged = sortQuestions(mergedQuestions);
-
-            localStorage.setItem(allQuestionsKey, JSON.stringify(sortedMerged));
-        }
-    }, [questions]);
-
-    const handleAskQuestion = () => {
-        if (isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSportAdmin || isSuperAdmin) {
+    const handleAskQuestion = async () => {
+        if (isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSportConsultant || isSuperAdmin) {
             alert('Администратор не может задавать вопросы, только отвечать на них');
             return;
         }
@@ -212,40 +154,31 @@ const Questions = () => {
             return;
         }
 
-        const question = {
-            id: Date.now(),
-            question: newQuestion.trim(),
-            answer: '',
-            author: currentUser,
-            authorId: currentRoleId,
-            date: new Date().toISOString().split('T')[0],
-            isAnswered: false,
-            mode: questionMode,
-            recipientId: questionMode === 'nutrition' ? 'admin-nutrition' :
-                        questionMode === 'vyacheslav' ? 'vyacheslav' :
-                        '', // Пустая строка для общих вопросов
-            archived: false,
-            archivedByUser: false
-        };
+        try {
+            await chatApi.sendQuestionDto(questionMode, {
+                question: newQuestion.trim()
+            });
+            await loadQuestions();
+            setNewQuestion('');
+            showQuestionSentNotification();
+        } catch (err) {
+            console.error('Failed to send question:', err);
 
-        // Сохраняем ВСЕ вопросы в одно общее хранилище
-        const allQuestionsKey = 'allQuestions';
-        const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
+            let errorMessage = 'Ошибка отправки вопроса';
+            if (err.response?.status === 401) {
+                errorMessage = 'Требуется авторизация';
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Нет прав для отправки вопроса в этот раздел';
+            } else if (err.response?.status === 404) {
+                errorMessage = 'Раздел не найден';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Слишком много запросов. Попробуйте позже';
+            } else if (err.response?.status >= 500) {
+                errorMessage = 'Ошибка сервера';
+            }
 
-        // Добавляем новый вопрос
-        const updatedAllQuestions = [question, ...allQuestions];
-
-        // Сортируем
-        const sortedQuestions = sortQuestions(updatedAllQuestions);
-        localStorage.setItem(allQuestionsKey, JSON.stringify(sortedQuestions));
-
-        // Обновляем состояние с сортировкой
-        const myQuestions = sortedQuestions.filter(q => q.authorId === currentRoleId && q.mode === questionMode && !q.archivedByUser);
-        setQuestions(myQuestions);
-        setNewQuestion('');
-
-        // Показываем уведомление об отправке
-        showQuestionSentNotification();
+            alert(errorMessage);
+        }
     };
 
     const showQuestionSentNotification = () => {
@@ -276,7 +209,7 @@ const Questions = () => {
                          (vyacheslavView === 'personal' && isVyacheslav) ||
                          (questionMode === 'general' && isGeneralAdmin) ||
                          (questionMode === 'general' && isSuperAdmin) ||
-                         (questionMode === 'nutrition' && isNutritionAdmin);
+                         (questionMode === 'nutrition' && isNutritionConsultant);
 
         if (!canAnswer) {
             alert('У вас нет прав для ответа на вопросы в этом разделе');
@@ -294,51 +227,38 @@ const Questions = () => {
         setShowAnswerConfirm(true);
     };
 
-    const confirmAnswer = () => {
+    const confirmAnswer = async () => {
         if (!pendingAnswerData) return;
 
         const { questionId, answer } = pendingAnswerData;
 
-        // Загружаем все вопросы из единого хранилища
-        const allQuestionsKey = 'allQuestions';
-        const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
+        try {
+            // Отправляем ответ на бэкенд через новый эндпоинт
+            await chatApi.answerQuestionDto(questionId, { answer: answer.trim() });
+            await loadQuestions();
+            setAnswerText({ ...answerText, [questionId]: '' });
+            setShowAnswerConfirm(false);
+            setPendingAnswerData(null);
+        } catch (err) {
+            console.error('Failed to send answer:', err);
 
-        // Обновляем ответ у конкретного вопроса
-        const updatedAllQuestions = allQuestions.map(q =>
-            q.id === questionId
-                ? {
-                    ...q,
-                    answer: answer,
-                    isAnswered: true,
-                    answeredBy: currentUser,
-                    answerDate: new Date().toISOString().split('T')[0],
-                    answerTimestamp: Date.now().toString()
-                }
-                : q
-        );
+            let errorMessage = 'Ошибка отправки ответа';
+            if (err.response?.status === 401) {
+                errorMessage = 'Требуется авторизация';
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Нет прав для ответа на этот вопрос';
+            } else if (err.response?.status === 404) {
+                errorMessage = 'Вопрос не найден';
+            } else if (err.response?.status === 409) {
+                errorMessage = 'На этот вопрос уже дан ответ';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Слишком много запросов. Попробуйте позже';
+            } else if (err.response?.status >= 500) {
+                errorMessage = 'Ошибка сервера';
+            }
 
-        // Сортируем после обновления
-        const sortedQuestions = sortQuestions(updatedAllQuestions);
-        localStorage.setItem(allQuestionsKey, JSON.stringify(sortedQuestions));
-
-        // Обновляем локальное состояние
-        const updatedLocalQuestions = questions.map(q =>
-            q.id === questionId
-                ? {
-                    ...q,
-                    answer: answer,
-                    isAnswered: true,
-                    answeredBy: currentUser,
-                    answerDate: new Date().toISOString().split('T')[0],
-                    answerTimestamp: Date.now().toString()
-                }
-                : q
-        );
-        setQuestions(sortQuestions(updatedLocalQuestions));
-
-        setAnswerText({ ...answerText, [questionId]: '' });
-        setShowAnswerConfirm(false);
-        setPendingAnswerData(null);
+            alert(errorMessage);
+        }
     };
 
     const cancelAnswer = () => {
@@ -358,13 +278,13 @@ const Questions = () => {
     };
 
     // Функция для фактического удаления одного вопроса
-    const executeDeleteQuestion = () => {
+    const executeDeleteQuestion = async () => {
         if (!questionToDelete) return;
 
         const canDelete = (vyacheslavView === 'general' && isVyacheslav) ||
                          (vyacheslavView === 'personal' && isVyacheslav) ||
                          (questionMode === 'general' && isGeneralAdmin) ||
-                         (questionMode === 'nutrition' && isNutritionAdmin);
+                         (questionMode === 'nutrition' && isNutritionConsultant);
 
         if (!canDelete) {
             alert('У вас нет прав для удаления вопросов в этом разделе!');
@@ -373,21 +293,32 @@ const Questions = () => {
             return;
         }
 
-        // Загружаем все вопросы из единого хранилища
-        const allQuestionsKey = 'allQuestions';
-        const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
+        try {
+            // Удаляем вопрос через API
+            await chatApi.deleteQuestionDto(questionToDelete.id);
+            await loadQuestions();
+            setShowDeleteConfirm(false);
+            setQuestionToDelete(null);
+        } catch (err) {
+            console.error('Failed to delete question:', err);
 
-        // Удаляем вопрос
-        const updatedAllQuestions = allQuestions.filter(q => q.id !== questionToDelete.id);
-        const sortedQuestions = sortQuestions(updatedAllQuestions);
-        localStorage.setItem(allQuestionsKey, JSON.stringify(sortedQuestions));
+            let errorMessage = 'Ошибка удаления вопроса';
+            if (err.response?.status === 401) {
+                errorMessage = 'Требуется авторизация';
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Нет прав для удаления этого вопроса';
+            } else if (err.response?.status === 404) {
+                errorMessage = 'Вопрос не найден';
+            } else if (err.response?.status === 409) {
+                errorMessage = 'Нельзя удалить неотвеченный вопрос';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Слишком много запросов. Попробуйте позже';
+            } else if (err.response?.status >= 500) {
+                errorMessage = 'Ошибка сервера';
+            }
 
-        // Обновляем локальное состояние
-        const updatedLocalQuestions = questions.filter(q => q.id !== questionToDelete.id);
-        setQuestions(sortQuestions(updatedLocalQuestions));
-
-        setShowDeleteConfirm(false);
-        setQuestionToDelete(null);
+            alert(errorMessage);
+        }
     };
 
     // Функция для отмены удаления одного вопроса
@@ -407,48 +338,29 @@ const Questions = () => {
     };
 
     // Функция для очистки отвеченных вопросов (архивирование)
-    const executeBulkDelete = () => {
-        const isUserRole = !isGeneralAdmin && !isNutritionAdmin && !isVyacheslav && !isSportAdmin && !isSuperAdmin;
+    const executeBulkDelete = async () => {
+        try {
+            await chatApi.archiveAnsweredQuestionsDto(questionMode);
+            await loadQuestions();
+            setShowBulkDeleteConfirm(false);
+        } catch (err) {
+            console.error('Failed to archive questions:', err);
 
-        // Загружаем все вопросы из единого хранилища
-        const allQuestionsKey = 'allQuestions';
-        const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
-
-        // Для админов - помечаем как archived, для пользователей - как archivedByUser
-        const updatedQuestions = allQuestions.map(q => {
-            if (isUserRole) {
-                // Пользователь архивирует только свои отвеченные вопросы в текущем режиме
-                if (q.authorId === currentRoleId && q.mode === questionMode && q.isAnswered) {
-                    return { ...q, archivedByUser: true, archivedByUserAt: new Date().toISOString() };
-                }
-            } else {
-                // Админы архивируют отвеченные вопросы в своей области видимости
-                let shouldArchive = false;
-
-                if (isNutritionAdmin && q.recipientId === 'admin-nutrition' && q.isAnswered) {
-                    shouldArchive = true;
-                } else if (isVyacheslav && vyacheslavView === 'personal' && q.recipientId === 'vyacheslav' && q.isAnswered) {
-                    shouldArchive = true;
-                } else if (isVyacheslav && vyacheslavView === 'general' && (!q.recipientId || q.recipientId === '') && q.isAnswered) {
-                    shouldArchive = true;
-                } else if ((isGeneralAdmin || isSuperAdmin) && (!q.recipientId || q.recipientId === '') && q.isAnswered) {
-                    shouldArchive = true;
-                }
-
-                if (shouldArchive) {
-                    return { ...q, archived: true, archivedAt: new Date().toISOString() };
-                }
+            let errorMessage = 'Ошибка архивации';
+            if (err.response?.status === 401) {
+                errorMessage = 'Требуется авторизация';
+            } else if (err.response?.status === 403) {
+                errorMessage = 'Нет прав для архивации вопросов';
+            } else if (err.response?.status === 404) {
+                errorMessage = 'Раздел не найден';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Слишком много запросов. Попробуйте позже';
+            } else if (err.response?.status >= 500) {
+                errorMessage = 'Ошибка сервера';
             }
-            return q;
-        });
 
-        localStorage.setItem(allQuestionsKey, JSON.stringify(updatedQuestions));
-
-        // Обновляем локальное отображение - убираем заархивированные вопросы
-        const activeQuestions = questions.filter(q => !q.isAnswered);
-        setQuestions(sortQuestions(activeQuestions));
-
-        setShowBulkDeleteConfirm(false);
+            alert(errorMessage);
+        }
     };
 
     // Функция для отмены массового удаления
@@ -460,8 +372,83 @@ const Questions = () => {
     const unansweredCount = questions.filter(q => !q.isAnswered).length;
     const answeredCount = questions.filter(q => q.isAnswered).length;
 
+    // Компонент для виртуализированного элемента
+    const QuestionItem = ({ index, style }) => {
+        const q = questions[index];
+        return (
+            <div
+                style={style}
+                className={`faq-item ${q.isAnswered ? 'answered' : 'pending'} ${!q.isAnswered && index === 0 ? 'newest' : ''}`}
+            >
+                <div className="faq-question">
+                    <div className="question-header">
+                        <div className="question-title">
+                            <strong>❓ {q.question}</strong>
+                            {!q.isAnswered && !(isGeneralAdmin || isNutritionConsultant || isVyacheslav) && (
+                                <span className="waiting-badge">⏳ Ожидает ответа</span>
+                            )}
+                        </div>
+                        {(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && q.isAnswered && (
+                            <button
+                                className="delete-question-btn"
+                                onClick={() => confirmDeleteQuestion(q)}
+                                title="Удалить вопрос"
+                            >
+                                🗑️
+                            </button>
+                        )}
+                    </div>
+                    <div className="question-meta">
+                        <span>👤 {q.author}</span>
+                        <span>📅 {q.date}</span>
+                        {q.isAnswered && <span className="answered-badge">✅ Ответ дан</span>}
+                        {!q.isAnswered && (isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && <span className="pending-badge">⏳ Ожидает ответа</span>}
+                    </div>
+                </div>
+
+                {q.isAnswered ? (
+                    <div className="faq-answer">
+                        <strong>📝 Ответ:</strong>
+                        <p>{q.answer}</p>
+                        <div className="answer-meta">
+                            <span>👨‍💼 {q.answeredBy}</span>
+                            <span>📅 {q.answerDate}</span>
+                        </div>
+                    </div>
+                ) : (
+                    (isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && (
+                        <div className="answer-form">
+                            <textarea
+                                className="answer-input"
+                                placeholder="Введите ответ на вопрос..."
+                                value={answerText[q.id] || ''}
+                                onChange={(e) => setAnswerText({ ...answerText, [q.id]: e.target.value })}
+                                rows="3"
+                            />
+                            <button
+                                className="answer-submit"
+                                onClick={() => handleAnswerQuestion(q.id)}
+                            >
+                                ✍️ Ответить
+                            </button>
+                        </div>
+                    )
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="help-center">
+            {/* Отображение ошибок */}
+            {error && (
+                <div className="error-message">
+                    <span className="error-icon">⚠️</span>
+                    <span>{error}</span>
+                    <button className="error-close" onClick={clearError}>×</button>
+                </div>
+            )}
+
             {/* Уведомление об отправке вопроса */}
             {showQuestionSent && (
                 <div className="question-sent-notification">
@@ -561,31 +548,38 @@ const Questions = () => {
             )}
 
             <div className="help-header">
-                <h2>❓ Вопросы и ответы</h2>
-
-                {/* Переключатель для Обычных пользователей */}
-                {canSwitchModes && (
-                    <div className="mode-switcher">
-                        <button
-                            className={`mode-btn ${questionMode === 'general' ? 'active' : ''}`}
-                            onClick={() => setQuestionMode('general')}
-                        >
-                            Общий
-                        </button>
-                        <button
-                            className={`mode-btn ${questionMode === 'nutrition' ? 'active' : ''}`}
-                            onClick={() => setQuestionMode('nutrition')}
-                        >
-                            Питание
-                        </button>
-                        <button
-                            className={`mode-btn ${questionMode === 'vyacheslav' ? 'active' : ''}`}
-                            onClick={() => setQuestionMode('vyacheslav')}
-                        >
-                            Вячеславу
-                        </button>
+                <h2>Вопросы и ответы</h2>
+                <div className="help-subtitle">
+                    <small>💡 Система вопросов подготовлена для интеграции с бэкендом. В бэкенде уже есть 3 комнаты:</small>
+                    <div className="room-info">
+                        {questionRooms.map(room => (
+                            <div key={room.slug} className="room-badge">
+                                <span className="room-slug">{room.slug}</span>
+                                <span className="room-name">{room.name}</span>
+                            </div>
+                        ))}
                     </div>
-                )}
+                </div>
+
+                {/* Переключатель для выбора комнаты вопросов */}
+                <div className="mode-section">
+                    <h3>📝 Выберите раздел для вопроса:</h3>
+
+                    {/* Переключатель для обычных пользователей */}
+                    {canSwitchModes && (
+                        <div className="mode-switcher">
+                            {questionRooms.map(room => (
+                                <button
+                                    key={room.mode}
+                                    className={`mode-btn ${questionMode === room.mode ? 'active' : ''}`}
+                                    onClick={() => setQuestionMode(room.mode)}
+                                    title={room.description}
+                                >
+                                    {room.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
 
                 {/* Переключатель для Вячеслава между личными и общими вопросами */}
                 {isVyacheslav && (
@@ -606,16 +600,26 @@ const Questions = () => {
                 )}
 
                 {/* Админ питания НЕ видит переключателей - только свои вопросы по питанию */}
+                </div>
             </div>
 
             {/* Секция задания вопроса - показываем только для пользователей (не админов) */}
-            {!isGeneralAdmin && !isNutritionAdmin && !isVyacheslav && !isSportAdmin && !isSuperAdmin && (
+            {!isGeneralAdmin && !isNutritionConsultant && !isVyacheslav && !isSportConsultant && !isSuperAdmin && (
                 <div className="ask-section">
                     <h3>💬 Задать вопрос</h3>
                     <div className="ask-description">
+                        <div className="current-room-info">
+                            <strong>Выбранный раздел:</strong>
+                            <span className="room-indicator">
+                                {questionRooms.find(r => r.mode === questionMode)?.name || 'Общие вопросы'}
+                            </span>
+                            <small className="room-slug-hint">
+                                (комната в бэкенде: <code>{questionRooms.find(r => r.mode === questionMode)?.slug || 'questions-general'}</code>)
+                            </small>
+                        </div>
                         <p>
-                            {questionMode === 'general' && 'Напишите свой вопрос в общий раздел.'}
-                            {questionMode === 'nutrition' && 'Напишите вопрос по питанию. Ответит администратор питания.'}
+                            {questionMode === 'general' && 'Напишите свой вопрос в общий раздел. Ответят администраторы или другие пользователи.'}
+                            {questionMode === 'nutrition' && 'Напишите вопрос по питанию. Ответит консультант по питанию.'}
                             {questionMode === 'vyacheslav' && 'Напишите вопрос лично Вячеславу Тимошенко.'}
                         </p>
                     </div>
@@ -640,14 +644,21 @@ const Questions = () => {
 
             <div className="faq-section">
                 <div className="faq-header-actions">
-                    <h3>
-                        {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin)
-                            ? `📋 Все вопросы (${unansweredCount} ожидают ответа, ${answeredCount} отвечено)`
-                            : `📋 Мои вопросы (${questions.length})`
-                        }
-                    </h3>
+                    <div className="faq-title-section">
+                        <h3>
+                            {(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin)
+                                ? `📋 Все вопросы (${unansweredCount} ожидают ответа, ${answeredCount} отвечено)`
+                                : `📋 Мои вопросы (${questions.length})`
+                            }
+                        </h3>
+                        <div className="backend-info">
+                            <small>🔧 Для интеграции с бэкендом использовать:</small>
+                            <code className="api-endpoint">GET /api/chat/questions/{questionMode}</code>
+                            <code className="api-endpoint">POST /api/chat/questions/{questionMode}</code>
+                        </div>
+                    </div>
                     {/* Кнопка очистки для админов */}
-                    {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && answeredCount > 0 && (
+                    {(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && answeredCount > 0 && (
                         <button
                             className="bulk-delete-btn"
                             onClick={confirmBulkDelete}
@@ -657,7 +668,7 @@ const Questions = () => {
                         </button>
                     )}
                     {/* Кнопка очистки для пользователей */}
-                    {!isGeneralAdmin && !isNutritionAdmin && !isVyacheslav && !isSportAdmin && !isSuperAdmin && answeredCount > 0 && (
+                    {!isGeneralAdmin && !isNutritionConsultant && !isVyacheslav && !isSportConsultant && !isSuperAdmin && answeredCount > 0 && (
                         <button
                             className="bulk-delete-btn"
                             onClick={confirmBulkDelete}
@@ -669,83 +680,41 @@ const Questions = () => {
                 </div>
 
                 {/* Разделитель для админа - неотвеченные вопросы */}
-                {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && unansweredCount > 0 && (
+                {(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && unansweredCount > 0 && (
                     <div className="section-divider">
                         <span className="divider-title">⏳ Ожидают ответа ({unansweredCount})</span>
                     </div>
                 )}
 
-                <div className="faq-list">
+                <div className="faq-list" style={{ height: '600px' }}>
                     {questions.length === 0 ? (
                         <div className="no-questions">
-                            <p>❓ {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) ? 'Пока нет вопросов от пользователей' : 'У вас пока нет вопросов'}</p>
-                            {!(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && <p className="hint-text">Задайте свой первый вопрос выше! ✍️</p>}
+                            <p>❓ {(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) ? 'Пока нет вопросов от пользователей' : 'У вас пока нет вопросов'}</p>
+                            {!(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && <p className="hint-text">Задайте свой первый вопрос выше! ✍️</p>}
                         </div>
                     ) : (
-                        questions.map((q, index) => (
-                            <div
-                                key={q.id}
-                                className={`faq-item ${q.isAnswered ? 'answered' : 'pending'} ${!q.isAnswered && index === 0 ? 'newest' : ''}`}
-                                style={{
-                                    animation: `fadeIn 0.3s ease`
-                                }}
-                            >
-                                <div className="faq-question">
-                                    <div className="question-header">
-                                        <div className="question-title">
-                                            <strong>❓ {q.question}</strong>
-                                            {!q.isAnswered && !(isGeneralAdmin || isNutritionAdmin || isVyacheslav) && (
-                                                <span className="waiting-badge">⏳ Ожидает ответа</span>
-                                            )}
-                                        </div>
-                                        {(isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && q.isAnswered && (
-                                            <button
-                                                className="delete-question-btn"
-                                                onClick={() => confirmDeleteQuestion(q)}
-                                                title="Удалить вопрос"
-                                            >
-                                                🗑️
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="question-meta">
-                                        <span>👤 {q.author}</span>
-                                        <span>📅 {q.date}</span>
-                                        {q.isAnswered && <span className="answered-badge">✅ Ответ дан</span>}
-                                        {!q.isAnswered && (isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && <span className="pending-badge">⏳ Ожидает ответа</span>}
-                                    </div>
-                                </div>
-
-                                {q.isAnswered ? (
-                                    <div className="faq-answer">
-                                        <strong>📝 Ответ:</strong>
-                                        <p>{q.answer}</p>
-                                        <div className="answer-meta">
-                                            <span>👨‍💼 {q.answeredBy}</span>
-                                            <span>📅 {q.answerDate}</span>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    (isGeneralAdmin || isNutritionAdmin || isVyacheslav || isSuperAdmin) && (
-                                        <div className="answer-form">
-                                            <textarea
-                                                className="answer-input"
-                                                placeholder="Введите ответ на вопрос..."
-                                                value={answerText[q.id] || ''}
-                                                onChange={(e) => setAnswerText({ ...answerText, [q.id]: e.target.value })}
-                                                rows="3"
-                                            />
-                                            <button
-                                                className="answer-submit"
-                                                onClick={() => handleAnswerQuestion(q.id)}
-                                            >
-                                                ✍️ Ответить
-                                            </button>
-                                        </div>
-                                    )
-                                )}
-                            </div>
-                        ))
+                        <AutoSizer>
+                            {({ height, width }) => (
+                                <List
+                                    height={height}
+                                    width={width}
+                                    itemCount={questions.length}
+                                    itemSize={q => {
+                                        const qItem = questions[q];
+                                        // Динамическая высота в зависимости от контента
+                                        let baseHeight = 120; // базовая высота вопроса
+                                        if (qItem.isAnswered) {
+                                            baseHeight += 80; // + высота ответа
+                                        } else if (isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) {
+                                            baseHeight += 100; // + высота формы ответа
+                                        }
+                                        return baseHeight;
+                                    }}
+                                >
+                                    {QuestionItem}
+                                </List>
+                            )}
+                        </AutoSizer>
                     )}
                 </div>
             </div>

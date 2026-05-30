@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- V1 -->
+    <include file="db/changelog/v1/01-create-users-table.yaml"/>
+    <include file="db/changelog/v1/02-create-posts-table.yaml"/>
+    <include file="db/changelog/v1/03-create-comments-table.yaml"/>
+    <include file="db/changelog/v1/04-create-reactions-table.yaml"/>
+    <include file="db/changelog/v1/05-create-events-table.yaml"/>
+    <include file="db/changelog/v1/06-create-messages-table.yaml"/>
+    <include file="db/changelog/v1/07-create-archives-table.yaml"/>
+    <include file="db/changelog/v1/08-create-indexes.yaml"/>
+
+    <!-- V2 -->
+    <include file="db/changelog/v2/01-add-user-roles.yaml"/>
+
+    <!-- V3 -->
+    <include file="db/changelog/v3/01-create-media-and-payments-tables.yaml"/>
+
+    <!-- V4 -->
+    <include file="db/changelog/v4/01-add-media-to-messages.yaml"/>
+
+    <!-- V5 (ИСПРАВЛЕННЫЕ) -->
+    <include file="db/changelog/v5/01-create-chat-rooms.yaml"/>
+    <include file="db/changelog/v5/02-add-room-id-to-messages.yaml"/>
+    <include file="db/changelog/v5/03-backfill-room-id.yaml"/>
+    <include file="db/changelog/v5/04-create-room-permissions.yaml"/>
+
+    <!-- V6 -->
+    <include file="db/changelog/v6/01-default-chat-rooms-and-permissions.yaml"/>
+    <include file="db/changelog/v6/01-add-performance-indexes.yaml"/>
+    <include file="db/changelog/v6/05-composite-indexes.yaml"/>
+    <include file="db/changelog/v6/06-add-version-columns.yaml"/>
+    <include file="db/changelog/v6/07-additional-indexes.yaml"/>
+
+    <!-- V7 -->
+    <include file="db/changelog/v7/01-partition-messages.sql"/>
+
+    <!-- V8 -->
+    <include file="db/changelog/v8/01-add-archive-fields.sql"/>
+
+    <!-- V9: Очистка данных для первого релиза -->
+    <include file="db/changelog/v9/01-cleanup-data.sql"/>
+    <include file="db/changelog/v9/02-initial-data.sql"/>
+
+    <!-- Модули -->
+    <include file="db/changelog/db.changelog-media.yaml"/>
+    <include file="db/changelog/db.changelog-payments.yaml"/>
+
+</databaseChangeLog>

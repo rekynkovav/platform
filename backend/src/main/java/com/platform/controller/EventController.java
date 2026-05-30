@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -40,26 +41,26 @@ public class EventController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<EventDto> createEvent(
-            @RequestBody EventDto.CreateRequest request,
+            @Valid @RequestBody EventDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         return ResponseEntity.ok(eventService.createEvent(request, jwt));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<EventDto> updateEvent(
             @PathVariable String id,
-            @RequestBody EventDto.UpdateRequest request,
+            @Valid @RequestBody EventDto.UpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         return ResponseEntity.ok(eventService.updateEvent(id, request, jwt));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<Void> deleteEvent(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {

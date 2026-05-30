@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -39,26 +40,26 @@ public class ArchiveController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<ArchiveDto> createArchive(
-            @RequestBody ArchiveDto.CreateRequest request,
+            @Valid @RequestBody ArchiveDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         return ResponseEntity.ok(archiveService.createArchive(request, jwt));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<ArchiveDto> updateArchive(
             @PathVariable String id,
-            @RequestBody ArchiveDto.UpdateRequest request,
+            @Valid @RequestBody ArchiveDto.UpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         return ResponseEntity.ok(archiveService.updateArchive(id, request, jwt));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV', 'DEVELOPER')")
     public ResponseEntity<Void> deleteArchive(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {

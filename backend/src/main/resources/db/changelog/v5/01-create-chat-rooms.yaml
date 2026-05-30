@@ -1,0 +1,63 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01-create-chat-rooms-table
+      author: grok-xirurg
+      labels: schema
+      comment: ChatRoom unified model
+      changes:
+        - createTable:
+            tableName: chat_rooms
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: slug
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: type
+                  type: VARCHAR(30)
+                  defaultValue: general
+              - column:
+                  name: name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - createIndex:
+            indexName: idx_chat_rooms_slug
+            tableName: chat_rooms
+            columns:
+              - column: { name: slug }
+        - createIndex:
+            indexName: idx_chat_rooms_type
+            tableName: chat_rooms
+            columns:
+              - column: { name: type }

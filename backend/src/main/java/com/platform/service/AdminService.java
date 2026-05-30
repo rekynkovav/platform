@@ -8,13 +8,18 @@ import com.platform.model.dto.AdminStatsDto;
 import com.platform.model.dto.UserDto;
 import com.platform.repository.PostRepository;
 import com.platform.repository.UserRepository;
+import com.platform.util.RoleUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -28,23 +33,13 @@ public class AdminService {
     private final CommentService commentService;
     private final EventService eventService;
 
-    public List<UserDto> getAllUsers(String search, int limit, int offset) {
-        List<User> users;
-        if (search != null && !search.isEmpty()) {
-            users = userRepository.findByUsernameContainingIgnoreCase(search);
-        } else {
-            users = userRepository.findAll();
-        }
-
-        return users.stream()
-                .skip(offset)
-                .limit(limit)
-                .map(this::toUserDto)
-                .collect(Collectors.toList());
+    public Page<UserDto> getAllUsers(String search, Pageable pageable) {
+        Page<User> users = userRepository.findAll(pageable);
+        return users.map(this::toUserDto);
     }
 
     public UserDto getUserById(String userId) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
         return toUserDto(user);
     }
@@ -55,11 +50,11 @@ public class AdminService {
         String currentUserRole = getUserRole(jwt);
 
         // Только супер-админ может менять роли
-        if (!"super_admin".equals(currentUserRole)) {
+        if (!"SUPER_ADMIN".equals(currentUserRole) && !"VYACHESLAV".equals(currentUserRole)) {
             throw new AccessDeniedException("Only super admin can change user roles");
         }
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         user.setRole(role);
@@ -75,11 +70,11 @@ public class AdminService {
         String currentUserId = jwt.getSubject();
         String currentUserRole = getUserRole(jwt);
 
-        if (!"admin".equals(currentUserRole) && !"super_admin".equals(currentUserRole)) {
+        if (!"MODERATOR_ADMIN".equals(currentUserRole) && !"SUPER_ADMIN".equals(currentUserRole) && !"VYACHESLAV".equals(currentUserRole)) {
             throw new AccessDeniedException("Only admin can ban users");
         }
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         user.setBanned(true);
@@ -96,11 +91,11 @@ public class AdminService {
         String currentUserId = jwt.getSubject();
         String currentUserRole = getUserRole(jwt);
 
-        if (!"admin".equals(currentUserRole) && !"super_admin".equals(currentUserRole)) {
+        if (!"MODERATOR_ADMIN".equals(currentUserRole) && !"SUPER_ADMIN".equals(currentUserRole) && !"VYACHESLAV".equals(currentUserRole)) {
             throw new AccessDeniedException("Only admin can unban users");
         }
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         user.setBanned(false);
@@ -158,7 +153,7 @@ public class AdminService {
 
     private UserDto toUserDto(User user) {
         return UserDto.builder()
-                .id(user.getId())
+                .id(user.getId() != null ? user.getId().toString() : null)
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .phone(user.getPhone())
@@ -173,11 +168,6 @@ public class AdminService {
     }
 
     private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
-        List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "user";
-        if (roles.contains("super_admin")) return "super_admin";
-        if (roles.contains("admin")) return "admin";
-        if (roles.contains("moderator")) return "moderator";
-        return "user";
+        return RoleUtils.getUserRole(jwt);
     }
 }

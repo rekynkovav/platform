@@ -2,20 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initKeycloak, getUsername, getUserRoles, logout } from './keycloak';
 import NavTabs from './components/Navigation/NavTabs';
 import MainFeed from './components/Feed/MainFeed';
-import NutritionFeed from './components/Feed/NutritionFeed';
 import Dashboard from './components/Dashboard/Dashboard';
-import EventsHub from './components/Events/EventsHub';
-import ArchiveList from './components/Archive/ArchiveList';
+import LiveBroadcastView from './components/live/LiveBroadcastView';
 import GeneralChat from './components/Chat/GeneralChat';
-import NutritionChat from './components/Chat/NutritionChat';
-import Questions from './components/Help/Questions';
-import GlobalEventNotification from './components/Notification/GlobalEventNotification';
-import NotificationBell from './components/Notification/NotificationBell';
-import RoleSwitcher from './components/Admin/RoleSwitcher';
 import UserProfile from './components/UserProfile/UserProfile';
-import { useTheme } from './hooks/useTheme';
+import { AudioPlayerProvider } from './context/AudioPlayerContext';
+import { usePermissions } from './hooks/usePermissions';
+import { ROLES, ROLE_LEVELS } from './constants/roles';
 import './App.css';
-import ScheduledEvents from "./components/Scheduled/ScheduledEvents";
 
 function App() {
     const [authenticated, setAuthenticated] = useState(false);
@@ -25,36 +19,36 @@ function App() {
     const [username, setUsername] = useState('User');
     const [showAccessDenied, setShowAccessDenied] = useState(false);
     const [accessDeniedPosition, setAccessDeniedPosition] = useState({ x: 0, y: 0 });
-    const initStartedRef = useRef(false);
     const accessDeniedTimerRef = useRef(null);
-    const { theme, toggleTheme } = useTheme();
 
-    const demoRole = localStorage.getItem('demoRole');
-    const effectiveRoles = demoRole === 'admin' ? ['admin', 'user'] : (demoRole === 'user' ? ['user'] : userRoles);
+    const { hasLevel } = usePermissions();
 
     useEffect(() => {
-        if (initStartedRef.current) return;
-        initStartedRef.current = true;
+        const initAuth = async (retryCount = 0) => {
+            const MAX_RETRIES = 3;
+            const RETRY_DELAY = 2000;
 
-        initKeycloak()
-            .then((auth) => {
+            try {
+                const auth = await initKeycloak();
                 setAuthenticated(auth);
                 if (auth) {
                     setUserRoles(getUserRoles());
                     setUsername(getUsername());
                 }
-                setLoading(false);
+            } catch (error) {
+                console.error('Auth init failed:', error);
 
-                // Для пользователя 0 устанавливаем вкладку help по умолчанию
-                const demoRole = localStorage.getItem('demoRole');
-                if (demoRole === 'user0') {
-                    setActiveTab('help');
+                if (retryCount < MAX_RETRIES) {
+                    console.log(`Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
+                    setTimeout(() => initAuth(retryCount + 1), RETRY_DELAY);
+                } else {
+                    console.error('Max retries reached. Auth failed.');
                 }
-            })
-            .catch((err) => {
-                console.error('Keycloak init failed', err);
+            } finally {
                 setLoading(false);
-            });
+            }
+        };
+        initAuth();
     }, []);
 
     const handleLogout = () => {
@@ -62,26 +56,23 @@ function App() {
     };
 
     const handleLogin = () => {
-        const loginUrl = 'http://localhost/auth/realms/platform/protocol/openid-connect/auth?client_id=platform-frontend&redirect_uri=' + encodeURIComponent(window.location.origin) + '&response_type=code&scope=openid';
+        const keycloakUrl = process.env.REACT_APP_KEYCLOAK_URL || 'http://localhost:8080/auth';
+        const loginUrl = `${keycloakUrl}/realms/platform/protocol/openid-connect/auth?client_id=platform-frontend&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=code&scope=openid`;
         window.location.href = loginUrl;
     };
 
     const showAccessDeniedMessage = (x, y) => {
-        // Сначала скрываем, если уже показано
         setShowAccessDenied(false);
 
-        // Очищаем предыдущий таймер если есть
         if (accessDeniedTimerRef.current) {
             clearTimeout(accessDeniedTimerRef.current);
             accessDeniedTimerRef.current = null;
         }
 
-        // Небольшая задержка для сброса анимации
         setTimeout(() => {
             setAccessDeniedPosition({ x, y });
             setShowAccessDenied(true);
 
-            // Устанавливаем новый таймер
             accessDeniedTimerRef.current = setTimeout(() => {
                 setShowAccessDenied(false);
                 accessDeniedTimerRef.current = null;
@@ -89,35 +80,15 @@ function App() {
         }, 10);
     };
 
-    const handleLogoClick = (e) => {
-        const demoRole = localStorage.getItem('demoRole');
-        if (demoRole === 'user0') {
-            const rect = e.currentTarget.getBoundingClientRect();
-            showAccessDeniedMessage(rect.left + rect.width / 2, rect.bottom + 10);
-            return;
-        }
-        setActiveTab('main');
-    };
-
-    const handleEventClick = () => {
-        const demoRole = localStorage.getItem('demoRole');
-        if (demoRole === 'user0') {
-            showAccessDeniedMessage(window.innerWidth / 2, window.innerHeight / 2);
-            return;
-        }
-        setActiveTab('scheduled');
-    };
-
     const handleTabChange = (tabId, event) => {
-        const demoRole = localStorage.getItem('demoRole');
+        const userRole = userRoles.length > 0 ? userRoles[0] : ROLES.USER_0;
+        const userLevel = ROLE_LEVELS[userRole] || 1;
 
-        // Для пользователя 0 доступна только вкладка help
-        if (demoRole === 'user0' && tabId !== 'help') {
+        // USER_0 доступны только help и profile
+        if (userLevel === 1 && tabId !== 'help' && tabId !== 'profile') {
             if (event) {
                 const rect = event.currentTarget.getBoundingClientRect();
                 showAccessDeniedMessage(rect.left + rect.width / 2, rect.bottom + 10);
-            } else {
-                showAccessDeniedMessage(window.innerWidth / 2, 100);
             }
             return;
         }
@@ -126,27 +97,16 @@ function App() {
     };
 
     if (loading) {
-        return <div className="loading-screen">Загрузка...</div>;
+        return <div className="loading-screen">Loading...</div>;
     }
 
     if (!authenticated) {
         return (
             <div className="loading-screen">
-                <div style={{ textAlign: 'center' }}>
-                    <p style={{ marginBottom: '20px', fontSize: '18px' }}>🔐 Пожалуйста, войдите в систему</p>
-                    <button
-                        onClick={handleLogin}
-                        style={{
-                            padding: '12px 32px',
-                            background: '#0d6efd',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontSize: '16px',
-                            fontWeight: '500'
-                        }}
-                    >
+                <div className="login-container">
+                    <div style={{ fontSize: '64px', marginBottom: '20px' }}>🔐</div>
+                    <p>Добро пожаловать в Платформу</p>
+                    <button className="login-btn" onClick={handleLogin}>
                         Войти через Keycloak
                     </button>
                 </div>
@@ -158,70 +118,59 @@ function App() {
         switch (activeTab) {
             case 'main':
                 return <MainFeed />;
-            case 'nutrition':
-                return <NutritionFeed />;
             case 'dashboard':
                 return <Dashboard />;
-            case 'scheduled':
-                return <ScheduledEvents />;
-            case 'archive':
-                return <ArchiveList />;
+            case 'broadcast-live':
+                return <LiveBroadcastView />;
             case 'chat':
                 return <GeneralChat />;
-            case 'chat-nutrition':
-                return <NutritionChat />;
             case 'help':
-                return <Questions />;
+                return <div className="help-section">Вопросы и помощь</div>;
             case 'profile':
                 return <UserProfile />;
+            case 'scheduled':
+                return <div className="scheduled-events">События</div>;
+            case 'admin':
+                return <div className="admin-panel">Админка</div>;
             default:
                 return <MainFeed />;
         }
     };
 
     return (
-        <div className="app">
-            <header className="header">
-                <div className="header-spacer"></div>
-                <div className="header-left">
-                    <div className="header-info" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
-                        <h1 className="header-logo">Путь Сердца</h1>
-                        <span className="header-founder">Основатель - Вячеслав Тимошенко</span>
+        <AudioPlayerProvider>
+            <div className="app">
+                <header className="header">
+                    <div className="header-left">
+                        <h1 className="header-logo">Platform</h1>
                     </div>
-                </div>
-                <div className="header-right">
-                    <NotificationBell />
-                    <RoleSwitcher />
-                    <button className="theme-toggle" onClick={toggleTheme}>
-                        {theme === 'light' ? '🌙' : '☀️'}
-                    </button>
-                    <button className="header-logout" onClick={() => setActiveTab('profile')} title="Личный кабинет">👤</button>
-                </div>
-            </header>
-
-            <NavTabs activeTab={activeTab} onTabChange={handleTabChange} />
-
-            <main className="main-content">
-                {showAccessDenied && (
-                    <div
-                        className="access-denied-message"
-                        style={{
-                            position: 'fixed',
-                            left: `${accessDeniedPosition.x}px`,
-                            top: `${accessDeniedPosition.y}px`,
-                            transform: 'translateX(-50%)',
-                            zIndex: 10000
-                        }}
-                    >
-                        Доступ ограничен
+                    <div className="header-right">
+                        <span className="username">{username}</span>
+                        <button onClick={handleLogout} className="logout-btn">Logout</button>
                     </div>
-                )}
-                {renderContent()}
-            </main>
+                </header>
 
-            {/* Глобальное уведомление о событии для всех пользователей */}
-            <GlobalEventNotification onEventClick={handleEventClick} />
-        </div>
+                <NavTabs activeTab={activeTab} onTabChange={handleTabChange} />
+
+                <main className="main-content">
+                    {showAccessDenied && (
+                        <div
+                            className="access-denied-message"
+                            style={{
+                                position: 'fixed',
+                                left: `${accessDeniedPosition.x}px`,
+                                top: `${accessDeniedPosition.y}px`,
+                                transform: 'translateX(-50%)',
+                                zIndex: 10000
+                            }}
+                        >
+                            Доступ ограничен
+                        </div>
+                    )}
+                    {renderContent()}
+                </main>
+            </div>
+        </AudioPlayerProvider>
     );
 }
 

@@ -1,0 +1,31 @@
+{
+  "dashboard": {
+    "title": "Business Metrics",
+    "panels": [
+      {
+        "title": "Active Users",
+        "targets": [{
+          "expr": "sum(websocket_connections_total)"
+        }]
+      },
+      {
+        "title": "Messages per Minute",
+        "targets": [{
+          "expr": "rate(chat_messages_total[1m])"
+        }]
+      },
+      {
+        "title": "Payments (24h)",
+        "targets": [{
+          "expr": "sum(increase(payments_total[24h]))"
+        }]
+      },
+      {
+        "title": "Active Broadcasts",
+        "targets": [{
+          "expr": "count(broadcast_status == 1)"
+        }]
+      }
+    ]
+  }
+}

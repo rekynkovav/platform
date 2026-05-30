@@ -1,152 +1,137 @@
-import React, { useState, useEffect } from 'react';
-import './Chat.css';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { chatApi } from '../../services/api';
+import useWebSocket from '../../hooks/useWebSocket';
+import { getUserRoles, getUsername } from '../../keycloak';
+import './GeneralChat.css';
 
 const GeneralChat = () => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
-    const [chatRoom, setChatRoom] = useState('user1'); // user1 или user2
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const [error, setError] = useState(null);
+    const messagesEndRef = useRef(null);
+    const userRoles = getUserRoles();
+    const username = getUsername();
+    const roomSlug = 'general';
+
+    const { isConnected, send, error: wsError } = useWebSocket(roomSlug, (wsMessage) => {
+        setMessages(prev => [...prev, wsMessage]);
+    });
+
+    const clearError = () => {
+        setError(null);
+    };
+
+    // Загрузка истории
+    const loadMessages = useCallback(async (reset = false) => {
+        try {
+            setLoading(true);
+            const currentPage = reset ? 0 : page;
+            const response = await chatApi.getMessages(roomSlug, currentPage, 50);
+
+            if (reset) {
+                setMessages(response.data || []);
+                setPage(1);
+            } else {
+                setMessages(prev => [...response.data || [], ...prev]);
+                setPage(currentPage + 1);
+            }
+            // Backend возвращает простой список, без пагинации
+            setHasMore(false);
+        } catch (error) {
+            console.error('Failed to load messages:', error);
+            setError('Не удалось загрузить сообщения');
+        } finally {
+            setLoading(false);
+        }
+    }, [page, roomSlug]);
 
     useEffect(() => {
-        // Определяем комнату чата на основе роли
-        const demoRole = localStorage.getItem('demoRole');
-        if (demoRole === 'user2') {
-            setChatRoom('user2');
-        } else {
-            setChatRoom('user1');
-        }
+        loadMessages(true);
     }, []);
 
-    // Переключатель чата
-    const handleChatRoomChange = (room) => {
-        setChatRoom(room);
-        localStorage.setItem('demoRole', room);
-        // Обновляем сообщения для новой комнаты
-        const storageKey = `generalChatMessages_${room}`;
-        const savedMessages = localStorage.getItem(storageKey);
-        if (savedMessages) {
-            setMessages(JSON.parse(savedMessages));
-        } else {
-            const initialMessages = [
-                {
-                    id: 1,
-                    author: 'Админ',
-                    content: `Добро пожаловать в чат для ${room === 'user1' ? 'новичков' : 'продвинутых пользователей'}!`,
-                    timestamp: new Date().toISOString()
-                }
-            ];
-            setMessages(initialMessages);
-            localStorage.setItem(storageKey, JSON.stringify(initialMessages));
-        }
-    };
-
+    // Автоскролл при новых сообщениях
     useEffect(() => {
-        loadMessages();
-    }, [chatRoom]);
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
 
-    const loadMessages = () => {
-        const storageKey = `generalChatMessages_${chatRoom}`;
-        const savedMessages = localStorage.getItem(storageKey);
-
-        if (savedMessages) {
-            setMessages(JSON.parse(savedMessages));
-        } else {
-            const initialMessages = [
-                {
-                    id: 1,
-                    author: 'Админ',
-                    content: `Добро пожаловать в чат для ${chatRoom === 'user1' ? 'новичков' : 'продвинутых пользователей'}!`,
-                    timestamp: new Date().toISOString()
-                }
-            ];
-            setMessages(initialMessages);
-            localStorage.setItem(storageKey, JSON.stringify(initialMessages));
-        }
-        setLoading(false);
-    };
-
-    const handleSend = () => {
+    // Отправка сообщения
+    const handleSend = async () => {
         if (!newMessage.trim()) return;
-
-        const demoRole = localStorage.getItem('demoRole');
-        let author = 'Пользователь';
-
-        if (demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'owner') {
-            author = 'Админ';
-        } else if (demoRole === 'user1') {
-            author = 'Пользователь 1';
-        } else if (demoRole === 'user2') {
-            author = 'Пользователь 2';
+        if (!isConnected) {
+            alert('WebSocket disconnected. Please refresh the page.');
+            return;
         }
 
-        const message = {
-            id: Date.now(),
-            author: author,
-            content: newMessage,
-            timestamp: new Date().toISOString()
-        };
+        try {
+            const response = await chatApi.sendMessage(roomSlug, {
+                content: newMessage,
+                userId: username
+            });
 
-        const updatedMessages = [...messages, message];
-        setMessages(updatedMessages);
+            send({
+                id: response.id,
+                content: newMessage,
+                author: username,
+                createdAt: new Date().toISOString()
+            });
 
-        const storageKey = `generalChatMessages_${chatRoom}`;
-        localStorage.setItem(storageKey, JSON.stringify(updatedMessages));
-        setNewMessage('');
-    };
-
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
+            setNewMessage('');
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            setError('Не удалось отправить сообщение');
         }
     };
-
-    if (loading) return <div className="loading">Загрузка чата...</div>;
 
     return (
-        <div className="chat-container">
-            {/* Переключатель чатов */}
-            <div className="chat-room-switcher">
-                <button
-                    className={`chat-room-btn ${chatRoom === 'user1' ? 'active' : ''}`}
-                    onClick={() => handleChatRoomChange('user1')}
-                >
-                    👥 Новички
-                </button>
-                <button
-                    className={`chat-room-btn ${chatRoom === 'user2' ? 'active' : ''}`}
-                    onClick={() => handleChatRoomChange('user2')}
-                >
-                    ⭐ Продвинутые
-                </button>
-            </div>
-
+        <div className="general-chat">
             <div className="chat-header">
-                <h3 className="chat-title">
-                    {chatRoom === 'user1' ? 'Чат новичков' : 'Чат продвинутых'}
-                </h3>
+                <h3>Общий чат</h3>
+                <div className="connection-status">
+                    {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
+                </div>
             </div>
 
-            <div className="chat-messages">
+            {error && (
+                <div className="chat-error">
+                    <span className="error-icon">⚠️</span>
+                    <span>{error}</span>
+                    <button className="error-close" onClick={() => setError(null)}>×</button>
+                </div>
+            )}
+
+            <div className="messages-container">
+                {loading && <div className="loading">Loading...</div>}
+                {hasMore && !loading && (
+                    <button onClick={() => loadMessages()} className="load-more">
+                        Load older messages
+                    </button>
+                )}
                 {messages.map(msg => (
-                    <div key={msg.id} className="chat-message">
-                        <div className="message-header">
-                            <strong>{msg.author}</strong>
-                            <span className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                    <div key={msg.id} className={`message ${msg.author === username ? 'own' : 'other'}`}>
+                        <div className="message-author">{msg.author}</div>
+                        <div className="message-content">{msg.content}</div>
+                        <div className="message-time">
+                            {new Date(msg.createdAt).toLocaleTimeString()}
                         </div>
-                        <p>{msg.content}</p>
                     </div>
                 ))}
+                <div ref={messagesEndRef} />
             </div>
-            <div className="chat-input">
+
+            <div className="message-input">
                 <textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    placeholder="Введите сообщение..."
-                    rows="1"
+                    onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                    placeholder="Type a message..."
+                    rows="3"
                 />
-                <button onClick={handleSend}>Отправить</button>
+                <button onClick={handleSend} disabled={!isConnected || !newMessage.trim()}>
+                    Send
+                </button>
             </div>
         </div>
     );

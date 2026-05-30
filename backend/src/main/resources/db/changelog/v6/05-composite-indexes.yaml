@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: 05-composite-indexes
+      author: platform
+      labels: performance
+      comment: Составные индексы для производительности
+      changes:
+        - sql:
+            sql: |
+              -- Составные индексы для частых запросов
+              CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_messages_room_created
+              ON messages(room_id, created_at DESC);
+
+              CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_payments_user_created
+              ON payments(user_id, created_at DESC);
+
+              CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_user_read_created
+              ON notifications(user_id, is_read, created_at DESC);
+
+              CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_live_broadcasts_status_started
+              ON live_broadcasts(status, started_at DESC);
+
+              -- Частичные индексы для фильтрации
+              CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_messages_active
+              ON messages(created_at DESC) WHERE deleted_at IS NULL;
+
+              CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_payments_pending
+              ON payments(created_at) WHERE status = 'PENDING';
+
+              -- Подсказка для планировщика
+              ANALYZE messages;
+              ANALYZE payments;
+              ANALYZE notifications;
+              ANALYZE live_broadcasts;

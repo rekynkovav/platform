@@ -9,11 +9,11 @@ databaseChangeLog:
         - sql:
             sql: |
               -- Создание администратора (будет синхронизирован с Keycloak)
-              INSERT INTO users (id, username, email, role) 
-              VALUES ('00000000-0000-0000-0000-000000000001', 'admin', 'admin@platform.com', 'admin')
+              INSERT INTO users (id, username, email, role)
+              VALUES ('00000000-0000-0000-0000-000000000001', 'admin', 'admin@platform.com', 'MODERATOR_ADMIN')
               ON CONFLICT (id) DO NOTHING;
-              
+
               -- Создание модераторов
-              INSERT INTO users (id, username, email, role) 
-              VALUES ('00000000-0000-0000-0000-000000000002', 'moderator', 'moderator@platform.com', 'moderator')
+              INSERT INTO users (id, username, email, role)
+              VALUES ('00000000-0000-0000-0000-000000000002', 'moderator', 'moderator@platform.com', 'MODERATOR_ADMIN')
               ON CONFLICT (id) DO NOTHING;

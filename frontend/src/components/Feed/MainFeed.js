@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getUserRoles } from '../../keycloak';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
+import { feedApi } from '../../services/api';
 import './MainFeed.css';
 
 const MainFeed = () => {
@@ -9,14 +10,20 @@ const MainFeed = () => {
     const [showAddForm, setShowAddForm] = useState(false);
     const [userRoles, setUserRoles] = useState([]);
     const [notification, setNotification] = useState(null);
+    const [error, setError] = useState(null);
     const feedEndRef = useRef(null);
     const addFormRef = useRef(null);
     const [activeAudioPostId, setActiveAudioPostId] = useState(null);
     const [, forceUpdate] = useState(0);
+    const blobUrlsRef = useRef([]);
 
     // Состояния для модального окна подтверждения удаления
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [postToDelete, setPostToDelete] = useState(null);
+
+    // Состояния для редактирования
+    const [editingPost, setEditingPost] = useState(null);
+    const [showEditForm, setShowEditForm] = useState(false);
 
     // Состояния для записи аудио
     const [isRecording, setIsRecording] = useState(false);
@@ -41,15 +48,17 @@ const MainFeed = () => {
         formatTime
     } = useAudioPlayer();
 
-    // Функция для обновления ролей из localStorage
+    // Функция для обновления ролей из sessionStorage (только для development)
     const updateRoles = () => {
-        const demoRole = localStorage.getItem('demoRole');
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
         let roles = [];
 
-        if (demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin') {
-            roles = ['admin', 'user'];
-        } else if (demoRole === 'user1' || demoRole === 'user2') {
-            roles = ['user'];
+        if (demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') {
+            roles = ['MODERATOR_ADMIN', 'USER_0'];
+        } else if (demoRole === 'USER_0' || demoRole === 'USER_1' || demoRole === 'USER_2') {
+            roles = ['USER_0'];
         } else {
             roles = getUserRoles();
         }
@@ -70,85 +79,101 @@ const MainFeed = () => {
         }
     }, [currentTrack]);
 
+    // Cleanup blob URLs и recording timer при размонтировании
+    useEffect(() => {
+        return () => {
+            if (recordingTimerRef.current) {
+                clearInterval(recordingTimerRef.current);
+            }
+            blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+            blobUrlsRef.current = [];
+        };
+    }, []);
+
     // Загрузка постов и ролей
     useEffect(() => {
-        const savedPosts = localStorage.getItem('mainFeedPosts');
-        if (savedPosts) {
-            setPosts(JSON.parse(savedPosts));
-        } else {
-            const initialPosts = [
-                {
-                    id: 1,
-                    type: 'text',
-                    title: '📄 О стремлении человека не есть',
-                    content: 'Понимание истинных потребностей тела и духа. Человек может существовать без физической пищи, черпая энергию из духовных источников.',
-                    date: '2025-03-15',
-                    author: 'Admin'
-                },
-                {
-                    id: 2,
-                    type: 'text',
-                    title: '📄 Основа сила человека - дух',
-                    content: 'Духовная сила - это основа всего. Развивая дух, мы развиваем себя.',
-                    date: '2025-03-16',
-                    author: 'Admin'
-                },
-                {
-                    id: 3,
-                    type: 'audio',
-                    title: '🎵 Эфир - 01.01.2025',
-                    content: 'Новогодний эфир. Подведение итогов и планы на будущее.',
-                    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-                    date: '2025-01-01',
-                    author: 'Admin'
-                },
-                {
-                    id: 4,
-                    type: 'audio',
-                    title: '🎵 Эфир - 13.01.2025',
-                    content: 'Практики дыхания и медитации.',
-                    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-                    date: '2025-01-13',
-                    author: 'Admin'
-                },
-                {
-                    id: 5,
-                    type: 'audio',
-                    title: '🎵 Эфир - 22.01.2025',
-                    content: 'Сила движения и его значение в жизни.',
-                    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-                    date: '2025-01-22',
-                    author: 'Admin'
-                },
-                {
-                    id: 6,
-                    type: 'text',
-                    title: '📄 Значение движения',
-                    content: 'Движение - это жизнь. Ежедневная физическая активность необходима для поддержания здоровья и энергии.',
-                    date: '2025-03-17',
-                    author: 'Admin'
-                },
-                {
-                    id: 7,
-                    type: 'text',
-                    title: '📄 Дыхание - основа жизни человека',
-                    content: 'Правильное дыхание - ключ к здоровью и долголетию.',
-                    date: '2025-03-18',
-                    author: 'Admin'
-                },
-                {
-                    id: 8,
-                    type: 'text',
-                    title: '📄 О силе человека',
-                    content: 'Источники внутренней силы. Как развивать и сохранять силу духа.',
-                    date: '2025-03-19',
-                    author: 'Admin'
-                }
-            ];
-            setPosts(initialPosts);
-            localStorage.setItem('mainFeedPosts', JSON.stringify(initialPosts));
-        }
+        const loadPosts = async () => {
+            try {
+                const data = await feedApi.getMainFeed();
+                setPosts(data);
+            } catch (err) {
+                console.error('Failed to load feed:', err);
+                setError('Не удалось загрузить ленту');
+                // Fallback к демо-данным
+                const initialPosts = [
+                    {
+                        id: 1,
+                        type: 'text',
+                        title: '📄 О стремлении человека не есть',
+                        content: 'Понимание истинных потребностей тела и духа. Человек может существовать без физической пищи, черпая энергию из духовных источников.',
+                        date: '2025-03-15',
+                        author: 'Admin'
+                    },
+                    {
+                        id: 2,
+                        type: 'text',
+                        title: '📄 Основа сила человека - дух',
+                        content: 'Духовная сила - это основа всего. Развивая дух, мы развиваем себя.',
+                        date: '2025-03-16',
+                        author: 'Admin'
+                    },
+                    {
+                        id: 3,
+                        type: 'audio',
+                        title: '🎵 Эфир - 01.01.2025',
+                        content: 'Новогодний эфир. Подведение итогов и планы на будущее.',
+                        url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+                        date: '2025-01-01',
+                        author: 'Admin'
+                    },
+                    {
+                        id: 4,
+                        type: 'audio',
+                        title: '🎵 Эфир - 13.01.2025',
+                        content: 'Практики дыхания и медитации.',
+                        url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+                        date: '2025-01-13',
+                        author: 'Admin'
+                    },
+                    {
+                        id: 5,
+                        type: 'audio',
+                        title: '🎵 Эфир - 22.01.2025',
+                        content: 'Сила движения и его значение в жизни.',
+                        url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+                        date: '2025-01-22',
+                        author: 'Admin'
+                    },
+                    {
+                        id: 6,
+                        type: 'text',
+                        title: '📄 Значение движения',
+                        content: 'Движение - это жизнь. Ежедневная физическая активность необходима для поддержания здоровья и энергии.',
+                        date: '2025-03-17',
+                        author: 'Admin'
+                    },
+                    {
+                        id: 7,
+                        type: 'text',
+                        title: '📄 Дыхание - основа жизни человека',
+                        content: 'Правильное дыхание - ключ к здоровью и долголетию.',
+                        date: '2025-03-18',
+                        author: 'Admin'
+                    },
+                    {
+                        id: 8,
+                        type: 'text',
+                        title: '📄 О силе человека',
+                        content: 'Источники внутренней силы. Как развивать и сохранять силу духа.',
+                        date: '2025-03-19',
+                        author: 'Admin'
+                    }
+                ];
+                setPosts(initialPosts);
+            }
+        };
 
+        loadPosts();
         updateRoles();
     }, []);
 
@@ -173,10 +198,11 @@ const MainFeed = () => {
         return 'text';
     };
 
-    const handleAddPost = () => {
-        const demoRole = localStorage.getItem('demoRole');
-        const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
-
+    const handleAddPost = async () => {
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
+        const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
         if (!isAdmin) {
             alert('Только администратор может добавлять записи');
             return;
@@ -199,6 +225,7 @@ const MainFeed = () => {
             recorder.onstop = async () => {
                 const audioBlob = new Blob(chunks, { type: 'audio/webm' });
                 const audioUrl = URL.createObjectURL(audioBlob);
+                blobUrlsRef.current.push(audioUrl);
 
                 setNewPost({
                     ...newPost,
@@ -222,7 +249,7 @@ const MainFeed = () => {
 
         } catch (err) {
             console.error('Ошибка доступа к микрофону:', err);
-            alert('Не удалось получить доступ к микрофону. Проверьте разрешения.');
+            setError('Не удалось получить доступ к микрофону. Проверьте разрешения.');
         }
     };
 
@@ -249,6 +276,7 @@ const MainFeed = () => {
 
         const fileType = getFileType(file);
         const url = URL.createObjectURL(file);
+        blobUrlsRef.current.push(url);
 
         setNewPost({
             ...newPost,
@@ -258,36 +286,43 @@ const MainFeed = () => {
         });
     };
 
-    const handlePublishPost = () => {
+    const handlePublishPost = async () => {
         if (!newPost.title || (!newPost.content && newPost.type === 'text')) {
             alert('Заполните заголовок и содержание');
             return;
         }
 
-        const post = {
-            id: Date.now(),
-            type: newPost.type,
-            title: newPost.title,
-            content: newPost.content,
-            url: newPost.url || '',
-            date: new Date().toISOString().split('T')[0],
-            author: 'Admin'
-        };
+        try {
+            const postData = {
+                type: newPost.type,
+                title: newPost.title,
+                content: newPost.content,
+                url: newPost.url || '',
+                date: new Date().toISOString().split('T')[0],
+                author: 'Admin'
+            };
 
-        const updatedPosts = [...posts, post];
-        setPosts(updatedPosts);
-        localStorage.setItem('mainFeedPosts', JSON.stringify(updatedPosts));
+            const newPostData = await feedApi.createPost(postData);
+            setPosts(prev => [...prev, newPostData]);
 
-        setNewPost({ type: 'text', title: '', content: '', url: '' });
-        setShowAddForm(false);
-        setIsRecording(false);
-        setRecordingTime(0);
+            setNewPost({ type: 'text', title: '', content: '', url: '' });
+            setShowAddForm(false);
+            setIsRecording(false);
+            setRecordingTime(0);
 
-        setTimeout(() => {
-            if (feedEndRef.current) {
+            // Revoke blob URLs
+            blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+            blobUrlsRef.current = [];
+
+            setTimeout(() => {
+                if (feedEndRef.current) {
                 feedEndRef.current.scrollIntoView({ behavior: 'smooth' });
             }
         }, 100);
+        } catch (error) {
+            console.error('Ошибка при создании поста:', error);
+            alert('Не удалось создать пост. Попробуйте снова.');
+        }
     };
 
     // Функция для открытия модального окна подтверждения
@@ -297,12 +332,13 @@ const MainFeed = () => {
     };
 
     // Функция для фактического удаления
-    const executeDeletePost = () => {
+    const executeDeletePost = async () => {
         if (!postToDelete) return;
 
-        const demoRole = localStorage.getItem('demoRole');
-        const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
-
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
+        const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
         if (!isAdmin) {
             alert('Только администратор может удалять записи!');
             setShowDeleteConfirm(false);
@@ -310,9 +346,9 @@ const MainFeed = () => {
             return;
         }
 
-        const updatedPosts = posts.filter(post => post.id !== postToDelete.id);
-        setPosts(updatedPosts);
-        localStorage.setItem('mainFeedPosts', JSON.stringify(updatedPosts));
+        try {
+            await feedApi.deletePost(postToDelete.id);
+            setPosts(prev => prev.filter(post => post.id !== postToDelete.id));
 
         if (currentTrack?.id === postToDelete.id) {
             stopTrack();
@@ -321,12 +357,131 @@ const MainFeed = () => {
         setShowDeleteConfirm(false);
         setPostToDelete(null);
         forceUpdate(prev => prev + 1);
+        } catch (error) {
+            console.error('Ошибка при удалении поста:', error);
+            alert('Не удалось удалить пост. Попробуйте снова.');
+        }
     };
 
     // Функция для отмены удаления
     const cancelDeletePost = () => {
         setShowDeleteConfirm(false);
         setPostToDelete(null);
+    };
+
+    // Функция для начала редактирования поста
+    const handleEditPost = (post) => {
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
+        const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
+
+        if (!isAdmin) {
+            alert('Только администратор может редактировать записи');
+            return;
+        }
+
+        setEditingPost(post);
+        setNewPost({
+            type: post.type,
+            title: post.title,
+            content: post.content,
+            url: post.url || ''
+        });
+        setShowEditForm(true);
+    };
+
+    // Функция для сохранения отредактированного поста
+    const handleSaveEditedPost = async () => {
+        if (!newPost.title || (!newPost.content && newPost.type === 'text')) {
+            alert('Заполните заголовок и содержание');
+            return;
+        }
+
+        try {
+            const updatedPostData = {
+                type: newPost.type,
+                title: newPost.title,
+                content: newPost.content,
+                url: newPost.url || '',
+                editedAt: new Date().toISOString()
+            };
+
+            const updatedPost = await feedApi.updatePost(editingPost.id, updatedPostData);
+            setPosts(prev => prev.map(post =>
+                post.id === editingPost.id ? updatedPost : post
+            ));
+
+            setNewPost({ type: 'text', title: '', content: '', url: '' });
+            setShowEditForm(false);
+            setEditingPost(null);
+            setIsRecording(false);
+            setRecordingTime(0);
+            blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+            blobUrlsRef.current = [];
+        } catch (err) {
+            console.error('Failed to update post:', err);
+            alert('Не удалось обновить запись');
+        }
+    };
+
+    // Функция для отмены редактирования
+    const handleCancelEdit = () => {
+        setShowEditForm(false);
+        setEditingPost(null);
+        setNewPost({ type: 'text', title: '', content: '', url: '' });
+        setIsRecording(false);
+        setRecordingTime(0);
+        blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+        blobUrlsRef.current = [];
+    };
+
+    // Функция для скачивания материала (только для главного админа)
+    const handleDownloadPost = async (post) => {
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
+        const isSuperAdmin = demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
+
+        if (!isSuperAdmin) {
+            alert('Только главный админ может скачивать материалы');
+            return;
+        }
+
+        try {
+            if (post.type === 'audio' || post.type === 'video') {
+                // Скачивание медиа файлов
+                const response = await fetch(post.url);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${post.title}.${post.type === 'audio' ? 'mp3' : 'mp4'}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                // Скачивание текстового контента
+                const content = `${post.title}\n\n${post.content}\n\nДата: ${post.date}\nАвтор: ${post.author}`;
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${post.title}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }
+        } catch (error) {
+            console.error('Ошибка при скачивании:', error);
+            setError('Не удалось скачать файл');
+        }
+    };
+
+    const clearError = () => {
+        setError(null);
     };
 
     const handlePlayAudio = (post) => {
@@ -379,11 +534,23 @@ const MainFeed = () => {
         return currentTrack?.id === postId && isPlaying;
     };
 
-    const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
+    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+        ? sessionStorage.getItem('demoRole')
+        : null;
+    const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
+    const isSuperAdmin = demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
 
     return (
         <div className="main-feed">
+            {/* Отображение ошибок */}
+            {error && (
+                <div className="error-message">
+                    <span className="error-icon">⚠️</span>
+                    <span>{error}</span>
+                    <button className="error-close" onClick={clearError}>×</button>
+                </div>
+            )}
+
             {/* Модальное окно подтверждения удаления */}
             {showDeleteConfirm && postToDelete && (
                 <div className="modal-overlay" onClick={cancelDeletePost}>
@@ -431,13 +598,31 @@ const MainFeed = () => {
                             <div className="post-header">
                                 <div className="post-title">{post.title}</div>
                                 {isAdmin && (
-                                    <button
-                                        className="delete-post"
-                                        onClick={() => confirmDeletePost(post)}
-                                        title="Удалить запись"
-                                    >
-                                        🗑️
-                                    </button>
+                                    <div className="post-actions">
+                                        {isSuperAdmin && (
+                                            <button
+                                                className="download-post"
+                                                onClick={() => handleDownloadPost(post)}
+                                                title="Скачать материал"
+                                            >
+                                                ⬇️
+                                            </button>
+                                        )}
+                                        <button
+                                            className="edit-post"
+                                            onClick={() => handleEditPost(post)}
+                                            title="Редактировать запись"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            className="delete-post"
+                                            onClick={() => confirmDeletePost(post)}
+                                            title="Удалить запись"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                             <div className="post-date">{post.date}</div>
@@ -515,14 +700,15 @@ const MainFeed = () => {
 
                 {isAdmin && (
                     <div className="admin-section" ref={addFormRef}>
-                        {!showAddForm && (
-                            <button className="create-post-btn" onClick={handleAddPost}>
-                                📝 Создать запись
+                        {!showAddForm && !showEditForm && (
+                            <button className="create-post-btn add-event-style" onClick={handleAddPost}>
+                                + Добавить запись
                             </button>
                         )}
 
-                        {showAddForm && (
+                        {(showAddForm || showEditForm) && (
                             <div className="admin-panel-content">
+                                <h3>{showEditForm ? 'Редактирование записи' : 'Новая запись'}</h3>
                                 <input
                                     type="text"
                                     className="post-title-input"
@@ -574,7 +760,12 @@ const MainFeed = () => {
                                             </span>
                                             <button
                                                 className="remove-file"
-                                                onClick={() => setNewPost({...newPost, url: '', type: 'text'})}
+                                                onClick={() => {
+                                                    setNewPost(prev => {
+                                                        if (prev.url && prev.url.startsWith('blob:')) URL.revokeObjectURL(prev.url);
+                                                        return { ...prev, url: '', type: 'text' };
+                                                    });
+                                                }}
                                             >
                                                 ✕
                                             </button>
@@ -582,7 +773,16 @@ const MainFeed = () => {
                                     )}
                                 </div>
 
-                                <button className="publish-btn" onClick={handlePublishPost}>Опубликовать</button>
+                                <div className="form-actions">
+                                    {showEditForm ? (
+                                        <>
+                                            <button className="publish-btn" onClick={handleSaveEditedPost}>Сохранить изменения</button>
+                                            <button className="cancel-btn" onClick={handleCancelEdit}>Отмена</button>
+                                        </>
+                                    ) : (
+                                        <button className="publish-btn" onClick={handlePublishPost}>Опубликовать</button>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>

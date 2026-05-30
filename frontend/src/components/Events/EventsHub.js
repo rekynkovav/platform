@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getUsername } from '../../keycloak';
+import { eventsApi, feedbackApi } from '../../services/api';
 import './EventsHub.css';
 
 const EventsHub = () => {
@@ -11,12 +12,17 @@ const EventsHub = () => {
     const [showFeedbackForm, setShowFeedbackForm] = useState(false);
     const [feedbackText, setFeedbackText] = useState('');
     const [audioFiles, setAudioFiles] = useState([]);
+    const [editingMaterial, setEditingMaterial] = useState(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [materialToDelete, setMaterialToDelete] = useState(null);
+    const [error, setError] = useState(null);
 
     // Состояния для записи аудио
     const [isRecording, setIsRecording] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const [recordingTime, setRecordingTime] = useState(0);
     const recordingTimerRef = useRef(null);
+    const blobUrlsRef = useRef([]);
 
     // Меню и их подменю (без смайликов)
     const menuItems = [
@@ -35,10 +41,16 @@ const EventsHub = () => {
         { id: 'challenge', title: 'Годовой челлендж', isHighlighted: true, subItems: [] }
     ];
 
-    // Получаем роль из localStorage
-    const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'super-admin';
+    // Получаем роль из sessionStorage (только для development)
+    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+        ? sessionStorage.getItem('demoRole')
+        : null;
+    const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
     const currentUser = getUsername();
+
+    // Отладка: выводим роль и статус админа
+    console.log('[EventsHub] demoRole:', demoRole);
+    console.log('[EventsHub] isAdmin:', isAdmin);
 
     // Загрузка аудио файлов из папки
     useEffect(() => {
@@ -54,22 +66,38 @@ const EventsHub = () => {
     }, []);
 
     useEffect(() => {
-        const savedRoles = localStorage.getItem('demoRole');
+        const savedRoles = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
         let roles = [];
-        if (savedRoles === 'admin') {
-            roles = ['admin', 'user'];
-        } else if (savedRoles === 'user') {
-            roles = ['user'];
+        if (savedRoles === 'MODERATOR_ADMIN' || savedRoles === 'SUPER_ADMIN' || savedRoles === 'VYACHESLAV' || savedRoles === 'DEVELOPER') {
+            roles = ['MODERATOR_ADMIN', 'USER_0'];
+        } else if (savedRoles === 'USER_0' || savedRoles === 'USER_1' || savedRoles === 'USER_2') {
+            roles = ['USER_0'];
         }
         setUserRoles(roles);
     }, []);
 
+    // Cleanup blob URLs и recording timer при размонтировании
+    useEffect(() => {
+        return () => {
+            if (recordingTimerRef.current) {
+                clearInterval(recordingTimerRef.current);
+            }
+            blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+            blobUrlsRef.current = [];
+        };
+    }, []);
+
     // Загрузка материалов для раздела
-    const getMaterialsForSection = (sectionId) => {
-        const savedArchive = localStorage.getItem('archiveMaterials');
-        if (!savedArchive) return [];
-        const archive = JSON.parse(savedArchive);
-        return archive.filter(m => m.menuId === sectionId);
+    const getMaterialsForSection = async (sectionId) => {
+        try {
+            const materials = await eventsApi.getMaterialsBySection(sectionId);
+            return materials;
+        } catch (err) {
+            console.error('Failed to load materials for section:', sectionId, err);
+            return [];
+        }
     };
 
     // Функция для определения типа файла
@@ -87,6 +115,7 @@ const EventsHub = () => {
 
         const fileType = getFileType(file);
         const url = URL.createObjectURL(file);
+        blobUrlsRef.current.push(url);
 
         setNewMaterial({
             ...newMaterial,
@@ -110,6 +139,7 @@ const EventsHub = () => {
             recorder.onstop = async () => {
                 const audioBlob = new Blob(chunks, { type: 'audio/webm' });
                 const audioUrl = URL.createObjectURL(audioBlob);
+                blobUrlsRef.current.push(audioUrl);
 
                 setNewMaterial({
                     ...newMaterial,
@@ -132,7 +162,7 @@ const EventsHub = () => {
 
         } catch (err) {
             console.error('Ошибка доступа к микрофону:', err);
-            alert('Не удалось получить доступ к микрофону. Проверьте разрешения.');
+            setError('Не удалось получить доступ к микрофону. Проверьте разрешения.');
         }
     };
 
@@ -152,6 +182,10 @@ const EventsHub = () => {
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
+    const clearError = () => {
+        setError(null);
+    };
+
     // Отправка отзыва/предложения
     const handleSendFeedback = () => {
         if (!feedbackText.trim()) {
@@ -169,27 +203,46 @@ const EventsHub = () => {
             isRead: false
         };
 
-        const savedFeedbacks = localStorage.getItem('userFeedbacks');
-        let feedbacks = savedFeedbacks ? JSON.parse(savedFeedbacks) : [];
-        feedbacks.unshift(feedback);
-        localStorage.setItem('userFeedbacks', JSON.stringify(feedbacks));
+        try {
+            // Сохраняем отзыв через API
+            await feedbackApi.submitFeedback(feedback);
 
-        const savedQuestions = localStorage.getItem('userQuestions');
-        let questions = savedQuestions ? JSON.parse(savedQuestions) : [];
+            // Создаем вопрос на основе отзыва
+            const questionFeedback = {
+                id: Date.now(),
+                question: `Отзыв/Предложение от ${currentUser}: ${feedbackText.substring(0, 100)}${feedbackText.length > 100 ? '...' : ''}`,
+                fullText: feedbackText,
+                answer: '',
+                author: currentUser,
+                date: new Date().toISOString().split('T')[0],
+                isAnswered: false,
+                isFeedback: true
+            };
 
-        const questionFeedback = {
-            id: Date.now(),
-            question: `Отзыв/Предложение от ${currentUser}: ${feedbackText.substring(0, 100)}${feedbackText.length > 100 ? '...' : ''}`,
-            fullText: feedbackText,
-            answer: '',
-            author: currentUser,
-            date: new Date().toISOString().split('T')[0],
-            isAnswered: false,
-            isFeedback: true
-        };
+            await feedbackApi.submitQuestion(questionFeedback);
+        } catch (err) {
+            console.error('Failed to submit feedback:', err);
+            // Fallback для разработки
+            if (process.env.NODE_ENV === 'development') {
+                const savedFeedbacks = process.env.NODE_ENV === 'development'
+                    ? sessionStorage.getItem('userFeedbacks')
+                    : null;
+                let feedbacks = savedFeedbacks ? JSON.parse(savedFeedbacks) : [];
+                feedbacks.unshift(feedback);
+                if (process.env.NODE_ENV === 'development') {
+                    sessionStorage.setItem('userFeedbacks', JSON.stringify(feedbacks));
+                }
 
-        questions.unshift(questionFeedback);
-        localStorage.setItem('userQuestions', JSON.stringify(questions));
+                const savedQuestions = process.env.NODE_ENV === 'development'
+                    ? sessionStorage.getItem('userQuestions')
+                    : null;
+                let questions = savedQuestions ? JSON.parse(savedQuestions) : [];
+                questions.unshift(questionFeedback);
+                if (process.env.NODE_ENV === 'development') {
+                    sessionStorage.setItem('userQuestions', JSON.stringify(questions));
+                }
+            }
+        }
 
         setNotification('Ваш отзыв отправлен администратору!');
         setTimeout(() => setNotification(null), 3000);
@@ -199,7 +252,7 @@ const EventsHub = () => {
         setActiveMenu(null);
     };
 
-    const handleAddMaterial = () => {
+    const handleAddMaterial = async () => {
         if (!isAdmin) {
             alert('Только администратор может добавлять материалы');
             return;
@@ -210,27 +263,82 @@ const EventsHub = () => {
             return;
         }
 
-        const savedArchive = localStorage.getItem('archiveMaterials');
-        let archive = savedArchive ? JSON.parse(savedArchive) : [];
+        try {
+            if (editingMaterial) {
+                // Редактирование существующего материала
+                const updatedMaterialData = {
+                    ...newMaterial,
+                    editedAt: new Date().toISOString()
+                };
+                await eventsApi.updateMaterial(editingMaterial.id, updatedMaterialData);
+                setNotification('Материал обновлён!');
+                setEditingMaterial(null);
+            } else {
+                // Создание нового материала
+                const materialData = {
+                    ...newMaterial,
+                    date: new Date().toISOString().split('T')[0],
+                    time: new Date().toLocaleTimeString(),
+                    author: 'Admin',
+                    menuId: activeMenu
+                };
+                await eventsApi.createMaterial(materialData);
+                setNotification('Материал добавлен в архив!');
+            }
 
-        const material = {
-            id: Date.now(),
-            ...newMaterial,
-            date: new Date().toISOString().split('T')[0],
-            time: new Date().toLocaleTimeString(),
-            author: 'Admin',
-            menuId: activeMenu
-        };
+            setTimeout(() => setNotification(null), 3000);
+            setNewMaterial({ type: 'text', title: '', content: '', url: '' });
+            setShowAddForm(false);
+            setActiveMenu(null);
+        } catch (err) {
+            console.error('Failed to save material:', err);
+            alert('Не удалось сохранить материал');
+        }
+    };
 
-        archive.unshift(material);
-        localStorage.setItem('archiveMaterials', JSON.stringify(archive));
+    const handleEditMaterial = (material) => {
+        if (!isAdmin) {
+            alert('Только администратор может редактировать материалы');
+            return;
+        }
 
-        setNotification(`Материал добавлен в архив!`);
-        setTimeout(() => setNotification(null), 3000);
+        setEditingMaterial(material);
+        setNewMaterial({
+            type: material.type,
+            title: material.title,
+            content: material.content || '',
+            url: material.url || ''
+        });
+        setShowAddForm(true);
+    };
 
-        setNewMaterial({ type: 'text', title: '', content: '', url: '' });
-        setShowAddForm(false);
-        setActiveMenu(null);
+    const handleDeleteMaterial = (material) => {
+        if (!isAdmin) {
+            alert('Только администратор может удалять материалы');
+            return;
+        }
+
+        setMaterialToDelete(material);
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDeleteMaterial = async () => {
+        try {
+            await eventsApi.deleteMaterial(materialToDelete.id);
+            setNotification('Материал удалён!');
+            setTimeout(() => setNotification(null), 3000);
+
+            setShowDeleteConfirm(false);
+            setMaterialToDelete(null);
+        } catch (err) {
+            console.error('Failed to delete material:', err);
+            alert('Не удалось удалить материал');
+        }
+    };
+
+    const cancelDeleteMaterial = () => {
+        setShowDeleteConfirm(false);
+        setMaterialToDelete(null);
     };
 
     // Получение материалов для текущего раздела
@@ -240,6 +348,15 @@ const EventsHub = () => {
 
     return (
         <div className="events-hub">
+            {/* Отображение ошибок */}
+            {error && (
+                <div className="error-message">
+                    <span className="error-icon">⚠️</span>
+                    <span>{error}</span>
+                    <button className="error-close" onClick={clearError}>×</button>
+                </div>
+            )}
+
             {notification && (
                 <div className="hub-notification">
                     <div className="notification-content">
@@ -257,10 +374,12 @@ const EventsHub = () => {
                 <div className="add-material-modal">
                     <div className="modal-container">
                         <div className="modal-header">
-                            <h3>Добавить материал в раздел "{menuItems.find(m => m.id === activeMenu)?.title}"</h3>
+                            <h3>{editingMaterial ? 'Редактировать материал' : `Добавить материал в раздел "${menuItems.find(m => m.id === activeMenu)?.title}"`}</h3>
                             <button className="modal-close" onClick={() => {
                                 setShowAddForm(false);
                                 setActiveMenu(null);
+                                setEditingMaterial(null);
+                                setNewMaterial({ type: 'text', title: '', content: '', url: '' });
                             }}>✕</button>
                         </div>
                         <div className="modal-body">
@@ -316,7 +435,10 @@ const EventsHub = () => {
                                         </span>
                                         <button
                                             className="remove-file"
-                                            onClick={() => setNewMaterial({...newMaterial, url: '', type: 'text'})}
+                                            onClick={() => {
+                                                if (newMaterial.url && newMaterial.url.startsWith('blob:')) URL.revokeObjectURL(newMaterial.url);
+                                                setNewMaterial({...newMaterial, url: '', type: 'text'});
+                                            }}
                                         >
                                             ✕
                                         </button>
@@ -440,7 +562,27 @@ const EventsHub = () => {
                                                     <div key={material.id} className="material-item">
                                                         <div className="material-header">
                                                             <span className="material-title">{material.title}</span>
-                                                            <span className="material-date">{material.date}</span>
+                                                            <div className="material-actions">
+                                                                <span className="material-date">{material.date}</span>
+                                                                {isAdmin && (
+                                                                    <>
+                                                                        <button
+                                                                            className="edit-btn"
+                                                                            onClick={() => handleEditMaterial(material)}
+                                                                            title="Редактировать"
+                                                                        >
+                                                                            ✏️
+                                                                        </button>
+                                                                        <button
+                                                                            className="delete-btn"
+                                                                            onClick={() => handleDeleteMaterial(material)}
+                                                                            title="Удалить"
+                                                                        >
+                                                                            🗑️
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         {material.content && (
                                                             <p className="material-description">{material.content}</p>
@@ -481,6 +623,28 @@ const EventsHub = () => {
                     ))}
                 </div>
             </div>
+
+            {/* Модальное окно подтверждения удаления */}
+            {showDeleteConfirm && (
+                <div className="add-material-modal">
+                    <div className="modal-container delete-confirm">
+                        <div className="modal-header">
+                            <h3>Подтверждение удаления</h3>
+                        </div>
+                        <div className="modal-body">
+                            <p>Вы уверены, что хотите удалить материал "{materialToDelete?.title}"?</p>
+                            <div className="confirm-buttons">
+                                <button className="cancel-btn" onClick={cancelDeleteMaterial}>
+                                    Отмена
+                                </button>
+                                <button className="delete-confirm-btn" onClick={confirmDeleteMaterial}>
+                                    Удалить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

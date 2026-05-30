@@ -1,130 +1,167 @@
-// services/api.js
 import axios from 'axios';
 import { getToken, updateToken } from '../keycloak';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081/api';
+const USE_MOCK = process.env.REACT_APP_USE_MOCK_AUTH === 'true';
 
-const api = axios.create({
-    baseURL: API_URL,
-    headers: { 'Content-Type': 'application/json' }
-});
+class ApiClient {
+    constructor() {
+        this.client = axios.create({
+            baseURL: API_URL,
+            timeout: 30000,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
 
-// Интерцептор для добавления токена
-api.interceptors.request.use(async (config) => {
-    try {
-        await updateToken(30);
-        const token = getToken();
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-    } catch (error) {
-        console.error('Token refresh failed:', error);
+        // Request interceptor — добавляем JWT
+        this.client.interceptors.request.use(async (config) => {
+            let token = getToken();
+
+            // Обновляем если истекает
+            if (token && await updateToken()) {
+                token = getToken();
+            }
+
+            if (token && !USE_MOCK) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+
+            return config;
+        });
+
+        // Response interceptor — обработка ошибок
+        this.client.interceptors.response.use(
+            (response) => response.data,
+            (error) => {
+                if (error.response?.status === 401) {
+                    // Token expired — logout
+                    if (process.env.NODE_ENV === 'development') {
+                        sessionStorage.clear();
+                    }
+                    sessionStorage.clear();
+                    window.location.href = '/';
+                }
+                if (error.response?.status === 429) {
+                    console.warn('Rate limit exceeded');
+                }
+                return Promise.reject(error);
+            }
+        );
     }
-    return config;
-});
 
-// Интерцептор для обработки ошибок
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            window.location.href = '/login';
-        }
-        return Promise.reject(error);
+    get(url, params) {
+        return this.client.get(url, { params });
     }
-);
 
-// API для событий
-export const eventsApi = {
-    getNext: () => api.get('/api/events/next'),
-    getAll: () => api.get('/api/events'),
-    getById: (id) => api.get(`/api/events/${id}`),
-    create: (data) => api.post('/api/events', data),
-    update: (id, data) => api.put(`/api/events/${id}`, data),
-    delete: (id) => api.delete(`/api/events/${id}`)
+    post(url, data) {
+        return this.client.post(url, data);
+    }
+
+    put(url, data) {
+        return this.client.put(url, data);
+    }
+
+    delete(url) {
+        return this.client.delete(url);
+    }
+
+    upload(url, file, onProgress) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        return this.client.post(url, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (progressEvent) => {
+                if (onProgress) {
+                    const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    onProgress(percent);
+                }
+            }
+        });
+    }
+}
+
+export const api = new ApiClient();
+
+// API endpoints
+export const broadcastApi = {
+    getActive: () => api.get('/broadcast/active'),
+    getById: (id) => api.get(`/broadcast/${id}`),
+    start: (data) => api.post('/broadcast/start', data),
+    end: (id) => api.post(`/broadcast/${id}/end`),
+    getStats: (id) => api.get(`/broadcast/${id}/stats`)
 };
 
-// API для постов
-export const postsApi = {
-    getFeed: (limit = 50, before = null) => {
-        const params = before ? { limit, before } : { limit };
-        return api.get('/api/posts/feed', { params });
-    },
-    getById: (id) => api.get(`/api/posts/${id}`),
-    create: (data) => api.post('/api/posts', data),
-    update: (id, data) => api.put(`/api/posts/${id}`, data),
-    delete: (id) => api.delete(`/api/posts/${id}`),
-    uploadMedia: (formData) => api.post('/api/posts/media', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    })
-};
-
-// API для комментариев
-export const commentsApi = {
-    getByPost: (postId, limit = 20) => api.get(`/api/posts/${postId}/comments`, { params: { limit } }),
-    create: (postId, content) => api.post(`/api/posts/${postId}/comments`, { content }),
-    delete: (postId, commentId) => api.delete(`/api/posts/${postId}/comments/${commentId}`)
-};
-
-// API для реакций
-export const reactionsApi = {
-    toggle: (postId, type) => api.post(`/api/posts/${postId}/reactions`, { type }),
-    getByPost: (postId) => api.get(`/api/posts/${postId}/reactions`)
-};
-
-// API для чата (исправлен - добавлены недостающие методы)
 export const chatApi = {
-    getMessages: (limit = 50, before = null) => {
-        const params = before ? { limit, before } : { limit };
-        return api.get('/api/chat/general', { params });
-    },
-    sendMessage: (content) => api.post('/api/chat/general', { content }),
-    getGeneralMessages: (limit = 50, before = null) => {
-        const params = before ? { limit, before } : { limit };
-        return api.get('/api/chat/general', { params });
-    },
-    sendToGeneralChat: (content) => api.post('/api/chat/general', { content }),
-    getAdminGroupMessages: (limit = 50, before = null) => {
-        const params = before ? { limit, before } : { limit };
-        return api.get('/api/chat/admin-group', { params });
-    },
-    sendToAdminGroup: (content) => api.post('/api/chat/admin-group', { content }),
-    getPrivateMessages: (userId, limit = 50, before = null) => {
-        const params = before ? { limit, before } : { limit };
-        return api.get(`/api/chat/private/${userId}`, { params });
-    },
-    sendPrivateMessage: (userId, content) => api.post(`/api/chat/private/${userId}`, { content }),
-    getUnreadCount: () => api.get('/api/chat/unread'),
-    markAsRead: (messageId) => api.put(`/api/chat/messages/${messageId}/read`)
+    getRooms: () => api.get('/chat/rooms'),
+    getMessages: (roomSlug, page = 0, size = 50) =>
+        api.get(`/chat/${roomSlug}/messages`, { page, size }),
+    sendMessage: (roomSlug, data) =>
+        api.post(`/chat/${roomSlug}/messages`, data),
+    getUsers: (roomSlug) => api.get(`/chat/${roomSlug}/users`),
+    getQuestions: (mode) => api.get(`/chat/questions/${mode}`),
+    sendQuestion: (mode, data) => api.post(`/chat/questions/${mode}`, data),
+    // Новые методы для QuestionDto
+    getQuestionsDto: (mode) => api.get(`/chat/questions-dto/${mode}`),
+    sendQuestionDto: (mode, data) => api.post(`/chat/questions-dto/${mode}`, data),
+    answerQuestionDto: (questionId, data) => api.post(`/chat/questions-dto/${questionId}/answer`, data),
+    deleteQuestionDto: (questionId) => api.delete(`/chat/questions-dto/${questionId}`),
+    archiveAnsweredQuestionsDto: (mode) => api.post(`/chat/questions-dto/${mode}/archive`)
 };
 
-// API для архива
-export const archiveApi = {
-    getAll: () => api.get('/api/archives'),
-    getById: (id) => api.get(`/api/archives/${id}`),
-    getByEvent: (eventId) => api.get(`/api/archives/event/${eventId}`),
-    create: (data) => api.post('/api/archives', data),
-    update: (id, data) => api.put(`/api/archives/${id}`, data),
-    delete: (id) => api.delete(`/api/archives/${id}`),
-    incrementViews: (id) => api.post(`/api/archives/${id}/views`)
+export const paymentApi = {
+    create: (data) => api.post('/payments', data),
+    getById: (id) => api.get(`/payments/${id}`),
+    getUserPayments: () => api.get('/payments/user'),
+    confirm: (id, data) => api.post(`/payments/${id}/confirm`, data),
+    getPaymentQR: (id) => api.get(`/payments/${id}/qr`)
 };
 
-// API для контактов
-export const contactsApi = {
-    getAll: (search = null) => api.get('/api/contacts', { params: { search } }),
-    add: (contactUserId, nickname = null) => api.post('/api/contacts', { contactUserId, nickname }),
-    remove: (contactId) => api.delete(`/api/contacts/${contactId}`),
-    updateNickname: (contactId, nickname) => api.put(`/api/contacts/${contactId}`, { nickname })
+export const userApi = {
+    getMe: () => api.get('/users/me'),
+    updateMe: (data) => api.put('/users/me', data),
+    getById: (id) => api.get(`/users/${id}`)
 };
 
-// API для админов (исправлен - добавлены недостающие методы)
-export const adminsApi = {
-    getList: () => api.get('/api/admins'),
-    getMessages: (adminId) => api.get(`/api/admins/${adminId}/messages`),
-    getGroupMessages: () => api.get('/api/admins/group/messages'),
-    getStatus: (adminId) => api.get(`/api/admins/${adminId}/status`),
-    sendMessage: (adminId, content) => api.post(`/api/admins/${adminId}/messages`, { content }),
-    sendToAll: (content) => api.post('/api/admins/messages', { content })
+export const mediaApi = {
+    upload: (file, onProgress) => api.upload('/media/upload', file, onProgress),
+    getStreamUrl: (id) => `${API_URL}/media/stream/${id}`,
+    delete: (id) => api.delete(`/media/${id}`)
+};
+
+export const adminApi = {
+    getStats: () => api.get('/admin/stats'),
+    getUsers: (page, size) => api.get('/admin/users', { page, size }),
+    updateUserRole: (userId, role) => api.put(`/admin/users/${userId}/role`, { role })
+};
+
+export const dashboardApi = {
+    getMenuData: () => api.get('/dashboard/menu'),
+    saveMenuData: (data) => api.post('/dashboard/menu', data)
+};
+
+export const feedApi = {
+    getMainFeed: () => api.get('/feed/main'),
+    getNutritionFeed: () => api.get('/feed/nutrition'),
+    createPost: (data) => api.post('/feed/posts', data),
+    updatePost: (id, data) => api.put(`/feed/posts/${id}`, data),
+    deletePost: (id) => api.delete(`/feed/posts/${id}`)
+};
+
+export const demoApi = {
+    getDemoRole: () => api.get('/demo/role'),
+    setDemoRole: (role) => api.post('/demo/role', { role }),
+    getWillAttendCounts: () => api.get('/demo/will-attend-counts'),
+    saveWillAttendCounts: (counts) => api.post('/demo/will-attend-counts', counts),
+    hasUserAttended: (broadcastId, userId) => api.get(`/demo/attended/${broadcastId}/${userId}`),
+    markUserAttended: (broadcastId, userId) => api.post(`/demo/attended/${broadcastId}/${userId}`),
+    getDashboardMenuData: () => api.get('/demo/dashboard-menu'),
+    saveDashboardMenuData: (data) => api.post('/demo/dashboard-menu', data),
+    getBroadcasts: () => api.get('/demo/broadcasts'),
+    saveBroadcasts: (broadcasts) => api.post('/demo/broadcasts', broadcasts),
+    getScheduledEvents: () => api.get('/demo/scheduled-events'),
+    saveScheduledEvents: (events) => api.post('/demo/scheduled-events', events)
 };
 
 export default api;

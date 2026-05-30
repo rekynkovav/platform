@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -29,7 +30,7 @@ public class CommentController {
     @PostMapping
     public ResponseEntity<CommentDto> createComment(
             @PathVariable String postId,
-            @RequestBody CommentDto.CreateRequest request,
+            @Valid @RequestBody CommentDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         CommentDto comment = commentService.createComment(postId, request, jwt);

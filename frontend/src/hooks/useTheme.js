@@ -1,5 +1,5 @@
-// hooks/useTheme.js
-import React, { createContext, useContext, useState, useEffect } from 'react';
+// hooks/useTheme.js - упрощенная версия (только темная тема)
+import React, { createContext, useContext } from 'react';
 
 const ThemeContext = createContext();
 
@@ -12,23 +12,16 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-    const [theme, setTheme] = useState(() => {
-        const saved = localStorage.getItem('theme');
-        if (saved === 'light' || saved === 'dark') return saved;
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    });
+    // Всегда темная тема
+    const theme = 'dark';
 
-    useEffect(() => {
-        localStorage.setItem('theme', theme);
-        document.documentElement.setAttribute('data-theme', theme);
-    }, [theme]);
-
-    const toggleTheme = () => {
-        setTheme(prev => prev === 'light' ? 'dark' : 'light');
-    };
+    // Устанавливаем темную тему при монтировании
+    React.useEffect(() => {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    }, []);
 
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+        <ThemeContext.Provider value={{ theme }}>
             {children}
         </ThemeContext.Provider>
     );

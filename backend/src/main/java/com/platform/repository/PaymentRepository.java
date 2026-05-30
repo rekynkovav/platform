@@ -8,9 +8,10 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface PaymentRepository extends JpaRepository<Payment, String> {
+public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     List<Payment> findByUserId(String userId);
 
@@ -23,4 +24,6 @@ public interface PaymentRepository extends JpaRepository<Payment, String> {
 
     @Query("SELECT p FROM Payment p WHERE p.status = 'PENDING' ORDER BY p.createdAt DESC")
     List<Payment> findPendingPayments();
+
+    List<Payment> findByUserIdAndStatus(String userId, Payment.PaymentStatus status);
 }

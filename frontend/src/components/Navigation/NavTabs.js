@@ -1,87 +1,44 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { usePermissions } from '../../hooks/usePermissions';
 import './NavTabs.css';
 
 const NavTabs = ({ activeTab, onTabChange }) => {
-    const [hoveredTab, setHoveredTab] = useState(null);
+    const { canViewAdmin, canStartBroadcast, hasLevel, level } = usePermissions();
 
-    const tabs = [
-        { id: 'main', label: 'Лента Новостей', hasSplit: true, splitType: 'feed' },
-        { id: 'archive', label: 'Трансляции' },
+    // Базовые вкладки для всех
+    const baseTabs = [
+        { id: 'main', label: 'Главная' },
         { id: 'scheduled', label: 'События' },
-        { id: 'dashboard', label: 'Навигация' },
-        { id: 'chat', label: 'Чат', hasSplit: true, splitType: 'chat' },
-        { id: 'help', label: 'Помощь' }
+        { id: 'chat', label: 'Чат' },
+        { id: 'help', label: 'Вопросы' },
+        { id: 'profile', label: 'Профиль' }
     ];
 
-    const renderSplitTab = (tab) => {
-        if (tab.splitType === 'feed') {
-            return (
-                <div className="nav-tab-split">
-                    <button
-                        className={`nav-tab-half nutrition ${activeTab === 'nutrition' ? 'active' : ''}`}
-                        onClick={(e) => onTabChange('nutrition', e)}
-                    >
-                        Питание
-                    </button>
-                    <button
-                        className={`nav-tab-half news ${activeTab === 'main' ? 'active' : ''}`}
-                        onClick={(e) => onTabChange('main', e)}
-                    >
-                        Новости
-                    </button>
-                </div>
-            );
-        } else if (tab.splitType === 'chat') {
-            return (
-                <div className="nav-tab-split chat-split">
-                    <button
-                        className={`nav-tab-half chat-main ${activeTab === 'chat' ? 'active' : ''}`}
-                        onClick={(e) => onTabChange('chat', e)}
-                    >
-                        Основной
-                    </button>
-                    <button
-                        className={`nav-tab-half chat-nutrition ${activeTab === 'chat-nutrition' ? 'active' : ''}`}
-                        onClick={(e) => onTabChange('chat-nutrition', e)}
-                    >
-                        Питание
-                    </button>
-                </div>
-            );
-        }
-    };
+    // Дополнительные вкладки по правам
+    const extraTabs = [];
+
+    if (canStartBroadcast() || hasLevel(4)) {
+        extraTabs.push({ id: 'broadcast-live', label: 'Трансляции' });
+    }
+
+    if (canViewAdmin()) {
+        extraTabs.push({ id: 'admin', label: 'Админка' });
+    }
+
+    const tabs = [...baseTabs, ...extraTabs];
 
     return (
-        <div className="nav-tabs">
+        <nav className="nav-tabs">
             {tabs.map(tab => (
-                <div
+                <button
                     key={tab.id}
-                    className={`nav-tab-wrapper ${
-                        (activeTab === tab.id ||
-                         (tab.id === 'main' && activeTab === 'nutrition') ||
-                         (tab.id === 'chat' && activeTab === 'chat-nutrition')) ? 'active' : ''
-                    }`}
-                    onMouseEnter={() => tab.hasSplit && setHoveredTab(tab.id)}
-                    onMouseLeave={() => setHoveredTab(null)}
+                    className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
+                    onClick={(e) => onTabChange(tab.id, e)}
                 >
-                    {tab.hasSplit && hoveredTab === tab.id ? (
-                        renderSplitTab(tab)
-                    ) : (
-                        <button
-                            data-tab={tab.id}
-                            className={`nav-tab ${
-                                activeTab === tab.id ||
-                                (tab.id === 'main' && activeTab === 'nutrition') ||
-                                (tab.id === 'chat' && activeTab === 'chat-nutrition') ? 'active' : ''
-                            }`}
-                            onClick={(e) => onTabChange(tab.id, e)}
-                        >
-                            {tab.label}
-                        </button>
-                    )}
-                </div>
+                    {tab.label}
+                </button>
             ))}
-        </div>
+        </nav>
     );
 };
 

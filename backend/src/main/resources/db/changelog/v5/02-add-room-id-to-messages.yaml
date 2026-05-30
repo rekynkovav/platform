@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: 02-add-room-id-to-messages
+      author: grok-xirurg
+      labels: schema
+      comment: room_id UUID to chat_rooms.id
+      changes:
+        - addColumn:
+            tableName: messages
+            columns:
+              - column:
+                  name: room_id
+                  type: UUID
+              - column:
+                  name: room_slug
+                  type: VARCHAR(100)
+        - addForeignKeyConstraint:
+            constraintName: fk_messages_room
+            baseTableName: messages
+            baseColumnNames: room_id
+            referencedTableName: chat_rooms
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - createIndex:
+            indexName: idx_messages_room_id_created_at
+            tableName: messages
+            columns:
+              - column: { name: room_id }
+              - column: { name: created_at, descending: true }
+        - createIndex:
+            indexName: idx_messages_room_slug
+            tableName: messages
+            columns:
+              - column: { name: room_slug }

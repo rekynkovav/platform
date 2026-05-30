@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: add-media-fields-to-messages
+      author: kiro
+      changes:
+        - addColumn:
+            tableName: messages
+            columns:
+              - column:
+                  name: media_id
+                  type: VARCHAR(255)
+                  remarks: "ID медиафайла из таблицы media_files"
+              - column:
+                  name: media_type
+                  type: VARCHAR(50)
+                  remarks: "Тип медиа: image, video, audio, file"
+              - column:
+                  name: file_name
+                  type: VARCHAR(500)
+                  remarks: "Оригинальное имя файла"
+      rollback:
+        - dropColumn:
+            tableName: messages
+            columnName: media_id
+        - dropColumn:
+            tableName: messages
+            columnName: media_type
+        - dropColumn:
+            tableName: messages
+            columnName: file_name

@@ -5,16 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "media_access_logs", indexes = {
-    @Index(name = "idx_access_file_id", columnList = "file_id"),
-    @Index(name = "idx_access_user_id", columnList = "user_id"),
-    @Index(name = "idx_access_timestamp", columnList = "accessed_at")
-})
+@Table(name = "access_logs")
 @Data
 @Builder
 @NoArgsConstructor
@@ -25,28 +20,29 @@ public class AccessLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "file_id", nullable = false)
+    @Column(nullable = false)
     private String fileId;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(nullable = false)
     private String userId;
 
-    @Column(name = "action", nullable = false)
-    private String action; // STREAM_REQUEST, KEY_REQUEST, DOWNLOAD_ATTEMPT, VIEW
+    @Column(nullable = false)
+    private String action;
 
-    @Column(name = "ip_address")
     private String ipAddress;
 
-    @Column(name = "user_agent", columnDefinition = "TEXT")
+    @Column(length = 500)
     private String userAgent;
 
-    @Column(name = "success")
-    private Boolean success = true;
+    private boolean success;
 
-    @Column(name = "error_message")
+    @Column(length = 1000)
     private String errorMessage;
 
-    @CreationTimestamp
-    @Column(name = "accessed_at", updatable = false)
-    private LocalDateTime accessedAt;
+    private LocalDateTime timestamp;
+
+    @PrePersist
+    protected void onCreate() {
+        timestamp = LocalDateTime.now();
+    }
 }

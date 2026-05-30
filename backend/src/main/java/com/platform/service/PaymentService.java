@@ -1,6 +1,7 @@
 package com.platform.service;
 
 import com.platform.exception.ResourceNotFoundException;
+import com.platform.exception.BusinessException;
 import com.platform.model.Payment;
 import com.platform.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.dao.OptimisticLockingFailureException;
+import io.micrometer.core.annotation.Timed;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,27 +26,50 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class PaymentService {
 
+    // ВАЖНО: Для предотвращения deadlock-ов всегда соблюдать порядок блокировок:
+    // 1. Сначала блокировать пользователей (users)
+    // 2. Потом блокировать платежи (payments)
+    // Это должно быть согласовано со всеми другими сервисами
+
     private final PaymentRepository paymentRepository;
     private final KeycloakService keycloakService;
+    private final QRCodeService qrCodeService;
 
-    @Transactional
+    @Timed(value = "payment.create", description = "Time to create payment")
+    @Retryable(
+        value = {OptimisticLockingFailureException.class},
+        maxAttempts = 5,
+        backoff = @Backoff(delay = 100, multiplier = 2, maxDelay = 1000)
+    )
+    @Transactional(
+        isolation = Isolation.READ_COMMITTED,
+        rollbackFor = Exception.class,
+        timeout = 30
+    )
     public Payment createPayment(Integer subscriptionMonths, Jwt jwt) {
         String userId = jwt.getSubject();
         String username = jwt.getClaim("preferred_username");
 
+        // Проверка на существующий активный платёж
+        List<Payment> pendingPayments = paymentRepository.findByUserIdAndStatus(userId, Payment.PaymentStatus.PENDING);
+        if (!pendingPayments.isEmpty()) {
+            throw new BusinessException("У вас уже есть активный платёж. Дождитесь подтверждения.");
+        }
+
         BigDecimal amount = calculateAmount(subscriptionMonths);
         String paymentId = generatePaymentId();
-        String qrCodeData = generateSBPQRData(amount, paymentId, username);
+        String qrData = qrCodeService.generatePaymentQRData(amount, paymentId, username);
+        String qrCodeBase64 = qrCodeService.generateQRCodeBase64(qrData);
 
         Payment payment = Payment.builder()
-            .id(paymentId)
-            .userId(userId)
+            .id(UUID.fromString(paymentId))
+            .userId(UUID.fromString(userId))
             .amount(amount)
             .currency("RUB")
             .subscriptionMonths(subscriptionMonths)
             .status(Payment.PaymentStatus.PENDING)
             .paymentMethod("SBP")
-            .qrCodeData(qrCodeData)
+            .qrCodeData(qrData)
             .expiresAt(LocalDateTime.now().plusHours(24))
             .build();
 
@@ -50,28 +79,37 @@ public class PaymentService {
         return payment;
     }
 
+    @Timed(value = "payment.get", description = "Time to get payment")
+    @Transactional(readOnly = true, timeout = 10)
     public Payment getPayment(String paymentId, Jwt jwt) {
         String userId = jwt.getSubject();
         return paymentRepository.findByIdAndUserId(paymentId, userId)
             .orElseThrow(() -> new ResourceNotFoundException("Payment not found: " + paymentId));
     }
 
+    @Timed(value = "payment.get_user_payments", description = "Time to get user payments")
     public List<Payment> getUserPayments(Jwt jwt) {
         String userId = jwt.getSubject();
         return paymentRepository.findByUserId(userId);
     }
 
+    @Timed(value = "payment.check_status", description = "Time to check payment status")
     public Payment checkPaymentStatus(String paymentId, Jwt jwt) {
         Payment payment = getPayment(paymentId, jwt);
         log.info("Checking payment status: {}, current status: {}", paymentId, payment.getStatus());
         return payment;
     }
 
-    @Transactional
+    @Timed(value = "payment.confirm", description = "Time to confirm payment")
+    @Transactional(
+        isolation = Isolation.READ_COMMITTED,
+        rollbackFor = Exception.class,
+        timeout = 10
+    )
     public Payment confirmPayment(String paymentId, String notes, Jwt jwt) {
         String adminId = jwt.getSubject();
 
-        Payment payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentRepository.findById(UUID.fromString(paymentId))
             .orElseThrow(() -> new ResourceNotFoundException("Payment not found: " + paymentId));
 
         if (payment.getStatus() != Payment.PaymentStatus.PENDING) {
@@ -86,8 +124,8 @@ public class PaymentService {
         payment = paymentRepository.save(payment);
 
         try {
-            keycloakService.updateUserRole(payment.getUserId(), "USER", "PREMIUM");
-            log.info("User role updated: {} -> PREMIUM", payment.getUserId());
+            keycloakService.updateUserRole(payment.getUserId().toString(), "USER_0", "USER_1");
+            log.info("User role updated: {} -> USER_1", payment.getUserId());
         } catch (Exception e) {
             log.error("Failed to update user role in Keycloak", e);
             throw new RuntimeException("Failed to update user role: " + e.getMessage());
@@ -97,10 +135,12 @@ public class PaymentService {
         return payment;
     }
 
+    @Timed(value = "payment.get_pending", description = "Time to get pending payments")
     public List<Payment> getPendingPayments() {
         return paymentRepository.findPendingPayments();
     }
 
+    @Timed(value = "payment.expire_old", description = "Time to expire old payments")
     @Transactional
     public void expireOldPayments() {
         List<Payment> expiredPayments = paymentRepository.findExpiredPayments(LocalDateTime.now());
@@ -130,21 +170,9 @@ public class PaymentService {
         return String.format("PAY-%d-%s", timestamp, random);
     }
 
-    private String generateSBPQRData(BigDecimal amount, String paymentId, String username) {
-        String recipientName = "БФАДД";
-        String account = "40703810512000002359";
-        String bank = "ВОЛОГОДСКОЕ ОТДЕЛЕНИЕ N8638 ПАО СБЕРБАНК г. Вологда";
-        String bik = "041909644";
-        String corrAccount = "30101810900000000644";
-        String inn = "9715470089";
-        String kpp = "771501001";
-        String purpose = String.format("Подписка %s", paymentId);
-
-        return String.format(
-            "ST00012|Name=%s|PersonalAcc=%s|BankName=%s|BIC=%s|CorrespAcc=%s|Sum=%d|Purpose=%s|PayeeINN=%s|KPP=%s",
-            recipientName, account, bank, bik, corrAccount,
-            amount.multiply(new BigDecimal("100")).intValue(),
-            purpose, inn, kpp
-        );
+    @Timed(value = "payment.find_by_user_and_status", description = "Time to find payments by user and status")
+    public List<Payment> findByUserIdAndStatus(String userId, Payment.PaymentStatus status) {
+        return paymentRepository.findByUserIdAndStatus(userId, status);
     }
+
 }

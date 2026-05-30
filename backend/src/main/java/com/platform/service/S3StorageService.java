@@ -5,38 +5,41 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.*;
-import com.platform.exception.BusinessException;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.SdkClientException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import io.micrometer.core.annotation.Timed;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.time.Instant;
 import java.util.Date;
-import java.util.UUID;
 
 @Slf4j
 @Service
-public class S3StorageService {
+@Profile("prod")
+public class S3StorageService implements StorageService {
 
-    @Value("${yandex.s3.access-key}")
+    @Value("${yandex.s3.access-key:}")
     private String accessKey;
 
-    @Value("${yandex.s3.secret-key}")
+    @Value("${yandex.s3.secret-key:}")
     private String secretKey;
 
-    @Value("${yandex.s3.bucket}")
+    @Value("${yandex.s3.bucket:platform-media}")
     private String bucket;
 
-    @Value("${yandex.s3.endpoint}")
+    @Value("${yandex.s3.endpoint:https://storage.yandexcloud.net}")
     private String endpoint;
 
-    @Value("${yandex.s3.region}")
+    @Value("${yandex.s3.region:ru-central1}")
     private String region;
 
     private AmazonS3 s3Client;
@@ -44,7 +47,6 @@ public class S3StorageService {
     private AmazonS3 getS3Client() {
         if (s3Client == null) {
             BasicAWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey);
-
             s3Client = AmazonS3ClientBuilder.standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, region))
                 .withCredentials(new AWSStaticCredentialsProvider(credentials))
@@ -54,136 +56,122 @@ public class S3StorageService {
         return s3Client;
     }
 
-    /**
-     * Загрузка зашифрованного файла в S3
-     */
-    public String uploadEncryptedFile(byte[] encryptedData, String fileType, String originalFilename) {
+    @Timed(value = "s3.upload", description = "Time to upload to S3")
+    @Override
+    public String upload(byte[] data, String path, String contentType) {
         try {
-            String key = generateS3Key(fileType, originalFilename);
-
             ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(encryptedData.length);
-            metadata.setContentType("application/octet-stream");
-            metadata.addUserMetadata("encrypted", "true");
-            metadata.addUserMetadata("original-filename", originalFilename);
+            metadata.setContentLength(data.length);
+            metadata.setContentType(contentType != null ? contentType : "application/octet-stream");
 
-            InputStream inputStream = new ByteArrayInputStream(encryptedData);
-
-            PutObjectRequest request = new PutObjectRequest(bucket, key, inputStream, metadata);
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
+            PutObjectRequest request = new PutObjectRequest(bucket, path, inputStream, metadata);
             getS3Client().putObject(request);
 
-            log.info("Encrypted file uploaded to S3: {}", key);
-            return key;
-
+            log.info("File uploaded to S3: {}", path);
+            return path;
         } catch (Exception e) {
-            log.error("Failed to upload file to S3", e);
-            throw new BusinessException("Failed to upload file: " + e.getMessage());
+            log.error("Failed to upload file to S3: {}", path, e);
+            throw new RuntimeException("Failed to upload file to S3", e);
         }
     }
 
-    /**
-     * Загрузка обычного файла
-     */
-    public String uploadFile(MultipartFile file, String fileType) {
+    @Timed(value = "s3.download", description = "Time to download from S3")
+    @Override
+    public byte[] download(String path) {
         try {
-            String key = generateS3Key(fileType, file.getOriginalFilename());
-
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(file.getSize());
-            metadata.setContentType(file.getContentType());
-
-            PutObjectRequest request = new PutObjectRequest(bucket, key, file.getInputStream(), metadata);
-            getS3Client().putObject(request);
-
-            log.info("File uploaded to S3: {}", key);
-            return key;
-
-        } catch (IOException e) {
-            log.error("Failed to upload file to S3", e);
-            throw new BusinessException("Failed to upload file: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Скачивание файла из S3
-     */
-    public byte[] downloadFile(String s3Key) {
-        try {
-            S3Object object = getS3Client().getObject(bucket, s3Key);
+            S3Object object = getS3Client().getObject(bucket, path);
             return object.getObjectContent().readAllBytes();
         } catch (Exception e) {
-            log.error("Failed to download file from S3: {}", s3Key, e);
-            throw new BusinessException("Failed to download file: " + e.getMessage());
+            log.error("Failed to download file from S3: {}", path, e);
+            throw new RuntimeException("Failed to download file from S3", e);
         }
     }
 
-    /**
-     * Генерация presigned URL для временного доступа
-     */
-    public String generatePresignedUrl(String s3Key, int expirationSeconds) {
+    @Timed(value = "s3.delete", description = "Time to delete from S3")
+    @Override
+    public boolean delete(String path) {
+        try {
+            getS3Client().deleteObject(bucket, path);
+            log.info("File deleted from S3: {}", path);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to delete file from S3: {}", path, e);
+            return false;
+        }
+    }
+
+    @Timed(value = "s3.generate_presigned_url", description = "Time to generate presigned URL")
+    @Override
+    public String generatePresignedUrl(String path, int expirationSeconds) {
         try {
             Date expiration = Date.from(Instant.now().plusSeconds(expirationSeconds));
-
-            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, s3Key)
-                .withMethod(com.amazonaws.HttpMethod.GET)
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, path)
                 .withExpiration(expiration);
-
             URL url = getS3Client().generatePresignedUrl(request);
-
-            log.debug("Generated presigned URL for: {} (expires in {}s)", s3Key, expirationSeconds);
             return url.toString();
-
         } catch (Exception e) {
-            log.error("Failed to generate presigned URL for: {}", s3Key, e);
-            throw new BusinessException("Failed to generate access URL: " + e.getMessage());
+            log.error("Failed to generate presigned URL for: {}", path, e);
+            throw new RuntimeException("Failed to generate presigned URL", e);
+        }
+    }
+
+    @Timed(value = "s3.exists", description = "Time to check existence in S3")
+    @Override
+    public boolean exists(String path) {
+        try {
+            return getS3Client().doesObjectExist(bucket, path);
+        } catch (Exception e) {
+            log.error("Failed to check existence: {}", path, e);
+            return false;
+        }
+    }
+
+    @Timed(value = "s3.upload_stream", description = "Time to upload stream to S3")
+    @Override
+    public String upload(InputStream inputStream, String path, String contentType, long contentLength) {
+        try {
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(contentLength);
+            metadata.setContentType(contentType != null ? contentType : "application/octet-stream");
+
+            PutObjectRequest request = new PutObjectRequest(bucket, path, inputStream, metadata);
+            getS3Client().putObject(request);
+
+            log.info("File uploaded to S3 via stream: {}", path);
+            return path;
+        } catch (Exception e) {
+            log.error("Failed to upload file to S3 via stream: {}", path, e);
+            throw new RuntimeException("Failed to upload file to S3", e);
         }
     }
 
     /**
-     * Удаление файла из S3
+     * Проверка, что файл успешно загружен и доступен
      */
-    public void deleteFile(String s3Key) {
+    public boolean verifyUpload(String key, long expectedSize) {
         try {
-            getS3Client().deleteObject(bucket, s3Key);
-            log.info("File deleted from S3: {}", s3Key);
-        } catch (Exception e) {
-            log.error("Failed to delete file from S3: {}", s3Key, e);
-            throw new BusinessException("Failed to delete file: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Проверка существования файла
-     */
-    public boolean fileExists(String s3Key) {
-        try {
-            return getS3Client().doesObjectExist(bucket, s3Key);
-        } catch (Exception e) {
-            log.error("Failed to check file existence: {}", s3Key, e);
+            ObjectMetadata metadata = getS3Client().getObjectMetadata(bucket, key);
+            return metadata.getContentLength() == expectedSize;
+        } catch (SdkClientException e) {
+            log.error("File not found in S3: {}", key, e);
             return false;
         }
     }
 
     /**
-     * Получение метаданных файла
+     * Проверка, что файл является валидным медиа-файлом
      */
-    public ObjectMetadata getFileMetadata(String s3Key) {
+    public boolean isValidMediaFile(String key) {
         try {
-            return getS3Client().getObjectMetadata(bucket, s3Key);
+            URL url = new URL(generatePresignedUrl(key, 60));
+            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("HEAD");
+            int responseCode = connection.getResponseCode();
+            return responseCode == 200;
         } catch (Exception e) {
-            log.error("Failed to get file metadata: {}", s3Key, e);
-            throw new BusinessException("Failed to get file metadata: " + e.getMessage());
+            log.error("Failed to verify media file: {}", key, e);
+            return false;
         }
-    }
-
-    /**
-     * Генерация уникального ключа для S3
-     */
-    private String generateS3Key(String fileType, String originalFilename) {
-        String uuid = UUID.randomUUID().toString();
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        String sanitizedFilename = originalFilename.replaceAll("[^a-zA-Z0-9._-]", "_");
-
-        return String.format("%s/%s_%s_%s", fileType, uuid, timestamp, sanitizedFilename);
     }
 }

@@ -10,6 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "payments")
@@ -20,10 +21,11 @@ import java.time.LocalDateTime;
 public class Payment {
 
     @Id
-    private String id; // PAY-timestamp-random
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(name = "user_id", nullable = false)
-    private String userId;
+    private UUID userId;
 
     @Column(nullable = false)
     private BigDecimal amount;
@@ -66,6 +68,10 @@ public class Payment {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
 
     public enum PaymentStatus {
         PENDING,      // Ожидает оплаты

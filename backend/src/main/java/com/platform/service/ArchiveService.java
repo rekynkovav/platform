@@ -5,6 +5,7 @@ import com.platform.exception.ResourceNotFoundException;
 import com.platform.model.Archive;
 import com.platform.model.dto.ArchiveDto;
 import com.platform.repository.ArchiveRepository;
+import com.platform.util.RoleUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -110,8 +111,23 @@ public class ArchiveService {
         String userId = jwt.getSubject();
         String userRole = getUserRole(jwt);
 
+        // Проверка прав администратора
         if (!isAdmin(userRole)) {
             throw new AccessDeniedException("Only admin can delete archives");
+        }
+
+        // Дополнительная проверка: суперадмины могут удалять любые архивы,
+        // модераторы могут удалять только архивы, созданные ими или недавние
+        Archive archive = archiveRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Archive not found"));
+
+        // Если пользователь не суперадмин, проверяем дополнительные условия
+        if (!RoleUtils.isSuperAdmin(userRole)) {
+            // Модераторы могут удалять только архивы старше 30 дней
+            if (archive.getCreatedAt() != null &&
+                archive.getCreatedAt().isAfter(java.time.LocalDateTime.now().minusDays(30))) {
+                throw new AccessDeniedException("Moderators can only delete archives older than 30 days");
+            }
         }
 
         archiveRepository.deleteById(id);
@@ -141,14 +157,10 @@ public class ArchiveService {
     }
 
     private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
-        List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "user";
-        if (roles.contains("admin")) return "admin";
-        if (roles.contains("moderator")) return "moderator";
-        return "user";
+        return RoleUtils.getUserRole(jwt);
     }
 
     private boolean isAdmin(String role) {
-        return "admin".equals(role) || "moderator".equals(role);
+        return RoleUtils.isAdmin(role);
     }
 }

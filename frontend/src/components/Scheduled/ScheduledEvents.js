@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getUserRoles } from '../../keycloak';
+import { api } from '../../services/api';
 import './ScheduledEvents.css';
 
 const ScheduledEvents = () => {
@@ -19,6 +20,13 @@ const ScheduledEvents = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [eventToDelete, setEventToDelete] = useState(null);
 
+    // Состояния для редактирования
+    const [editingEventId, setEditingEventId] = useState(null);
+    const [showEditForm, setShowEditForm] = useState(false);
+    const [error, setError] = useState(null);
+
+    const notificationTimeoutRef = useRef(null);
+
     const getCurrentDate = () => {
         const today = new Date();
         const year = today.getFullYear();
@@ -34,35 +42,58 @@ const ScheduledEvents = () => {
         return `${hours}:${minutes}`;
     };
 
-    useEffect(() => {
-        const savedEvents = localStorage.getItem('scheduledEvents');
-        if (savedEvents) {
-            const parsed = JSON.parse(savedEvents);
-            // Сортируем события по дате и времени (ближайшие сверху)
-            const sorted = parsed.sort((a, b) => {
+    const clearError = () => {
+        setError(null);
+    };
+
+    const loadEvents = async () => {
+        try {
+            setError(null);
+            const data = await api.get('/scheduled-events');
+            const sorted = (data || []).sort((a, b) => {
                 const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
                 const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
                 return dateA - dateB;
             });
             setEvents(sorted);
-        } else {
-            const initialEvents = [
-                { id: 1, title: "Открытие сезона", date: "2025-04-10", time: "15:00", description: "Открытие весеннего сезона. Первая встреча в новом формате." },
-                { id: 2, title: "Практикум по дыханию", date: "2025-04-12", time: "11:00", description: "Практикум по дыхательным техникам." },
-                { id: 3, title: "Лекция о силе духа", date: "2025-04-15", time: "18:30", description: "Лекция о силе духа." }
-            ];
-            setEvents(initialEvents);
-            localStorage.setItem('scheduledEvents', JSON.stringify(initialEvents));
+        } catch (err) {
+            console.error('Failed to load events:', err);
+            setError('Не удалось загрузить события');
+            // fallback на sessionStorage при ошибке API (только для разработки)
+            if (process.env.NODE_ENV === 'development') {
+                try {
+                    const savedEvents = process.env.NODE_ENV === 'development'
+                        ? sessionStorage.getItem('scheduledEvents')
+                        : null;
+                    if (savedEvents) {
+                        const parsed = JSON.parse(savedEvents);
+                        const sorted = parsed.sort((a, b) => {
+                            const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
+                            const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
+                            return dateA - dateB;
+                        });
+                        setEvents(sorted);
+                    }
+                } catch (localError) {
+                    console.error('LocalStorage fallback error:', localError);
+                }
+            }
         }
+    };
 
-        // Получаем роль из localStorage (от переключателя)
-        const demoRole = localStorage.getItem('demoRole');
+    useEffect(() => {
+        loadEvents();
+
+        // Получаем роль из sessionStorage (только для development)
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
         let roles = [];
 
-        if (demoRole === 'admin') {
-            roles = ['admin', 'user'];
-        } else if (demoRole === 'user') {
-            roles = ['user'];
+        if (demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') {
+            roles = ['MODERATOR_ADMIN', 'USER_0'];
+        } else if (demoRole === 'USER_0' || demoRole === 'USER_1' || demoRole === 'USER_2') {
+            roles = ['USER_0'];
         } else {
             roles = getUserRoles();
         }
@@ -76,9 +107,21 @@ const ScheduledEvents = () => {
         }));
     }, []);
 
-    // Проверяем роль из localStorage напрямую
-    const demoRole = localStorage.getItem('demoRole');
-    const isAdmin = demoRole === 'admin' || demoRole === 'admin-moderator' || demoRole === 'admin-consultant' || demoRole === 'developer' || demoRole === 'vyacheslav' || demoRole === 'super-admin';
+    // Cleanup notification timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (notificationTimeoutRef.current) {
+                clearTimeout(notificationTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    // Проверяем роль из sessionStorage (только для development)
+    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+        ? sessionStorage.getItem('demoRole')
+        : null;
+    const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
+    const canEdit = demoRole === 'MODERATOR_ADMIN' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -86,7 +129,7 @@ const ScheduledEvents = () => {
         return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
     };
 
-    const handleAddEvent = () => {
+    const handleAddEvent = async () => {
         if (!isAdmin) {
             alert('Только администратор может добавлять события');
             return;
@@ -97,66 +140,110 @@ const ScheduledEvents = () => {
             return;
         }
 
-        const event = {
-            id: Date.now(),
-            ...newEvent,
-        };
+        try {
+            if (editingEventId) {
+                // Редактирование существующего события
+                await api.put(`/scheduled-events/${editingEventId}`, newEvent);
+                setEditingEventId(null);
+                setShowEditForm(false);
+            } else {
+                // Создание нового события
+                const eventData = {
+                    ...newEvent,
+                    time: newEvent.time || '00:00'
+                };
+                const createdEvent = await api.post('/scheduled-events', eventData);
 
-        const updatedEvents = [...events, event];
-        // Сортируем события по дате и времени (ближайшие сверху)
-        const sorted = updatedEvents.sort((a, b) => {
-            const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
-            const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
-            return dateA - dateB;
+                // Показываем уведомление
+                setNotificationEvent(createdEvent);
+
+                // Автоматически скрываем через 30 секунд
+                notificationTimeoutRef.current = setTimeout(() => {
+                    setNotificationEvent(null);
+                }, 30000);
+            }
+
+            await loadEvents();
+            setNewEvent({
+                title: '',
+                date: getCurrentDate(),
+                time: getCurrentTime(),
+                description: ''
+            });
+            setShowAddForm(false);
+        } catch (err) {
+            console.error('Failed to save event:', err);
+            alert('Ошибка сохранения события');
+        }
+    };
+
+    // Функция для открытия модального окна подтверждения удаления
+    const confirmDeleteEvent = (event) => {
+        if (!canEdit) {
+            alert('У вас нет прав на удаление событий');
+            return;
+        }
+        setEventToDelete(event);
+        setShowDeleteConfirm(true);
+    };
+
+    // Функция для редактирования события
+    const handleEditEvent = (event) => {
+        if (!canEdit) {
+            alert('У вас нет прав на редактирование событий');
+            return;
+        }
+        setEditingEventId(event.id);
+        setNewEvent({
+            title: event.title,
+            date: event.date,
+            time: event.time,
+            description: event.description || ''
         });
-        setEvents(sorted);
-        localStorage.setItem('scheduledEvents', JSON.stringify(sorted));
+        setShowEditForm(true);
+    };
 
-        // Показываем уведомление
-        setNotificationEvent(event);
-
-        // Автоматически скрываем через 30 секунд
-        setTimeout(() => {
-            setNotificationEvent(null);
-        }, 30000);
-
+    // Функция для отмены редактирования
+    const handleCancelEdit = () => {
+        setEditingEventId(null);
+        setShowEditForm(false);
         setNewEvent({
             title: '',
             date: getCurrentDate(),
             time: getCurrentTime(),
             description: ''
         });
-        setShowAddForm(false);
-    };
-
-    // Функция для открытия модального окна подтверждения удаления
-    const confirmDeleteEvent = (event) => {
-        setEventToDelete(event);
-        setShowDeleteConfirm(true);
     };
 
     // Функция для фактического удаления
-    const executeDeleteEvent = () => {
+    const executeDeleteEvent = async () => {
         if (!eventToDelete) return;
 
-        const demoRole = localStorage.getItem('demoRole');
-        if (demoRole !== 'admin') {
+        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
+            ? sessionStorage.getItem('demoRole')
+            : null;
+        const canDelete = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
+        if (!canDelete) {
             alert('Только администратор может удалять события!');
             setShowDeleteConfirm(false);
             setEventToDelete(null);
             return;
         }
 
-        const updatedEvents = events.filter(event => event.id !== eventToDelete.id);
-        setEvents(updatedEvents);
-        localStorage.setItem('scheduledEvents', JSON.stringify(updatedEvents));
+        try {
+            await api.delete(`/scheduled-events/${eventToDelete.id}`);
+            await loadEvents();
 
-        // Показываем уведомление об удалении
-        setDeleteNotification(eventToDelete?.title);
-        setTimeout(() => setDeleteNotification(null), 3000);
+            // Показываем уведомление об удалении
+            setDeleteNotification(eventToDelete?.title);
+            notificationTimeoutRef.current = setTimeout(() => setDeleteNotification(null), 3000);
 
-        setShowDeleteConfirm(false);
-        setEventToDelete(null);
+            setShowDeleteConfirm(false);
+            setEventToDelete(null);
+        } catch (err) {
+            console.error('Failed to delete event:', err);
+            alert('Ошибка удаления события');
+        }
     };
 
     // Функция для отмены удаления
@@ -164,7 +251,7 @@ const ScheduledEvents = () => {
         setShowDeleteConfirm(false);
         setEventToDelete(null);
         setDeleteNotification(`❌ Удаление отменено`);
-        setTimeout(() => setDeleteNotification(null), 2000);
+        notificationTimeoutRef.current = setTimeout(() => setDeleteNotification(null), 2000);
     };
 
     const scrollToEventsTab = () => {
@@ -177,6 +264,15 @@ const ScheduledEvents = () => {
 
     return (
         <div className="scheduled-events">
+            {/* Отображение ошибок */}
+            {error && (
+                <div className="error-message">
+                    <span className="error-icon">⚠️</span>
+                    <span>{error}</span>
+                    <button className="error-close" onClick={clearError}>×</button>
+                </div>
+            )}
+
             {/* Модальное окно подтверждения удаления */}
             {showDeleteConfirm && eventToDelete && (
                 <div className="modal-overlay" onClick={cancelDeleteEvent}>
@@ -232,7 +328,7 @@ const ScheduledEvents = () => {
                         <button className="countdown-close" onClick={(e) => { e.stopPropagation(); setNotificationEvent(null); }}>✕</button>
                         <div className="countdown-icon">🎉</div>
                         <div className="countdown-text">
-                            <strong>Новое событие!</strong>
+                            <strong>Ближайшее Событие</strong>
                             <span>{notificationEvent.title}</span>
                         </div>
                         <div className="countdown-timer">
@@ -255,11 +351,15 @@ const ScheduledEvents = () => {
                 </div>
             )}
 
-            {/* Модальное окно формы добавления события */}
-            {isAdmin && showAddForm && (
-                <div className="modal-overlay" onClick={() => setShowAddForm(false)}>
+            {/* Модальное окно формы добавления/редактирования события */}
+            {isAdmin && (showAddForm || showEditForm) && (
+                <div className="modal-overlay" onClick={() => {
+                    setShowAddForm(false);
+                    setShowEditForm(false);
+                    handleCancelEdit();
+                }}>
                     <div className="modal-content add-event-modal" onClick={(e) => e.stopPropagation()}>
-                        <h3>Новое событие</h3>
+                        <h3>{editingEventId ? 'Редактировать событие' : 'Новое событие'}</h3>
                         <input
                             type="text"
                             placeholder="Название события"
@@ -292,9 +392,13 @@ const ScheduledEvents = () => {
                         />
                         <div className="modal-buttons-vertical">
                             <button className="modal-btn-create" onClick={handleAddEvent}>
-                                Создать событие
+                                {editingEventId ? 'Сохранить изменения' : 'Создать событие'}
                             </button>
-                            <button className="modal-btn-cancel" onClick={() => setShowAddForm(false)}>
+                            <button className="modal-btn-cancel" onClick={() => {
+                                setShowAddForm(false);
+                                setShowEditForm(false);
+                                handleCancelEdit();
+                            }}>
                                 Отмена
                             </button>
                         </div>
@@ -313,12 +417,28 @@ const ScheduledEvents = () => {
                         <div key={event.id} className="event-card">
                             <div className="event-header">
                                 <div className="event-title-section">
-                                    <h3 className="event-title">{event.title}</h3>
+                                    <h3 className="event-title">
+                                        {event.title}
+                                        {event.edited && <span className="edited-badge"> (изменено)</span>}
+                                    </h3>
                                     <span className="event-date">{formatDate(event.date)} {event.time}</span>
                                 </div>
                                 <div className="event-actions">
-                                    {/* Кнопка удаления - только для админа */}
-                                    {isAdmin && (
+                                    {/* Кнопка редактирования - только для MODERATOR_ADMIN и SUPER_ADMIN */}
+                                    {canEdit && (
+                                        <button
+                                            className="edit-event-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleEditEvent(event);
+                                            }}
+                                            title="Редактировать событие"
+                                        >
+                                            ✏️
+                                        </button>
+                                    )}
+                                    {/* Кнопка удаления - только для MODERATOR_ADMIN и SUPER_ADMIN */}
+                                    {canEdit && (
                                         <button
                                             className="delete-event-btn"
                                             onClick={(e) => {

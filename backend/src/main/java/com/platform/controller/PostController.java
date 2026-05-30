@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -42,9 +43,9 @@ public class PostController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<PostDto> createPost(
-            @RequestBody PostDto.CreateRequest request,
+            @Valid @RequestBody PostDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         PostDto post = postService.createPost(request, jwt);
@@ -52,10 +53,10 @@ public class PostController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<PostDto> updatePost(
             @PathVariable String id,
-            @RequestBody PostDto.UpdateRequest request,
+            @Valid @RequestBody PostDto.UpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         PostDto post = postService.updatePost(id, request, jwt);
@@ -63,7 +64,7 @@ public class PostController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<Void> deletePost(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
@@ -73,12 +74,12 @@ public class PostController {
     }
 
     @PostMapping("/media")
-    @PreAuthorize("hasAnyRole('admin', 'moderator')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
     public ResponseEntity<PostDto.MediaUploadResponse> uploadMedia(
             @RequestParam("media") MultipartFile media,
             @RequestParam(required = false) String type) {
 
-        PostDto.MediaUploadResponse response = postService.uploadMedia(media, type);
+        PostDto.MediaUploadResponse response = postService.uploadSecureMedia(media, type);
         return ResponseEntity.ok(response);
     }
 }

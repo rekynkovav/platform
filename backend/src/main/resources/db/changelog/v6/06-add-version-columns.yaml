@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 06-add-version-columns
+      author: platform
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE payments ADD COLUMN IF NOT EXISTS version BIGINT DEFAULT 0;
+              ALTER TABLE users ADD COLUMN IF NOT EXISTS version BIGINT DEFAULT 0;
+              ALTER TABLE live_broadcasts ADD COLUMN IF NOT EXISTS version BIGINT DEFAULT 0;
+              ALTER TABLE messages ADD COLUMN IF NOT EXISTS version BIGINT DEFAULT 0;

@@ -1,0 +1,76 @@
+# АНАЛИЗ ФРОНТЕНДА НА НЕИСПОЛЬЗУЕМЫЕ КОМПОНЕНТЫ И ДУБЛИКАТЫ
+# Дата анализа: 2024-05-18
+
+## 1. ЯВНЫЕ ДУБЛИКАТЫ:
+
+### 1.1. Два файла UserProfile.js:
+- ✅ src/components/UserProfile/UserProfile.js (ИСПОЛЬЗУЕТСЯ в App.js)
+- ❌ src/components/Profile/UserProfile.js (НЕ ИСПОЛЬЗУЕТСЯ - ДУБЛИКАТ)
+
+## 2. КОМПОНЕНТЫ, ИМПОРТИРУЕМЫЕ В App.js (основной роутинг):
+- NavTabs
+- MainFeed
+- NutritionFeed
+- Dashboard
+- EventsHub
+- ArchiveList
+- GeneralChat
+- NutritionChat
+- Questions
+- GlobalEventNotification
+- NotificationBell
+- RoleSwitcher
+- UserProfile (из UserProfile/)
+- ScheduledEvents
+
+## 3. КОМПОНЕНТЫ, ИМПОРТИРУЕМЫЕ В ДРУГИХ КОМПОНЕНТАХ:
+(те же, что и в App.js - значит, они не импортируются друг в друга)
+
+## 4. ПОТЕНЦИАЛЬНО НЕИСПОЛЬЗУЕМЫЕ КОМПОНЕНТЫ:
+
+### 4.1. Компоненты Dashboard, которые НЕ импортируются:
+- AdminPostCreator.js
+- CommentInput.js
+- CommentItem.js
+- Comments.js
+- EventCard.js
+- PostCard.js
+- PostFeed.js
+- Timer.js (возможно используется как хук, не как компонент)
+
+### 4.2. Другие компоненты, которые НЕ импортируются:
+- ChatRoom.js
+- MediaRenderer.js
+- useChat.js (хук, не компонент)
+- ContentModal.js
+- ContactsList.js
+- Header.js
+- ThemeToggle.js
+- EventCountdown.js
+- QuestionNotification.js
+
+## 5. CSS ФАЙЛЫ БЕЗ СООТВЕТСТВУЮЩИХ КОМПОНЕНТОВ:
+(проверить после удаления неиспользуемых JS файлов)
+
+## 6. РЕКОМЕНДАЦИИ:
+
+### 6.1. Высокий приоритет (явные дубликаты):
+1. Удалить src/components/Profile/UserProfile.js (дубликат)
+
+### 6.2. Средний приоритет (вероятно неиспользуемые):
+1. Проверить компоненты Dashboard - возможно они используются динамически
+2. Проверить ChatRoom.js, MediaRenderer.js - возможно для будущего функционала
+3. Проверить ContentModal.js, ContactsList.js
+
+### 6.3. Низкий приоритет (хуки и утилиты):
+1. useChat.js - хук, может использоваться
+2. initialData.js - данные, не компонент
+3. mockData.js, mockApi.js - для тестирования
+
+## 7. СЛЕДУЮЩИЕ ШАГИ:
+1. Удалить явные дубликаты (UserProfile из Profile/)
+2. Проверить каждый потенциально неиспользуемый компонент:
+   - Поискать его использование в коде (grep)
+   - Проверить динамические импорты
+   - Проверить использование через строковые имена
+3. Проверить CSS файлы после удаления JS компонентов

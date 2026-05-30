@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -27,7 +28,7 @@ public class ContactController {
 
     @PostMapping
     public ResponseEntity<ContactDto> addContact(
-            @RequestBody ContactDto.AddRequest request,
+            @Valid @RequestBody ContactDto.AddRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         return ResponseEntity.ok(contactService.addContact(jwt.getSubject(), request.getContactUserId(), request.getNickname()));
@@ -45,7 +46,7 @@ public class ContactController {
     @PutMapping("/{contactId}")
     public ResponseEntity<ContactDto> updateContactNickname(
             @PathVariable String contactId,
-            @RequestBody ContactDto.UpdateRequest request,
+            @Valid @RequestBody ContactDto.UpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
         return ResponseEntity.ok(contactService.updateContactNickname(jwt.getSubject(), contactId, request.getNickname()));

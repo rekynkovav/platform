@@ -1,10 +1,12 @@
 package com.platform.service;
 
 import com.platform.model.dto.PostDto;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import io.micrometer.core.annotation.Timed;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,33 +17,35 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class MediaStorageService {
 
-    @Value("${app.media.upload-path:/tmp/platform-media}")
-    private String uploadPath;
+    private final StorageService storageService;
 
-    @Value("${app.media.base-url:https://api.platform.com/media}")
-    private String baseUrl;
 
+    @Timed(value = "media.save", description = "Time to save media")
     public PostDto.MediaUploadResponse saveMedia(MultipartFile file, String type) {
         try {
             String mediaType = determineMediaType(file, type);
-
-            Path uploadDir = Paths.get(uploadPath, mediaType);
-            if (!Files.exists(uploadDir)) {
-                Files.createDirectories(uploadDir);
-            }
 
             String filename = UUID.randomUUID().toString() + "_" +
                     System.currentTimeMillis() + "_" +
                     file.getOriginalFilename().replaceAll("\\s+", "_");
 
-            Path filePath = uploadDir.resolve(filename);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            String storagePath = mediaType + "/" + filename;
 
-            String url = baseUrl + "/" + mediaType + "/" + filename;
+            // Используем StorageService для загрузки файла
+            String uploadedPath = storageService.upload(
+                file.getInputStream(),
+                storagePath,
+                file.getContentType(),
+                file.getSize()
+            );
 
-            log.info("Media saved: {}", url);
+            // Генерируем URL для доступа к файлу
+            String url = storageService.generatePresignedUrl(storagePath, 3600 * 24 * 7); // 7 дней
+
+            log.info("Media saved via StorageService: {}", url);
 
             return PostDto.MediaUploadResponse.builder()
                     .url(url)

@@ -1,5 +1,6 @@
 package com.platform.service;
 
+import com.platform.util.RoleUtils;
 import com.platform.exception.AccessDeniedException;
 import com.platform.exception.ResourceNotFoundException;
 import com.platform.model.Comment;
@@ -115,14 +116,10 @@ public class CommentService {
     }
 
     private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
-        List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "user";
-        if (roles.contains("admin")) return "admin";
-        if (roles.contains("moderator")) return "moderator";
-        return "user";
+        return RoleUtils.getUserRole(jwt);
     }
 
     private boolean isAdmin(String role) {
-        return "admin".equals(role) || "moderator".equals(role);
+        return "MODERATOR_ADMIN".equals(role) || "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
     }
 }

@@ -1,0 +1,82 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://staging-db:5432/platform_db}
+    username: ${DB_USER:platform_user}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  data:
+    redis:
+      host: ${REDIS_HOST:staging-redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 2
+          max-wait: -1ms
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+server:
+  port: ${PORT:8081}
+  error:
+    include-stacktrace: never
+    include-message: always
+
+logging:
+  level:
+    com.platform: DEBUG
+    org.springframework.web: INFO
+    org.springframework.data.redis: INFO
+    org.hibernate: INFO
+  pattern:
+    console: "%d{ISO8601} %-5level [%thread] %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus,info
+      base-path: /actuator
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: platform
+      environment: staging
+
+app:
+  media:
+    upload-path: ${MEDIA_PATH:/app/uploads}
+    base-url: ${MEDIA_BASE_URL:https://staging.platform.local/media}
+    max-file-size: 50MB
+    allowed-formats: mp4,mp3,jpg,png,gif,webm
+
+security:
+  cors:
+    allowed-origins:
+      - https://staging.platform.local
+      - https://staging-api.platform.local

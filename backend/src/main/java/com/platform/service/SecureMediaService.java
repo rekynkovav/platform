@@ -1,6 +1,8 @@
 package com.platform.service;
 
+import com.platform.util.RoleUtils;
 import com.platform.exception.AccessDeniedException;
+import com.platform.exception.BusinessException;
 import com.platform.exception.ResourceNotFoundException;
 import com.platform.model.AccessLog;
 import com.platform.model.MediaFile;
@@ -14,8 +16,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
 import java.util.UUID;
+import javax.crypto.Cipher;
+import javax.crypto.CipherOutputStream;
 
 @Slf4j
 @Service
@@ -25,37 +38,82 @@ public class SecureMediaService {
 
     private final MediaFileRepository mediaFileRepository;
     private final AccessLogRepository accessLogRepository;
-    private final S3StorageService s3StorageService;
+    private final StorageService storageService;
     private final EncryptionService encryptionService;
     private final WatermarkService watermarkService;
     private final HLSStreamingService hlsStreamingService;
 
-    /**
-     * Загрузка и шифрование медиа файла
-     */
     @Transactional
     public MediaFile uploadSecureMedia(MultipartFile file, String fileType, Jwt jwt, HttpServletRequest request) {
+        // ПРОВЕРКА РАЗМЕРА ФАЙЛА (1 ГБ максимум)
+        long maxFileSize = 1024 * 1024 * 1024; // 1 GB
+        if (file.getSize() > maxFileSize) {
+            throw new BusinessException("File too large. Maximum size is 1 GB");
+        }
+
         try {
             String userId = jwt.getSubject();
             String fileId = UUID.randomUUID().toString();
 
-            java.io.File tempFile = saveTempFile(file);
+            // СОХРАНЯЕМ ВРЕМЕННЫЙ ФАЙЛ НА ДИСК (потоково)
+            Path tempPath = Paths.get(System.getProperty("java.io.tmpdir"),
+                "upload_" + fileId + "_" + file.getOriginalFilename());
 
-            java.io.File watermarkedFile = tempFile;
-            if ("video".equals(fileType)) {
-                watermarkedFile = watermarkService.addVideoWatermark(tempFile, userId, fileId);
-            } else if ("image".equals(fileType)) {
-                watermarkedFile = watermarkService.addImageWatermark(tempFile, userId, fileId);
+            try (InputStream inputStream = file.getInputStream()) {
+                Files.copy(inputStream, tempPath, StandardCopyOption.REPLACE_EXISTING);
             }
 
+            File tempFile = tempPath.toFile();
+            File watermarkedFile = tempFile;
+
+            if ("video".equals(fileType)) {
+                try {
+                    Future<File> futureWatermark = watermarkService.addVideoWatermark(tempFile, userId, fileId);
+                    watermarkedFile = futureWatermark.get(); // ждём завершения
+                } catch (InterruptedException | ExecutionException e) {
+                    log.error("Video watermark processing failed", e);
+                    throw new RuntimeException("Failed to add video watermark", e);
+                }
+            } else if ("image".equals(fileType)) {
+                try {
+                    Future<File> futureWatermark = watermarkService.addImageWatermark(tempFile, userId, fileId);
+                    watermarkedFile = futureWatermark.get(); // ждём завершения
+                } catch (InterruptedException | ExecutionException e) {
+                    log.error("Image watermark processing failed", e);
+                    throw new RuntimeException("Failed to add image watermark", e);
+                }
+            }
+
+            // ШИФРОВАНИЕ ПОТОКОВО с записью во временный файл
             byte[] encryptionKey = encryptionService.generateFileKey(userId, fileId);
             String iv = encryptionService.generateIV();
 
-            byte[] originalData = java.nio.file.Files.readAllBytes(watermarkedFile.toPath());
-            byte[] encryptedData = encryptionService.encrypt(originalData, encryptionKey, iv);
+            Path encryptedPath = Paths.get(System.getProperty("java.io.tmpdir"), "encrypted_" + fileId);
 
-            String s3Key = s3StorageService.uploadEncryptedFile(encryptedData, fileType, file.getOriginalFilename());
+            try (InputStream fis = Files.newInputStream(watermarkedFile.toPath());
+                 OutputStream fos = Files.newOutputStream(encryptedPath);
+                 CipherOutputStream cos = new CipherOutputStream(fos,
+                     encryptionService.getCipher(Cipher.ENCRYPT_MODE, encryptionKey, iv))) {
 
+                byte[] buffer = new byte[8192];  // 8KB буфер
+                int bytesRead;
+                while ((bytesRead = fis.read(buffer)) != -1) {
+                    cos.write(buffer, 0, bytesRead);
+                }
+            }
+
+            // ПОТОКОВАЯ ЗАГРУЗКА В S3 (без readAllBytes)
+            String storageKey;
+            try (InputStream encryptedStream = Files.newInputStream(encryptedPath)) {
+                storageKey = storageService.upload(
+                    encryptedStream,
+                    String.format("%s/%s_%s", fileType, fileId, file.getOriginalFilename()),
+                    file.getContentType(),
+                    Files.size(encryptedPath)
+                );
+            }
+
+            // HLS конвертация
             String hlsPlaylistUrl = null;
             Integer duration = null;
             if ("video".equals(fileType) && hlsStreamingService != null) {
@@ -67,13 +125,14 @@ public class SecureMediaService {
                     }
                 } catch (Exception e) {
                     log.warn("HLS conversion failed, continuing without HLS: {}", e.getMessage());
+                    log.warn("Конвертация HLS не удалась, продолжаем без HLS: {}", e.getMessage());
                 }
             }
 
             MediaFile mediaFile = MediaFile.builder()
                 .id(fileId)
                 .ownerId(userId)
-                .s3Key(s3Key)
+                .s3Key(storageKey)
                 .encryptionIv(iv)
                 .fileType(fileType)
                 .originalFilename(file.getOriginalFilename())
@@ -88,33 +147,34 @@ public class SecureMediaService {
                 .build();
 
             mediaFile = mediaFileRepository.save(mediaFile);
-
             logAccess(fileId, userId, "UPLOAD", request, true, null);
 
-            tempFile.delete();
+            // ЧИСТИМ ВРЕМЕННЫЕ ФАЙЛЫ
+            Files.deleteIfExists(tempPath);
+            Files.deleteIfExists(encryptedPath);
             if (!watermarkedFile.equals(tempFile)) {
                 watermarkedFile.delete();
             }
 
             log.info("Secure media uploaded: {} by {}", fileId, userId);
+            log.info("Защищённый медиа-файл загружен: {} пользователем {}", fileId, userId);
+
             return mediaFile;
 
         } catch (Exception e) {
             log.error("Failed to upload secure media", e);
+            log.error("Не удалось загрузить защищённый медиа-файл", e);
             throw new RuntimeException("Failed to upload media: " + e.getMessage());
         }
     }
 
-    private java.io.File saveTempFile(MultipartFile file) throws Exception {
-        java.nio.file.Path tempPath = java.nio.file.Paths.get(System.getProperty("java.io.tmpdir"),
+    private File saveTempFile(MultipartFile file) throws Exception {
+        Path tempPath = Paths.get(System.getProperty("java.io.tmpdir"),
             "upload_" + UUID.randomUUID() + "_" + file.getOriginalFilename());
-        java.nio.file.Files.write(tempPath, file.getBytes());
+        Files.write(tempPath, file.getBytes());
         return tempPath.toFile();
     }
 
-    /**
-     * Генерация временного URL для стриминга
-     */
     public String generateStreamUrl(String fileId, Jwt jwt, HttpServletRequest request) {
         String userId = jwt.getSubject();
 
@@ -127,15 +187,12 @@ public class SecureMediaService {
         }
 
         logAccess(fileId, userId, "STREAM_REQUEST", request, true, null);
-        String presignedUrl = s3StorageService.generatePresignedUrl(file.getS3Key(), 300);
+        String presignedUrl = storageService.generatePresignedUrl(file.getS3Key(), 300);
         mediaFileRepository.incrementViews(fileId);
 
         return presignedUrl;
     }
 
-    /**
-     * Генерация ключа шифрования для HLS сегментов
-     */
     public byte[] generateEncryptionKey(String fileId, Jwt jwt, HttpServletRequest request) {
         String userId = jwt.getSubject();
 
@@ -151,9 +208,6 @@ public class SecureMediaService {
         return encryptionService.generateHLSKey(userId, fileId);
     }
 
-    /**
-     * Скачивание и расшифровка файла (только для SUPER_ADMIN)
-     */
     public byte[] downloadAndDecrypt(String fileId, Jwt jwt, HttpServletRequest request) {
         String userId = jwt.getSubject();
         String userRole = getUserRole(jwt);
@@ -172,7 +226,7 @@ public class SecureMediaService {
         }
 
         try {
-            byte[] encryptedData = s3StorageService.downloadFile(file.getS3Key());
+            byte[] encryptedData = storageService.download(file.getS3Key());
             byte[] key = encryptionService.generateFileKey(file.getOwnerId(), fileId);
             byte[] decryptedData = encryptionService.decrypt(encryptedData, key, file.getEncryptionIv());
 
@@ -214,7 +268,7 @@ public class SecureMediaService {
             throw new AccessDeniedException("You don't have permission to delete this file");
         }
 
-        s3StorageService.deleteFile(file.getS3Key());
+        storageService.delete(file.getS3Key());
         mediaFileRepository.delete(file);
 
         log.info("Media file deleted: {} by {}", fileId, userId);
@@ -276,37 +330,23 @@ public class SecureMediaService {
         return ip;
     }
 
-    private String getUserRole(Jwt jwt) {
-        List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "user";
-
-        if (roles.contains("super-admin")) return "super-admin";
-        if (roles.contains("vyacheslav")) return "vyacheslav";
-        if (roles.contains("admin")) return "admin";
-        if (roles.contains("moderator")) return "moderator";
-        if (roles.contains("sport-admin")) return "sport-admin";
-        if (roles.contains("nutrition-admin")) return "nutrition-admin";
-        if (roles.contains("consultant-admin")) return "consultant-admin";
-        if (roles.contains("creator")) return "creator";
-        if (roles.contains("premium")) return "premium";
-        if (roles.contains("advanced")) return "advanced";
-
-        return "user";
+    private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
+        return RoleUtils.getUserRole(jwt);
     }
 
     private boolean isAdmin(String role) {
-        return "admin".equals(role) || "moderator".equals(role) ||
-               "super-admin".equals(role) || "vyacheslav".equals(role) ||
-               "sport-admin".equals(role) || "nutrition-admin".equals(role) ||
-               "consultant-admin".equals(role);
+        return "SUPER_ADMIN".equals(role) || 
+               "VYACHESLAV".equals(role) || 
+               "MODERATOR_ADMIN".equals(role) ||
+               "DEVELOPER".equals(role);
     }
 
     private boolean canDownloadOriginal(String role) {
-        return "super-admin".equals(role);
+        return "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
     }
 
     private boolean hasPremiumAccess(Jwt jwt) {
-        List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        return roles != null && (roles.contains("premium") || roles.contains("admin"));
+        String role = RoleUtils.getUserRole(jwt);
+        return "USER_2".equals(role) || "PREMIUM".equals(role);
     }
 }

@@ -9,6 +9,9 @@ import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
 
 import java.util.Collections;
 import java.util.List;
@@ -18,17 +21,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class KeycloakService {
 
-    @Value("${keycloak.auth-server-url}")
-    private String serverUrl;
+    // @Value("${keycloak.auth-server-url}")
+    private String serverUrl = "http://keycloak:8080";
 
-    @Value("${keycloak.realm}")
-    private String realm;
+    // @Value("${keycloak.realm}")
+    private String realm = "platform";
 
-    @Value("${keycloak.resource}")
-    private String clientId;
+    // @Value("${keycloak.resource}")
+    private String clientId = "platform-backend";
 
-    @Value("${keycloak.credentials.secret}")
-    private String clientSecret;
+    // @Value("${keycloak.credentials.secret}")
+    private String clientSecret = "test-secret-key";
 
     private Keycloak keycloak;
 
@@ -48,6 +51,11 @@ public class KeycloakService {
     /**
      * Обновление роли пользователя
      */
+    @Retryable(
+        value = {Exception.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
     public void updateUserRole(String userId, String oldRole, String newRole) {
         try {
             RealmResource realmResource = getKeycloak().realm(realm);
@@ -65,6 +73,13 @@ public class KeycloakService {
             log.error("Failed to update user role in Keycloak", e);
             throw new RuntimeException("Failed to update user role: " + e.getMessage());
         }
+    }
+
+    @Recover
+    public void recoverUpdateUserRole(Exception e, String userId, String oldRole, String newRole) {
+        log.error("Failed to update user role after retries: {}", userId, e);
+        // Отправить в очередь для повторной обработки
+        // TODO: Implement queue retry logic
     }
 
     /**

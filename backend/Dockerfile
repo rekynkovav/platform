@@ -1,15 +1,23 @@
-FROM maven:3.9-eclipse-temurin-21 AS builder
+# Stage 1: Build
+FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /app
-# Копируем pom.xml из корня проекта
 COPY pom.xml .
-RUN mvn dependency:go-offline
-# Копируем исходники из правильных путей
-COPY backend/src src
+RUN mvn dependency:go-offline -B
+COPY src ./src
 RUN mvn clean package -DskipTests
 
-FROM eclipse-temurin:21-jre-alpine
+# Stage 2: Runtime
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-RUN apk add --no-cache curl
-COPY --from=builder /app/target/*.jar app.jar
+RUN addgroup -S platform && adduser -S platform -G platform
+USER platform
+
+# Install FFmpeg for video processing
+RUN apk add --no-cache ffmpeg
+
+ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseStringDeduplication"
+
+COPY --from=builder /app/target/platform-*.jar app.jar
+
 EXPOSE 8081
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

@@ -7,9 +7,11 @@ import com.platform.model.dto.CommentDto;
 import com.platform.model.dto.PostDto;
 import com.platform.repository.PostRepository;
 import com.platform.repository.ReactionRepository;
+import com.platform.util.RoleUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,7 +30,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final ReactionRepository reactionRepository;
     private final CommentService commentService;
-    private final MediaStorageService mediaStorageService;
+    private final SecureMediaService secureMediaService;
 
     public List<PostDto> getFeed(String userId, String before, Pageable pageable) {
         List<Post> posts;
@@ -118,8 +120,26 @@ public class PostService {
         log.info("Post deleted: {} by {}", postId, userId);
     }
 
-    public PostDto.MediaUploadResponse uploadMedia(MultipartFile file, String type) {
-        return mediaStorageService.saveMedia(file, type);
+    public PostDto.MediaUploadResponse uploadSecureMedia(MultipartFile file, String type) {
+        try {
+            String fileId = UUID.randomUUID().toString();
+            // Получаем Jwt из контекста безопасности
+            org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            Jwt jwt = (Jwt) authentication.getPrincipal();
+
+            // Сохраняем файл через SecureMediaService
+            com.platform.model.MediaFile mediaFile = secureMediaService.uploadSecureMedia(file, type, jwt, null);
+
+            return PostDto.MediaUploadResponse.builder()
+                .url(mediaFile.getS3Key())
+                .type(mediaFile.getFileType())
+                .size(mediaFile.getFileSize())
+                .filename(mediaFile.getOriginalFilename())
+                .build();
+        } catch (Exception e) {
+            log.error("Failed to upload media", e);
+            throw new RuntimeException("Failed to upload media", e);
+        }
     }
 
     private PostDto toDto(Post post, String userId) {
@@ -147,14 +167,10 @@ public class PostService {
     }
 
     private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
-        List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        if (roles == null) return "user";
-        if (roles.contains("admin")) return "admin";
-        if (roles.contains("moderator")) return "moderator";
-        return "user";
+        return RoleUtils.getUserRole(jwt);
     }
 
     private boolean isAdmin(String role) {
-        return "admin".equals(role) || "moderator".equals(role);
+        return RoleUtils.isAdmin(role);
     }
 }

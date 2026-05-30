@@ -1,24 +1,54 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './RoleSwitcher.css';
+import { ROLES, ROLE_LABELS, ROLE_ICONS } from '../../constants/roles';
+import { demoApi } from '../../services/api';
+
+const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'development';
 
 const RoleSwitcher = ({ onRoleChange }) => {
     const [currentRole, setCurrentRole] = useState(() => {
-        return localStorage.getItem('demoRole') || 'user0';
+        // Только для development
+        if (process.env.REACT_APP_ENVIRONMENT === 'development') {
+            return sessionStorage.getItem('demoRole') || 'USER_0';
+        }
+        // В production — реальные роли из Keycloak
+        const roles = getUserRoles();
+        return roles.length > 0 ? roles[0] : 'USER_0';
     });
+
+    useEffect(() => {
+        const loadDemoRole = async () => {
+            try {
+                const role = await demoApi.getDemoRole();
+                if (role) {
+                    setCurrentRole(role);
+                }
+            } catch (err) {
+                console.error('Failed to load demo role:', err);
+                const savedRole = sessionStorage.getItem('demoRole');
+                if (savedRole) {
+                    setCurrentRole(savedRole);
+                }
+            }
+        };
+
+        if (process.env.REACT_APP_ENVIRONMENT === 'development') {
+            loadDemoRole();
+        }
+    }, []);
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     const roles = [
-        { id: 'user0', label: 'Пользователь 0', icon: '👁️', description: 'Просмотр сайта' },
-        { id: 'user1', label: 'Пользователь 1', icon: '🌱', description: 'Новички + Чат 1' },
-        { id: 'user2', label: 'Пользователь 2', icon: '⭐', description: 'Продвинутые + Чат 2' },
-        { id: 'admin-moderator', label: 'Админ (модератор)', icon: '🛡️', description: 'Ответы + контент' },
-        { id: 'admin-consultant', label: 'Админ (консультации)', icon: '💼', description: 'Консультации' },
-        { id: 'admin-nutrition', label: 'Админ (питание)', icon: '🥗', description: 'Лента питания' },
-        { id: 'admin-sport', label: 'Админ (спорт)', icon: '⚽', description: 'Спортивный контент' },
-        { id: 'developer', label: 'Разработчик', icon: '💻', description: 'Разработка' },
-        { id: 'vyacheslav', label: 'Вячеслав', icon: '👑', description: 'Владелец' },
-        { id: 'super-admin', label: 'Главный Админ', icon: '🔱', description: 'Скачивание оригиналов' }
+        { id: ROLES.USER_0, label: ROLE_LABELS[ROLES.USER_0], icon: ROLE_ICONS[ROLES.USER_0], description: 'Просмотр сайта' },
+        { id: ROLES.USER_1, label: ROLE_LABELS[ROLES.USER_1], icon: ROLE_ICONS[ROLES.USER_1], description: 'Чат 1' },
+        { id: ROLES.USER_2, label: ROLE_LABELS[ROLES.USER_2], icon: ROLE_ICONS[ROLES.USER_2], description: 'Чат 2' },
+        { id: ROLES.MODERATOR_ADMIN, label: ROLE_LABELS[ROLES.MODERATOR_ADMIN], icon: ROLE_ICONS[ROLES.MODERATOR_ADMIN], description: 'Ответы + контент' },
+        { id: ROLES.CONSULTANT_PITANIE, label: ROLE_LABELS[ROLES.CONSULTANT_PITANIE], icon: ROLE_ICONS[ROLES.CONSULTANT_PITANIE], description: 'Лента питания' },
+        { id: ROLES.CONSULTANT_SPORT, label: ROLE_LABELS[ROLES.CONSULTANT_SPORT], icon: ROLE_ICONS[ROLES.CONSULTANT_SPORT], description: 'Спортивный контент' },
+        { id: ROLES.DEVELOPER, label: ROLE_LABELS[ROLES.DEVELOPER], icon: ROLE_ICONS[ROLES.DEVELOPER], description: 'Разработка' },
+        { id: ROLES.VYACHESLAV, label: ROLE_LABELS[ROLES.VYACHESLAV], icon: ROLE_ICONS[ROLES.VYACHESLAV], description: 'Владелец' },
+        { id: ROLES.SUPER_ADMIN, label: ROLE_LABELS[ROLES.SUPER_ADMIN], icon: ROLE_ICONS[ROLES.SUPER_ADMIN], description: 'Полный доступ' }
     ];
 
     useEffect(() => {
@@ -38,18 +68,12 @@ const RoleSwitcher = ({ onRoleChange }) => {
     }, [isOpen]);
 
     const handleRoleChange = (roleId) => {
+        if (process.env.REACT_APP_ENVIRONMENT !== 'development') return;
+
         setCurrentRole(roleId);
-        localStorage.setItem('demoRole', roleId);
+        sessionStorage.setItem('demoRole', roleId);
 
-        if (window.keycloakMock) {
-            const isAdmin = roleId.includes('admin') || roleId === 'developer' || roleId === 'vyacheslav' || roleId === 'super-admin';
-            window.keycloakMock.roles = isAdmin ? ['admin', 'user'] : ['user'];
-        }
-
-        if (onRoleChange) {
-            onRoleChange(roleId);
-        }
-
+        if (onRoleChange) onRoleChange(roleId);
         setIsOpen(false);
         window.location.reload();
     };

@@ -1,0 +1,24 @@
+# АНАЛИЗ ФРОНТЕНДА НА НЕИСПОЛЬЗУЕМЫЕ КОМПОНЕНТЫ И ДУБЛИКАТЫ
+# Дата анализа: $(date)
+
+## 1. ВСЕ КОМПОНЕНТЫ В ПРОЕКТЕ:
+$(find src -type f \( -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" \) | grep -v node_modules | sort)
+
+## 2. КОМПОНЕНТЫ, ИМПОРТИРУЕМЫЕ В App.js:
+$(grep "import.*from" src/App.js | grep -v "//" | grep -v "\.css" | grep -v "\.scss" | grep -v "\.less" | grep -v "keycloak" | grep -v "hooks" | grep -v "context" | sed 's/^/  /')
+
+## 3. КОМПОНЕНТЫ, ИМПОРТИРУЕМЫЕ В ДРУГИХ КОМПОНЕНТАХ:
+$(grep -r "import.*from.*components" src --include="*.js" --include="*.jsx" --include="*.ts" --include="*.tsx" | grep -v "//" | sed 's/.*import.*from //' | sed "s/['\"]//g" | sort | uniq | sed 's/^/  /')
+
+## 4. ПОТЕНЦИАЛЬНЫЕ ДУБЛИКАТЫ:
+### 4.1. Два файла UserProfile.js:
+  - src/components/Profile/UserProfile.js (НЕ ИСПОЛЬЗУЕТСЯ)
+  - src/components/UserProfile/UserProfile.js (ИСПОЛЬЗУЕТСЯ в App.js)
+
+## 5. ПОТЕНЦИАЛЬНО НЕИСПОЛЬЗУЕМЫЕ КОМПОНЕНТЫ:
+### Компоненты, которые НЕ импортируются в App.js и НЕ импортируются другими компонентами:
+$(comm -23 <(find src/components -type f \( -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" \) | sed 's|src/||' | sort) <(grep -r "import.*from.*components" src --include="*.js" --include="*.jsx" --include="*.ts" --include="*.tsx" | grep -v "//" | sed 's/.*import.*from //' | sed "s/['\"]//g" | sort | uniq) | sed 's/^/  - /')
+
+## 6. CSS ФАЙЛЫ БЕЗ КОМПОНЕНТОВ:
+$(find src -name "*.css" | while read css; do js="${css%.css}.js"; jsx="${css%.css}.jsx"; ts="${css%.css}.ts"; tsx="${css%.css}.tsx"; if [ ! -f "$js" ] && [ ! -f "$jsx" ] && [ ! -f "$ts" ] && [ ! -f "$tsx" ]; then echo "  - $css"; fi; done)
+
