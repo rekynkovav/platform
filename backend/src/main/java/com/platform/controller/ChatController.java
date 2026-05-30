@@ -7,6 +7,7 @@ import com.platform.model.ChatRoom;
 import com.platform.service.ChatService;
 import com.platform.service.ChatRoomService;
 import com.platform.exception.ResourceNotFoundException;
+import com.platform.util.RoleUtils;
 // import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,9 +54,7 @@ public class ChatController {
         try {
             log.debug("Getting messages for room: {}, limit: {}, before: {}", roomSlug, limit, before);
 
-            String userRole = jwt.getClaimAsString("realm_access.roles") != null
-                    ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                    : "ROLE_USER_0";
+            String userRole = RoleUtils.getUserRole(jwt);
 
             Instant beforeInstant = before != null ? Instant.parse(before) : null;
             List<MessageDto> messages = chatService.getMessagesByRoom(roomSlug, limit, beforeInstant, userRole);
@@ -94,12 +93,10 @@ public class ChatController {
         if (size < 1) size = 1;
         if (size > 100) size = 100;
 
-        String userRole = jwt.getClaimAsString("realm_access.roles") != null
-                ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                : "ROLE_USER_0";
+        String userRole = RoleUtils.getUserRole(jwt);
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<MessageDto> messages = chatService.getMessagesByRoomWithPagination(roomSlug, pageable, userRole);
+        Page<MessageDto> messages = chatService.getMessagesByRoomWithPagination(roomSlug, page, size, userRole);
 
         return ResponseEntity.ok(messages);
     }
@@ -114,9 +111,7 @@ public class ChatController {
             @Valid @RequestBody MessageDto.SendRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        String userRole = jwt.getClaimAsString("realm_access.roles") != null
-                ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                : "ROLE_USER_0";
+        String userRole = RoleUtils.getUserRole(jwt);
 
         return ResponseEntity.ok(chatService.sendMessageToRoom(
                 roomSlug,
@@ -231,9 +226,7 @@ public class ChatController {
         ChatRoom room = chatRoomService.getQuestionRoomByMode(mode);
         Instant beforeInstant = before != null ? Instant.parse(before) : null;
 
-        String userRole = jwt.getClaimAsString("realm_access.roles") != null
-                ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                : "ROLE_USER_0";
+        String userRole = RoleUtils.getUserRole(jwt);
 
         return ResponseEntity.ok(chatService.getMessagesByRoom(room.getSlug(), limit, beforeInstant, userRole));
     }
@@ -250,9 +243,7 @@ public class ChatController {
 
         ChatRoom room = chatRoomService.getQuestionRoomByMode(mode);
 
-        String userRole = jwt.getClaimAsString("realm_access.roles") != null
-                ? jwt.getClaimAsString("realm_access.roles").split(",")[0]
-                : "ROLE_USER_0";
+        String userRole = RoleUtils.getUserRole(jwt);
 
         return ResponseEntity.ok(chatService.sendMessageToRoom(
                 room.getSlug(),

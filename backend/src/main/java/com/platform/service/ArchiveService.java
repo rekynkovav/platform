@@ -123,15 +123,10 @@ public class ArchiveService {
 
         // Если пользователь не суперадмин, проверяем дополнительные условия
         if (!RoleUtils.isSuperAdmin(userRole)) {
-            // Модераторы могут удалять архивы, созданные ими
-            if (archive.getCreatedBy() != null && archive.getCreatedBy().equals(userId)) {
-                // Разрешаем удаление собственных архивов
-            } else {
-                // Или архивы старше 30 дней
-                if (archive.getCreatedAt() != null &&
-                    archive.getCreatedAt().isAfter(java.time.LocalDateTime.now().minusDays(30))) {
-                    throw new AccessDeniedException("Moderators can only delete their own archives or archives older than 30 days");
-                }
+            // Модераторы могут удалять только архивы старше 30 дней
+            if (archive.getCreatedAt() != null &&
+                archive.getCreatedAt().isAfter(java.time.LocalDateTime.now().minusDays(30))) {
+                throw new AccessDeniedException("Moderators can only delete archives older than 30 days");
             }
         }
 

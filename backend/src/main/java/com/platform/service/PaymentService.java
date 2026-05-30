@@ -62,15 +62,14 @@ public class PaymentService {
         String qrCodeBase64 = qrCodeService.generateQRCodeBase64(qrData);
 
         Payment payment = Payment.builder()
-            .id(paymentId)
-            .userId(userId)
+            .id(UUID.fromString(paymentId))
+            .userId(UUID.fromString(userId))
             .amount(amount)
             .currency("RUB")
             .subscriptionMonths(subscriptionMonths)
             .status(Payment.PaymentStatus.PENDING)
             .paymentMethod("SBP")
             .qrCodeData(qrData)
-            .qrCodeBase64(qrCodeBase64)
             .expiresAt(LocalDateTime.now().plusHours(24))
             .build();
 
@@ -110,7 +109,7 @@ public class PaymentService {
     public Payment confirmPayment(String paymentId, String notes, Jwt jwt) {
         String adminId = jwt.getSubject();
 
-        Payment payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentRepository.findById(UUID.fromString(paymentId))
             .orElseThrow(() -> new ResourceNotFoundException("Payment not found: " + paymentId));
 
         if (payment.getStatus() != Payment.PaymentStatus.PENDING) {
@@ -125,7 +124,7 @@ public class PaymentService {
         payment = paymentRepository.save(payment);
 
         try {
-            keycloakService.updateUserRole(payment.getUserId(), "USER_0", "USER_1");
+            keycloakService.updateUserRole(payment.getUserId().toString(), "USER_0", "USER_1");
             log.info("User role updated: {} -> USER_1", payment.getUserId());
         } catch (Exception e) {
             log.error("Failed to update user role in Keycloak", e);

@@ -25,7 +25,7 @@ public class MediaCleanupService {
 
         for (var segment : oldSegments) {
             try {
-                storageService.delete(segment.getStorageKey());
+                storageService.delete(segment.getS3Key());
                 mediaFileRepository.delete(segment);
                 log.info("Deleted old HLS segment: {}", segment.getId());
             } catch (Exception e) {

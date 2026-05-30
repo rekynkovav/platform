@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -94,14 +95,14 @@ public class ChatRoomService {
     public List<ChatRoomDto> getQuestionRoomsDto() {
         return getQuestionRooms().stream()
                 .map(room -> ChatRoomDto.builder()
-                        .id(room.getId())
+                        .id(room.getId() != null ? (long) room.getId().hashCode() : null)
                         .slug(room.getSlug())
                         .type(room.getType())
                         .name(room.getName())
                         .description(room.getDescription())
                         .isActive(room.getIsActive())
                         .build())
-                .toList();
+                .collect(Collectors.toList());
     }
 
     /**

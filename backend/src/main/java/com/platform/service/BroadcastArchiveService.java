@@ -2,6 +2,7 @@ package com.platform.service;
 
 import com.platform.exception.ResourceNotFoundException;
 import com.platform.model.LiveBroadcast;
+import com.platform.model.BroadcastStatus;
 import com.platform.repository.LiveBroadcastRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -42,7 +44,7 @@ public class BroadcastArchiveService {
         }
 
         // 2. Загрузка стрима
-        LiveBroadcast broadcast = broadcastRepository.findById(broadcastId)
+        LiveBroadcast broadcast = broadcastRepository.findById(UUID.fromString(broadcastId))
                 .orElseThrow(() -> new ResourceNotFoundException("Broadcast not found: " + broadcastId));
 
         // 3. Проверка, не архивирован ли уже
@@ -54,7 +56,7 @@ public class BroadcastArchiveService {
         }
 
         // 4. Проверка, что стрим закончился
-        if (broadcast.getStatus() != LiveBroadcast.BroadcastStatus.ENDED) {
+        if (broadcast.getStatus() != BroadcastStatus.ENDED) {
             throw new IllegalStateException("Cannot archive live broadcast: " + broadcastId);
         }
 
@@ -130,7 +132,7 @@ public class BroadcastArchiveService {
      * Получение URL для просмотра архива
      */
     public String getArchiveStreamUrl(String broadcastId, String userId) {
-        LiveBroadcast broadcast = broadcastRepository.findById(broadcastId)
+        LiveBroadcast broadcast = broadcastRepository.findById(UUID.fromString(broadcastId))
                 .orElseThrow(() -> new ResourceNotFoundException("Broadcast not found: " + broadcastId));
 
         if (broadcast.getRecordedUrl() == null) {
@@ -270,13 +272,16 @@ public class BroadcastArchiveService {
     @Transactional
     public void cleanupStaleHlsSegments() {
         LocalDateTime cutoff = LocalDateTime.now().minusHours(2);
-        List<LiveBroadcast> staleBroadcasts = broadcastRepository
-            .findByStatusAndEndedAtBefore(LiveBroadcast.BroadcastStatus.ENDED, cutoff);
+        List<LiveBroadcast> endedBroadcasts = broadcastRepository.findByStatus(BroadcastStatus.ENDED);
+
+        List<LiveBroadcast> staleBroadcasts = endedBroadcasts.stream()
+            .filter(broadcast -> broadcast.getEndedAt() != null && broadcast.getEndedAt().isBefore(cutoff))
+            .collect(Collectors.toList());
 
         for (LiveBroadcast broadcast : staleBroadcasts) {
             if (broadcast.getRecordedUrl() == null) {
                 // Не архивирован — архивируем сейчас
-                archiveBroadcast(broadcast.getId());
+                archiveBroadcast(broadcast.getId().toString());
             } else {
                 // Уже архивирован — просто чистим сегменты
                 String hlsPath = HLS_TEMP_PREFIX + broadcast.getRtmpStreamKey();

@@ -39,11 +39,11 @@ public class LiveBroadcastService {
         log.info("Создание трансляции для пользователя {}: название={}", userId, title);
 
         LiveBroadcast broadcast = LiveBroadcast.builder()
-            .id(broadcastId)
+            .id(UUID.fromString(broadcastId))
             .title(title)
             .description(description)
             .streamType(streamType)
-            .ownerId(userId)
+            .ownerId(UUID.fromString(userId))
             .status(BroadcastStatus.IDLE)
             .rtmpStreamKey(broadcastId)
             .build();
@@ -99,7 +99,7 @@ public class LiveBroadcastService {
     @Timed(value = "broadcast.get", description = "Time to get broadcast")
     @Cacheable(value = "broadcasts", key = "#broadcastId")
     public LiveBroadcast getBroadcast(String broadcastId) {
-        return broadcastRepository.findById(broadcastId)
+        return broadcastRepository.findById(UUID.fromString(broadcastId))
             .orElseThrow(() -> new ResourceNotFoundException("Broadcast not found: " + broadcastId));
     }
 
@@ -188,18 +188,18 @@ public class LiveBroadcastService {
         }
 
         LiveBroadcastDto dto = new LiveBroadcastDto();
-        dto.setId(broadcast.getId());
+        dto.setId(broadcast.getId() != null ? broadcast.getId().toString() : null);
         dto.setTitle(broadcast.getTitle());
         dto.setDescription(broadcast.getDescription());
         dto.setStreamType(broadcast.getStreamType());
-        dto.setUserId(broadcast.getOwnerId());
+        dto.setUserId(broadcast.getOwnerId() != null ? broadcast.getOwnerId().toString() : null);
         dto.setStatus(broadcast.getStatus() != null ? broadcast.getStatus().name() : null);
         dto.setCreatedAt(broadcast.getCreatedAt());
         dto.setStartedAt(broadcast.getStartedAt());
         dto.setEndedAt(broadcast.getEndedAt());
         dto.setViewerCount(broadcast.getViewerCount());
         dto.setHlsPlaylistUrl(broadcast.getHlsPlaylistUrl());
-        dto.setThumbnailUrl(broadcast.getThumbnailUrl());
+        // dto.setThumbnailUrl(broadcast.getThumbnailUrl()); // Метод не существует
 
         return dto;
     }

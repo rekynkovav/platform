@@ -3,11 +3,10 @@ databaseChangeLog:
       id: 04-create-room-permissions
       author: grok-xirurg
       labels: schema
-      comment: "Потолочная таблица прав доступа на уровне комнат (room-level permissions)"
+      comment: Room-level permissions
       changes:
         - createTable:
             tableName: chat_room_permissions
-            remarks: "Кто и какие права имеет в конкретной комнате"
             columns:
               - column:
                   name: id
@@ -16,7 +15,7 @@ databaseChangeLog:
                     primaryKey: true
               - column:
                   name: room_id
-                  type: BIGINT
+                  type: UUID
                   constraints:
                     nullable: false
               - column:
@@ -24,17 +23,14 @@ databaseChangeLog:
                   type: VARCHAR(100)
                   constraints:
                     nullable: false
-                  remarks: "ROLE_USER, ROLE_CONSULTANT_PITANIE, ROLE_VYACHESLAV и т.д."
               - column:
                   name: permission_level
                   type: VARCHAR(20)
-                  defaultValue: "read_write"
-                  remarks: "read | read_write | admin"
+                  defaultValue: read_write
               - column:
                   name: created_at
                   type: TIMESTAMPTZ
                   defaultValueComputed: CURRENT_TIMESTAMP
-
         - addForeignKeyConstraint:
             constraintName: fk_room_permissions_room
             baseTableName: chat_room_permissions
@@ -42,7 +38,6 @@ databaseChangeLog:
             referencedTableName: chat_rooms
             referencedColumnNames: id
             onDelete: CASCADE
-
         - createIndex:
             indexName: idx_room_permissions_room_role
             tableName: chat_room_permissions

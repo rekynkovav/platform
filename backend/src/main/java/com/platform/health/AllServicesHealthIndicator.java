@@ -4,6 +4,8 @@ import org.springframework.boot.actuate.health.CompositeHealthContributor;
 import org.springframework.boot.actuate.health.HealthContributor;
 import org.springframework.boot.actuate.health.NamedContributor;
 import org.springframework.stereotype.Component;
+
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -27,9 +29,9 @@ public class AllServicesHealthIndicator implements CompositeHealthContributor {
     }
 
     @Override
-    public Iterable<NamedContributor<HealthContributor>> getContributors() {
+    public Iterator<NamedContributor<HealthContributor>> iterator() {
         return contributors.entrySet().stream()
-            .map(entry -> NamedContributor.of(entry.getKey(), entry.getValue()))
-            .toList();
+                .map(entry -> NamedContributor.of(entry.getKey(), entry.getValue()))
+                .iterator();
     }
 }

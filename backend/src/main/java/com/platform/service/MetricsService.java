@@ -109,7 +109,7 @@ public class MetricsService {
 
     @Scheduled(fixedRate = 1000)
     public void updateMessageRate() {
-        long current = messageCounter.count();
+        long current = (long) messageCounter.count();
         long delta = current - lastMessageCount;
         lastMessageCount = current;
         messagesPerSecond.set(delta);
@@ -117,7 +117,7 @@ public class MetricsService {
 
     @Scheduled(fixedRate = 1000)
     public void updateWebSocketConnectionsRate() {
-        long current = websocketConnectionsCounter.count();
+        long current = (long) websocketConnectionsCounter.count();
         long delta = current - lastWebSocketConnectionsCount;
         lastWebSocketConnectionsCount = current;
         websocketConnectionsPerSecond.set(delta);

@@ -346,7 +346,7 @@ public class SecureMediaService {
     }
 
     private boolean hasPremiumAccess(Jwt jwt) {
-        List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-        return roles != null && (roles.contains("USER_2") || roles.contains("PREMIUM"));
+        String role = RoleUtils.getUserRole(jwt);
+        return "USER_2".equals(role) || "PREMIUM".equals(role);
     }
 }

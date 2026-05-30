@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,7 +44,7 @@ public class ContactService {
     @Transactional
     public ContactDto addContact(String userId, String contactUserId, String nickname) {
         // Проверяем, существует ли пользователь
-        User contactUser = userRepository.findById(contactUserId)
+        User contactUser = userRepository.findById(UUID.fromString(contactUserId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + contactUserId));
 
         // Проверяем, не добавлен ли уже
@@ -109,7 +110,7 @@ public class ContactService {
     }
 
     private String getUserStatus(String userId) {
-        return userRepository.findById(userId)
+        return userRepository.findById(UUID.fromString(userId))
                 .map(user -> {
                     if (user.getLastActiveAt() == null) return "offline";
                     return user.getLastActiveAt().isAfter(LocalDateTime.now().minusMinutes(5)) ? "online" : "offline";
@@ -118,7 +119,7 @@ public class ContactService {
     }
 
     private String getUserAvatar(String userId) {
-        return userRepository.findById(userId)
+        return userRepository.findById(UUID.fromString(userId))
                 .map(User::getAvatarUrl)
                 .orElse(null);
     }

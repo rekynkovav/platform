@@ -4,6 +4,7 @@ import com.platform.exception.ResourceNotFoundException;
 import com.platform.model.MediaFile;
 import com.platform.model.Message;
 import com.platform.model.dto.MessageDto;
+import com.platform.model.dto.QuestionDto;
 import com.platform.repository.MediaFileRepository;
 import com.platform.repository.MessageRepository;
 import com.platform.repository.ChatRoomPermissionRepository;
@@ -11,6 +12,7 @@ import org.springframework.security.access.AccessDeniedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -132,9 +134,9 @@ public class ChatService {
         Optional<MediaFile> mediaOpt = getMediaFile(mediaId);
 
         Message message = Message.builder()
-                .id(UUID.randomUUID().toString())
+                .id(UUID.randomUUID())
                 .content(content)
-                .userId(userId)
+                .userId(UUID.fromString(userId))
                 .userName(userName)
                 .chatType("general")
                 .isRead(false)
@@ -163,9 +165,9 @@ public class ChatService {
         Optional<MediaFile> mediaOpt = getMediaFile(mediaId);
 
         Message message = Message.builder()
-                .id(UUID.randomUUID().toString())
+                .id(UUID.randomUUID())
                 .content(content)
-                .userId(userId)
+                .userId(UUID.fromString(userId))
                 .userName(userName)
                 .chatType("admin_group")
                 .isRead(false)
@@ -195,11 +197,11 @@ public class ChatService {
         Optional<MediaFile> mediaOpt = getMediaFile(mediaId);
 
         Message message = Message.builder()
-                .id(UUID.randomUUID().toString())
+                .id(UUID.randomUUID())
                 .content(content)
-                .userId(fromUserId)
+                .userId(UUID.fromString(fromUserId))
                 .userName(fromUserName)
-                .recipientId(toUserId)
+                .recipientId(UUID.fromString(toUserId))
                 .chatType("private")
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
@@ -231,10 +233,10 @@ public class ChatService {
         try {
             log.debug("Marking message as read: messageId: {}, userId: {}", messageId, userId);
 
-            Message message = messageRepository.findById(messageId)
+            Message message = messageRepository.findById(UUID.fromString(messageId))
                     .orElseThrow(() -> new ResourceNotFoundException("Message not found: " + messageId));
 
-            if (message.getRecipientId() != null && message.getRecipientId().equals(userId)) {
+            if (message.getRecipientId() != null && message.getRecipientId().equals(UUID.fromString(userId))) {
                 message.setIsRead(true);
                 messageRepository.save(message);
                 log.info("Message marked as read: {} by {}", messageId, userId);
@@ -257,7 +259,7 @@ public class ChatService {
 
     @Timed(value = "chat.get_messages_paginated", description = "Time to get paginated messages")
     @Transactional(readOnly = true, timeout = 10)
-    public Page<MessageDto.ProjectionDto> getMessages(String roomId, int page, int size) {
+    public Page<MessageDto> getMessages(String roomId, int page, int size) {
         UUID roomUuid = UUID.fromString(roomId);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return messageRepository.findMessageDtosByRoomId(roomUuid, pageable);
@@ -358,10 +360,10 @@ public class ChatService {
             }
 
             Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-            Page<Message> messages = messageRepository.findByRoomId(room.getId(), pageable);
+            List<Message> messages = messageRepository.findByRoomId(room.getId(), pageable);
 
-            log.debug("Retrieved {} messages for room {} (page {})", messages.getNumberOfElements(), roomSlug, page);
-            return messages.map(this::toDto);
+            log.debug("Retrieved {} messages for room {} (page {})", messages.size(), roomSlug, page);
+            return new PageImpl<>(messages.stream().map(this::toDto).collect(Collectors.toList()), pageable, messages.size());
 
         } catch (ResourceNotFoundException e) {
             log.error("Chat room not found: {}", roomSlug, e);
@@ -426,5 +428,21 @@ public class ChatService {
             log.error("Error sending message to room {}: {}", roomSlug, e.getMessage(), e);
             throw new RuntimeException("Ошибка при отправке сообщения: " + e.getMessage(), e);
         }
+    }
+
+    // Заглушки для методов вопросов (QuestionDto)
+    public List<QuestionDto> getQuestionsByMode(String mode, String userId) {
+        log.warn("Method getQuestionsByMode not implemented - returning empty list");
+        return List.of();
+    }
+
+    public QuestionDto createQuestion(String mode, QuestionDto.CreateRequest request, String userId) {
+        log.warn("Method createQuestion not implemented - returning null");
+        return null;
+    }
+
+    public QuestionDto answerQuestion(String questionId, QuestionDto.AnswerRequest request, String adminId) {
+        log.warn("Method answerQuestion not implemented - returning null");
+        return null;
     }
 }

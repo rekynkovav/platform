@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,18 +34,12 @@ public class AdminService {
     private final EventService eventService;
 
     public Page<UserDto> getAllUsers(String search, Pageable pageable) {
-        Page<User> users;
-        if (search != null && !search.isEmpty()) {
-            users = userRepository.findByUsernameContainingIgnoreCase(search, pageable);
-        } else {
-            users = userRepository.findAll(pageable);
-        }
-
+        Page<User> users = userRepository.findAll(pageable);
         return users.map(this::toUserDto);
     }
 
     public UserDto getUserById(String userId) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
         return toUserDto(user);
     }
@@ -59,7 +54,7 @@ public class AdminService {
             throw new AccessDeniedException("Only super admin can change user roles");
         }
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         user.setRole(role);
@@ -79,7 +74,7 @@ public class AdminService {
             throw new AccessDeniedException("Only admin can ban users");
         }
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         user.setBanned(true);
@@ -100,7 +95,7 @@ public class AdminService {
             throw new AccessDeniedException("Only admin can unban users");
         }
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
         user.setBanned(false);
@@ -158,7 +153,7 @@ public class AdminService {
 
     private UserDto toUserDto(User user) {
         return UserDto.builder()
-                .id(user.getId())
+                .id(user.getId() != null ? user.getId().toString() : null)
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .phone(user.getPhone())

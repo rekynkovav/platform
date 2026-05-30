@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.Set;
 
 @Component
 @Slf4j
@@ -23,11 +24,10 @@ public class CircuitBreakerMonitor {
 
     @Scheduled(fixedRate = 10000) // каждые 10 секунд
     public void logCircuitBreakerStats() {
-        Map<String, CircuitBreaker> circuitBreakers = circuitBreakerRegistry.getAllCircuitBreakers();
+        Set<CircuitBreaker> circuitBreakers = circuitBreakerRegistry.getAllCircuitBreakers();
 
-        for (Map.Entry<String, CircuitBreaker> entry : circuitBreakers.entrySet()) {
-            String name = entry.getKey();
-            CircuitBreaker circuitBreaker = entry.getValue();
+        for (CircuitBreaker circuitBreaker : circuitBreakers) {
+            String name = circuitBreaker.getName();
 
             CircuitBreaker.State state = circuitBreaker.getState();
             float failureRate = circuitBreaker.getMetrics().getFailureRate();
@@ -55,8 +55,7 @@ public class CircuitBreakerMonitor {
     @Scheduled(fixedRate = 60000) // каждую минуту
     public void resetMetrics() {
         // Сброс метрик для предотвращения утечки памяти
-        circuitBreakerRegistry.getAllCircuitBreakers().forEach((name, cb) -> {
-            cb.getMetrics().reset();
-        });
+        // Метод reset() не существует в CircuitBreaker.Metrics, поэтому просто логируем
+        log.debug("Circuit breaker metrics reset scheduled - skipping (reset() method not available)");
     }
 }

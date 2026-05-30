@@ -52,14 +52,8 @@ public class PlatformCircuitBreakerConfig {
     }
 
     @Bean
-    public Resilience4JCircuitBreakerFactory circuitBreakerFactory() {
-        Resilience4JCircuitBreakerFactory factory = new Resilience4JCircuitBreakerFactory();
-        factory.configureDefault(id -> new Resilience4JConfigBuilder(id)
-                .circuitBreakerConfig(CircuitBreakerConfig.ofDefaults())
-                .timeLimiterConfig(TimeLimiterConfig.custom()
-                        .timeoutDuration(Duration.ofSeconds(10))
-                        .build())
-                .build());
-        return factory;
+    public Resilience4JCircuitBreakerFactory circuitBreakerFactory(
+            CircuitBreakerRegistry circuitBreakerRegistry) {
+        return new Resilience4JCircuitBreakerFactory(circuitBreakerRegistry, null, null);
     }
 }

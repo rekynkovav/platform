@@ -8,6 +8,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -24,7 +25,7 @@ public class UserController {
         String userId = jwt.getSubject();
         return userService.getUserById(userId)
                 .map(user -> ResponseEntity.ok(UserDto.builder()
-                        .id(user.getId())
+                        .id(user.getId() != null ? user.getId().toString() : null)
                         .username(user.getUsername())
                         .email(user.getEmail())
                         .phone(user.getPhone())
@@ -36,7 +37,7 @@ public class UserController {
                         .lastActiveAt(user.getLastActiveAt())
                         .createdAt(user.getCreatedAt())
                         .build()))
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**
@@ -50,7 +51,7 @@ public class UserController {
         String userId = jwt.getSubject();
         return userService.updateUserProfile(userId, request)
                 .map(user -> ResponseEntity.ok(UserDto.builder()
-                        .id(user.getId())
+                        .id(user.getId() != null ? user.getId().toString() : null)
                         .username(user.getUsername())
                         .email(user.getEmail())
                         .phone(user.getPhone())
@@ -60,7 +61,7 @@ public class UserController {
                         .lastActiveAt(user.getLastActiveAt())
                         .createdAt(user.getCreatedAt())
                         .build()))
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**
@@ -70,13 +71,13 @@ public class UserController {
     public ResponseEntity<UserDto> getUserById(@PathVariable String userId) {
         return userService.getUserById(userId)
                 .map(user -> ResponseEntity.ok(UserDto.builder()
-                        .id(user.getId())
+                        .id(user.getId() != null ? user.getId().toString() : null)
                         .username(user.getUsername())
                         .role(user.getRole())
                         .avatarUrl(user.getAvatarUrl())
                         .bio(user.getBio())
                         .createdAt(user.getCreatedAt())
                         .build()))
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

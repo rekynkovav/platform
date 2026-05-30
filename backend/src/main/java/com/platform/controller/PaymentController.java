@@ -92,8 +92,8 @@ public class PaymentController {
 
     private PaymentDto toDto(Payment payment) {
         return PaymentDto.builder()
-            .id(payment.getId())
-            .userId(payment.getUserId())
+            .id(payment.getId() != null ? payment.getId().toString() : null)
+            .userId(payment.getUserId() != null ? payment.getUserId().toString() : null)
             .amount(payment.getAmount())
             .currency(payment.getCurrency())
             .subscriptionMonths(payment.getSubscriptionMonths())

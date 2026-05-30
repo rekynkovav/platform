@@ -1,66 +1,135 @@
-# Platform Project
+# Платформа - Первый релиз
 
-Платформа для онлайн-общения, трансляций и управления подписками.
+## Описание
+Платформа для общения, обмена медиа и управления контентом с системой ролей и комнатами чата.
 
-## Технологии
+## Основные возможности
+- **Чат-комнаты**: Общие, приватные, вопросы, питание, админские
+- **Система ролей**: USER_0, USER_1, USER_2, CONSULTANT_PITANIE, MODERATOR_ADMIN, VYACHESLAV, SUPER_ADMIN
+- **Медиа-файлы**: Загрузка, шифрование, водяные знаки, HLS-стриминг
+- **Права доступа**: Гранулярные права для каждой комнаты
+- **WebSocket**: Реальное время для чата
+- **Keycloak**: Аутентификация и авторизация
 
-- **Backend**: Spring Boot 3.2.5, Java 17, PostgreSQL, Redis
-- **Frontend**: React 18, Keycloak
-- **DevOps**: Docker, Prometheus, Grafana, ELK, Zipkin
+## Архитектура
+- **Backend**: Spring Boot 3, Java 17
+- **База данных**: PostgreSQL 16
+- **Аутентификация**: Keycloak 24
+- **Контейнеризация**: Docker Compose
 
 ## Быстрый старт
 
-### Требования
-- Docker Desktop
-- Java 17
-- Node.js 18+
+### 1. Предварительные требования
+- Docker 20.10+
+- Docker Compose 2.20+
+- Java 17 (для локальной разработки)
+- Maven 3.9+ (для локальной разработки)
 
-### Установка
-
+### 2. Запуск через Docker Compose
 ```bash
-git clone <repo-url>
+# Клонировать репозиторий
+git clone <repository-url>
 cd platform
-copy .env.example .env
-# Заполните .env файл
+
+# Запустить все сервисы
+docker-compose -f docker-compose.simple.yml up -d
+
+# Проверить статус
+docker-compose -f docker-compose.simple.yml ps
 ```
 
-### Запуск
-
+### 3. Локальная разработка
 ```bash
-# Инициализация (один раз)
-init.bat
+# Запустить инфраструктуру
+docker-compose -f docker-compose.simple.yml up -d postgres keycloak
 
-# Запуск всех сервисов
-start.bat
-
-# Остановка
-stop.bat
+# Собрать и запустить backend
+cd backend
+mvn clean package
+java -jar target/platform-*.jar
 ```
 
-### Доступ к сервисам
+## Сервисы и порты
+- **Backend API**: http://localhost:8081
+- **Keycloak Admin**: http://localhost:8080 (admin/admin)
+- **PostgreSQL**: localhost:5432 (postgres/postgres)
 
-| Сервис | URL | Логин/Пароль |
-|--------|-----|--------------|
-| Frontend | http://localhost:3000 | - |
-| Backend API | http://localhost:8081 | - |
-| Keycloak | http://localhost:8080/auth | admin/admin |
-| Grafana | http://localhost:3001 | admin/admin |
-| Prometheus | http://localhost:9090 | - |
-| Kibana | http://localhost:5601 | - |
+## API Endpoints
 
-## Переменные окружения
+### Чат
+- `GET /api/v1/chat/{roomSlug}` - Получить сообщения комнаты
+- `POST /api/v1/chat/{roomSlug}` - Отправить сообщение в комнату
+- `GET /api/v1/chat/questions/{mode}` - Получить вопросы (general/nutrition/vyacheslav)
 
-Создайте файл `.env` со следующими переменными:
+### Медиа
+- `POST /api/v1/media/upload` - Загрузить медиа-файл
+- `GET /api/v1/media/{id}/stream` - Стриминг медиа
+- `GET /api/v1/media/{id}/download` - Скачать медиа
 
-- `REDIS_PASSWORD` — пароль Redis
-- `DB_PASSWORD` — пароль PostgreSQL
-- `KEYCLOAK_ADMIN_PASSWORD` — пароль админа Keycloak
+### Пользователи
+- `GET /api/v1/users/me` - Информация о текущем пользователе
+- `GET /api/v1/users/{id}` - Информация о пользователе
 
-## Документация
+## Структура базы данных
 
-- [API Документация](API.md)
-- [Деплой](DEPLOYMENT.md)
+### Основные таблицы
+- `users` - Пользователи
+- `messages` - Сообщения
+- `chat_rooms` - Комнаты чата
+- `chat_room_permissions` - Права доступа к комнатам
+- `media_files` - Медиа-файлы
+- `access_logs` - Логи доступа
+
+### Миграции
+Миграции выполняются автоматически через Liquibase при старте приложения.
+
+## Настройка Keycloak
+
+### 1. Создать realm "platform"
+### 2. Создать клиент "platform-backend"
+### 3. Настроить роли:
+- USER_0, USER_1, USER_2
+- CONSULTANT_PITANIE
+- MODERATOR_ADMIN
+- VYACHESLAV
+- SUPER_ADMIN
+
+### 4. Создать пользователей и назначить роли
+
+## Мониторинг и логи
+- Логи приложения: `logs/application.log`
+- Логи базы данных: через Docker logs
+- Health check: `GET /actuator/health`
+
+## Безопасность
+- Все запросы требуют JWT токен
+- Медиа-файлы шифруются AES-256
+- Водяные знаки для видео
+- Rate limiting на API endpoints
+
+## Развертывание
+
+### Production
+```bash
+# Собрать образ
+docker build -t platform-backend:1.0.0 ./backend
+
+# Запустить с production конфигурацией
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Environment variables
+Создать `.env` файл с настройками:
+```bash
+DB_URL=jdbc:postgresql://localhost:5432/platform
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+KEYCLOAK_ISSUER_URI=http://localhost:8080/realms/platform
+MEDIA_ENCRYPTION_KEY=<your-encryption-key>
+```
 
 ## Лицензия
+Проприетарная
 
-MIT 
+## Контакты
+Для вопросов и поддержки обращаться к администратору платформы. 

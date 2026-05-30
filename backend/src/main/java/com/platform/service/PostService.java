@@ -11,6 +11,7 @@ import com.platform.util.RoleUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -122,10 +123,12 @@ public class PostService {
     public PostDto.MediaUploadResponse uploadSecureMedia(MultipartFile file, String type) {
         try {
             String fileId = UUID.randomUUID().toString();
-            String userId = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            // Получаем Jwt из контекста безопасности
+            org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            Jwt jwt = (Jwt) authentication.getPrincipal();
 
             // Сохраняем файл через SecureMediaService
-            com.platform.model.MediaFile mediaFile = secureMediaService.uploadSecureMedia(file, type, userId, fileId);
+            com.platform.model.MediaFile mediaFile = secureMediaService.uploadSecureMedia(file, type, jwt, null);
 
             return PostDto.MediaUploadResponse.builder()
                 .url(mediaFile.getS3Key())

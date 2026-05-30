@@ -5,83 +5,50 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
 
-    <changeSet id="1" author="platform">
-        <createTable tableName="live_broadcasts">
-            <column name="id" type="VARCHAR(36)">
-                <constraints primaryKey="true"/>
-            </column>
-            <column name="title" type="VARCHAR(200)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="description" type="VARCHAR(2000)"/>
-            <column name="stream_type" type="VARCHAR(20)"/>
-            <column name="owner_id" type="VARCHAR(36)"/>
-            <column name="status" type="VARCHAR(20)"/>
-            <column name="viewer_count" type="INT" defaultValue="0"/>
-            <column name="max_viewers" type="INT" defaultValue="0"/>
-            <column name="started_at" type="TIMESTAMP"/>
-            <column name="ended_at" type="TIMESTAMP"/>
-            <column name="hls_playlist_url" type="VARCHAR(500)"/>
-            <column name="rtmp_stream_key" type="VARCHAR(100)"/>
-            <column name="is_public" type="BOOLEAN" defaultValueBoolean="true"/>
-            <column name="is_chat_enabled" type="BOOLEAN" defaultValueBoolean="true"/>
-            <column name="is_reactions_enabled" type="BOOLEAN" defaultValueBoolean="true"/>
-            <column name="is_recording" type="BOOLEAN" defaultValueBoolean="false"/>
-            <column name="created_at" type="TIMESTAMP"/>
-        </createTable>
-    </changeSet>
+    <!-- V1 -->
+    <include file="db/changelog/v1/01-create-users-table.yaml"/>
+    <include file="db/changelog/v1/02-create-posts-table.yaml"/>
+    <include file="db/changelog/v1/03-create-comments-table.yaml"/>
+    <include file="db/changelog/v1/04-create-reactions-table.yaml"/>
+    <include file="db/changelog/v1/05-create-events-table.yaml"/>
+    <include file="db/changelog/v1/06-create-messages-table.yaml"/>
+    <include file="db/changelog/v1/07-create-archives-table.yaml"/>
+    <include file="db/changelog/v1/08-create-indexes.yaml"/>
 
-    <changeSet id="2" author="platform">
-        <createTable tableName="media_files">
-            <column name="id" type="VARCHAR(36)">
-                <constraints primaryKey="true"/>
-            </column>
-            <column name="owner_id" type="VARCHAR(36)"/>
-            <column name="s3_key" type="VARCHAR(500)"/>
-            <column name="encryption_iv" type="VARCHAR(100)"/>
-            <column name="file_type" type="VARCHAR(20)"/>
-            <column name="original_filename" type="VARCHAR(255)"/>
-            <column name="content_type" type="VARCHAR(100)"/>
-            <column name="file_size" type="BIGINT"/>
-            <column name="duration" type="INT"/>
-            <column name="watermark_data" type="VARCHAR(1000)"/>
-            <column name="hls_playlist_url" type="VARCHAR(500)"/>
-            <column name="access_level" type="VARCHAR(20)"/>
-            <column name="views_count" type="INT"/>
-            <column name="download_count" type="INT"/>
-            <column name="created_at" type="TIMESTAMP"/>
-            <column name="updated_at" type="TIMESTAMP"/>
-        </createTable>
-    </changeSet>
+    <!-- V2 -->
+    <include file="db/changelog/v2/01-add-user-roles.yaml"/>
 
-    <changeSet id="3" author="platform">
-        <createTable tableName="access_logs">
-            <column name="id" type="BIGINT" autoIncrement="true">
-                <constraints primaryKey="true"/>
-            </column>
-            <column name="file_id" type="VARCHAR(36)"/>
-            <column name="user_id" type="VARCHAR(36)"/>
-            <column name="action" type="VARCHAR(50)"/>
-            <column name="ip_address" type="VARCHAR(45)"/>
-            <column name="user_agent" type="VARCHAR(500)"/>
-            <column name="success" type="BOOLEAN"/>
-            <column name="error_message" type="VARCHAR(1000)"/>
-            <column name="timestamp" type="TIMESTAMP"/>
-        </createTable>
-    </changeSet>
+    <!-- V3 -->
+    <include file="db/changelog/v3/01-create-media-and-payments-tables.yaml"/>
 
-    <changeSet id="4" author="platform">
-        <createIndex tableName="live_broadcasts" indexName="idx_status">
-            <column name="status"/>
-        </createIndex>
-        <createIndex tableName="live_broadcasts" indexName="idx_owner_id">
-            <column name="owner_id"/>
-        </createIndex>
-        <createIndex tableName="media_files" indexName="idx_owner_id">
-            <column name="owner_id"/>
-        </createIndex>
-        <createIndex tableName="access_logs" indexName="idx_file_id">
-            <column name="file_id"/>
-        </createIndex>
-    </changeSet>
+    <!-- V4 -->
+    <include file="db/changelog/v4/01-add-media-to-messages.yaml"/>
+
+    <!-- V5 (ИСПРАВЛЕННЫЕ) -->
+    <include file="db/changelog/v5/01-create-chat-rooms.yaml"/>
+    <include file="db/changelog/v5/02-add-room-id-to-messages.yaml"/>
+    <include file="db/changelog/v5/03-backfill-room-id.yaml"/>
+    <include file="db/changelog/v5/04-create-room-permissions.yaml"/>
+
+    <!-- V6 -->
+    <include file="db/changelog/v6/01-default-chat-rooms-and-permissions.yaml"/>
+    <include file="db/changelog/v6/01-add-performance-indexes.yaml"/>
+    <include file="db/changelog/v6/05-composite-indexes.yaml"/>
+    <include file="db/changelog/v6/06-add-version-columns.yaml"/>
+    <include file="db/changelog/v6/07-additional-indexes.yaml"/>
+
+    <!-- V7 -->
+    <include file="db/changelog/v7/01-partition-messages.sql"/>
+
+    <!-- V8 -->
+    <include file="db/changelog/v8/01-add-archive-fields.sql"/>
+
+    <!-- V9: Очистка данных для первого релиза -->
+    <include file="db/changelog/v9/01-cleanup-data.sql"/>
+    <include file="db/changelog/v9/02-initial-data.sql"/>
+
+    <!-- Модули -->
+    <include file="db/changelog/db.changelog-media.yaml"/>
+    <include file="db/changelog/db.changelog-payments.yaml"/>
+
 </databaseChangeLog>

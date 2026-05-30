@@ -7,6 +7,7 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
+import com.platform.util.RoleUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
@@ -59,10 +60,7 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
             Jwt jwt = jwtDecoder.decode(token);
             attributes.put("userId", jwt.getSubject());
 
-            List<String> roles = jwt.getClaimAsStringList("realm_access.roles");
-            if (roles != null && !roles.isEmpty()) {
-                attributes.put("userRole", roles.get(0));
-            }
+            attributes.put("userRole", RoleUtils.getUserRole(jwt));
 
             attributes.put("token", token);
             log.debug("WebSocket authenticated: userId={}", jwt.getSubject());

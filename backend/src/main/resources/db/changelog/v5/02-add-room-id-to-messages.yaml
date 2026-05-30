@@ -3,20 +3,17 @@ databaseChangeLog:
       id: 02-add-room-id-to-messages
       author: grok-xirurg
       labels: schema
-      comment: "Добавляем room_id — потолочная связь Message → ChatRoom. Старые chat_type и recipient_id оставляем как deprecated"
+      comment: room_id UUID to chat_rooms.id
       changes:
         - addColumn:
             tableName: messages
             columns:
               - column:
                   name: room_id
-                  type: BIGINT
-                  remarks: "Ссылка на chat_rooms.id — единая нормализованная сущность"
+                  type: UUID
               - column:
                   name: room_slug
                   type: VARCHAR(100)
-                  remarks: "Денормализованный slug для быстрого поиска и совместимости с фронтом (user1, nutrition и т.д.)"
-
         - addForeignKeyConstraint:
             constraintName: fk_messages_room
             baseTableName: messages
@@ -24,20 +21,14 @@ databaseChangeLog:
             referencedTableName: chat_rooms
             referencedColumnNames: id
             onDelete: CASCADE
-
         - createIndex:
             indexName: idx_messages_room_id_created_at
             tableName: messages
             columns:
-              - column:
-                  name: room_id
-              - column:
-                  name: created_at
-                  descending: true
-
+              - column: { name: room_id }
+              - column: { name: created_at, descending: true }
         - createIndex:
             indexName: idx_messages_room_slug
             tableName: messages
             columns:
-              - column:
-                  name: room_slug
+              - column: { name: room_slug }

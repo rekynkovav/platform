@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-default-chat-rooms-and-permissions
+      author: platform
+      labels: data
+      comment: Все обязательные комнаты + дефолтные права
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO chat_rooms (id, slug, name, type, is_active, version, created_at) VALUES
+                  ('a0000000-0000-0000-0000-000000000001', 'general', 'Общий чат', 'general', true, 0, NOW()),
+                  ('a0000000-0000-0000-0000-000000000002', 'random', 'Случайный чат', 'general', true, 0, NOW()),
+                  ('a0000000-0000-0000-0000-000000000003', 'help', 'Помощь', 'support', true, 0, NOW()),
+                  ('a0000000-0000-0000-0000-000000000004', 'announcements', 'Объявления', 'announcement', true, 0, NOW()),
+                  ('a0000000-0000-0000-0000-000000000005', 'offtopic', 'Оффтоп', 'general', true, 0, NOW()),
+                  ('a0000000-0000-0000-0000-000000000006', 'questions-general', 'Общие вопросы', 'question', true, 0, NOW()),
+                  ('a0000000-0000-0000-0000-000000000007', 'questions-nutrition', 'Вопросы по питанию', 'question', true, 0, NOW()),
+                  ('a0000000-0000-0000-0000-000000000008', 'questions-vyacheslav', 'Вопросы Вячеславу', 'question', true, 0, NOW()),
+                  ('a0000000-0000-0000-0000-000000000009', 'user1', 'Чат пользователя 1', 'general', true, 0, NOW()),
+                  ('a0000000-0000-0000-0000-000000000010', 'user2', 'Чат пользователя 2', 'general', true, 0, NOW()),
+                  ('a0000000-0000-0000-0000-000000000011', 'nutrition', 'Питание', 'nutrition', true, 0, NOW()),
+                  ('a0000000-0000-0000-0000-000000000012', 'admins', 'Админская группа', 'admin', true, 0, NOW())
+              ON CONFLICT (id) DO NOTHING;
+
+              INSERT INTO chat_room_permissions (room_id, role, permission_level) VALUES
+                  ('a0000000-0000-0000-0000-000000000006', 'USER_0', 'read_write'),
+                  ('a0000000-0000-0000-0000-000000000006', 'CONSULTANT_PITANIE', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000006', 'VYACHESLAV', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000006', 'MODERATOR_ADMIN', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000006', 'SUPER_ADMIN', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000007', 'USER_0', 'read_write'),
+                  ('a0000000-0000-0000-0000-000000000007', 'CONSULTANT_PITANIE', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000007', 'VYACHESLAV', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000007', 'SUPER_ADMIN', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000008', 'USER_0', 'read_write'),
+                  ('a0000000-0000-0000-0000-000000000008', 'VYACHESLAV', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000008', 'MODERATOR_ADMIN', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000008', 'SUPER_ADMIN', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000009', 'USER_0', 'read_write'),
+                  ('a0000000-0000-0000-0000-000000000010', 'USER_0', 'read_write'),
+                  ('a0000000-0000-0000-0000-000000000011', 'USER_0', 'read_write'),
+                  ('a0000000-0000-0000-0000-000000000011', 'CONSULTANT_PITANIE', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000001', 'USER_0', 'read_write'),
+                  ('a0000000-0000-0000-0000-000000000002', 'USER_0', 'read_write'),
+                  ('a0000000-0000-0000-0000-000000000003', 'USER_0', 'read_write'),
+                  ('a0000000-0000-0000-0000-000000000004', 'USER_0', 'read_write'),
+                  ('a0000000-0000-0000-0000-000000000005', 'USER_0', 'read_write'),
+                  ('a0000000-0000-0000-0000-000000000012', 'MODERATOR_ADMIN', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000012', 'SUPER_ADMIN', 'admin'),
+                  ('a0000000-0000-0000-0000-000000000012', 'VYACHESLAV', 'admin');

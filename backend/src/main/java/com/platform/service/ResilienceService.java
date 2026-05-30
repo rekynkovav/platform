@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 @Service
@@ -25,6 +27,7 @@ public class ResilienceService {
     private final RetryRegistry retryRegistry;
     private final TimeLimiterRegistry timeLimiterRegistry;
     private final BulkheadRegistry bulkheadRegistry;
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
 
     // Метод для выполнения с Circuit Breaker
     public <T> T executeWithCircuitBreaker(String circuitBreakerName, Supplier<T> supplier) {
@@ -50,13 +53,16 @@ public class ResilienceService {
     // Метод для выполнения с Time Limiter
     public <T> CompletableFuture<T> executeWithTimeLimiter(String timeLimiterName, Callable<T> callable) {
         TimeLimiter timeLimiter = timeLimiterRegistry.timeLimiter(timeLimiterName);
-        return timeLimiter.executeFutureSupplier(() -> CompletableFuture.supplyAsync(() -> {
-            try {
-                return callable.call();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }));
+        return timeLimiter.executeCompletionStage(
+            scheduler,
+            () -> CompletableFuture.supplyAsync(() -> {
+                try {
+                    return callable.call();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            })
+        ).toCompletableFuture();
     }
 
     // Метод для выполнения с Bulkhead
@@ -104,10 +110,10 @@ public class ResilienceService {
 
     // Метод для логирования состояния всех Circuit Breaker
     public void logCircuitBreakerStates() {
-        circuitBreakerRegistry.getAllCircuitBreakers().forEach((name, circuitBreaker) -> {
+        circuitBreakerRegistry.getAllCircuitBreakers().forEach(circuitBreaker -> {
             CircuitBreaker.Metrics metrics = circuitBreaker.getMetrics();
             log.info("Circuit Breaker {}: State={}, FailureRate={}%, Calls={}, NotPermitted={}",
-                name,
+                circuitBreaker.getName(),
                 circuitBreaker.getState(),
                 metrics.getFailureRate(),
                 metrics.getNumberOfBufferedCalls(),

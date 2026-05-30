@@ -30,7 +30,7 @@ public class NotificationService {
                 .type(type)
                 .title(title)
                 .message(message)
-                .relatedId(relatedId)
+                .relatedId(relatedId != null ? Long.parseLong(relatedId) : null)
                 .relatedRoomSlug(relatedRoomSlug)
                 .read(false)
                 .build();
@@ -64,7 +64,7 @@ public class NotificationService {
      */
     @CacheEvict(value = {"unreadNotifications", "allNotifications"}, key = "#notification.userId")
     public void markAsRead(String notificationId) {
-        notificationRepository.findById(notificationId).ifPresent(n -> {
+        notificationRepository.findById(Long.parseLong(notificationId)).ifPresent(n -> {
             n.setRead(true);
             notificationRepository.save(n);
         });
@@ -75,7 +75,7 @@ public class NotificationService {
      */
     @CacheEvict(value = {"unreadNotifications", "allNotifications"}, key = "#userId")
     public void markAsReadForUser(Long notificationId, String userId) {
-        notificationRepository.findById(notificationId.toString()).ifPresent(n -> {
+        notificationRepository.findById(notificationId).ifPresent(n -> {
             if (!n.getUserId().equals(userId)) {
                 throw new SecurityException("Access denied to notification");
             }
@@ -107,11 +107,11 @@ public class NotificationService {
                 : savedMessage.getContent();
 
         createAndSend(
-                savedMessage.getUserId(),
+                savedMessage.getUserId() != null ? savedMessage.getUserId().toString() : null,
                 type,
                 title,
                 shortMessage,
-                savedMessage.getId(),
+                savedMessage.getId() != null ? savedMessage.getId().toString() : null,
                 room.getSlug()
         );
     }
