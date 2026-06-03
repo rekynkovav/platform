@@ -36,7 +36,6 @@ public class ChatRoomService {
                     .type(type)
                     .name(name)
                     .isActive(true)
-                    // .settings("{}")
                     .build();
             chatRoomRepository.save(room);
         }
@@ -62,8 +61,6 @@ public class ChatRoomService {
      * Одноразовый backfill после запуска (вызывается из @PostConstruct)
      */
     public void backfillExistingMessages() {
-        // Выполняется через Liquibase миграцию выше
-        // Здесь можно добавить логику, если нужно
         System.out.println("✅ Backfill room_id выполнен через Liquibase (v5/03-backfill-room-id)");
     }
 
@@ -110,7 +107,7 @@ public class ChatRoomService {
      */
     public void setPermission(UUID roomId, String role, String permissionLevel) {
         ChatRoomPermission permission = chatRoomPermissionRepository.findByChatRoomIdAndRole(roomId, role)
-                .orElse(ChatRoomPermission.builder()
+                .orElseGet(() -> ChatRoomPermission.builder()
                         .chatRoom(chatRoomRepository.findById(roomId).orElseThrow())
                         .role(role)
                         .permissionLevel(permissionLevel)
@@ -142,11 +139,11 @@ public class ChatRoomService {
                         if ("read_write".equals(p.getPermissionLevel())) return true;
                         return "read".equals(p.getPermissionLevel()) && "read".equals(requiredLevel);
                     })
-                    .orElse(false); // по умолчанию доступ закрыт
+                    .orElse(false);
 
         } catch (Exception e) {
             log.error("Error checking permission for roomId {}: {}", roomId, e.getMessage(), e);
-            return false; // В случае ошибки возвращаем false для безопасности
+            return false;
         }
     }
 
@@ -155,23 +152,19 @@ public class ChatRoomService {
      * Вызывается один раз при старте приложения
      */
     public void initDefaultPermissions() {
-        // Общие вопросы — все пользователи могут читать и писать
         setPermissionForRoom("questions-general", "ROLE_USER_0", "read_write");
         setPermissionForRoom("questions-general", "ROLE_CONSULTANT_PITANIE", "admin");
         setPermissionForRoom("questions-general", "ROLE_VYACHESLAV", "admin");
         setPermissionForRoom("questions-general", "ROLE_MODERATOR_ADMIN", "admin");
 
-        // Питание — только консультант питания + Vyacheslav
         setPermissionForRoom("questions-nutrition", "ROLE_CONSULTANT_PITANIE", "admin");
         setPermissionForRoom("questions-nutrition", "ROLE_VYACHESLAV", "admin");
         setPermissionForRoom("questions-nutrition", "ROLE_USER_0", "read_write");
 
-        // Лично Вячеславу — только Vyacheslav + админы
         setPermissionForRoom("questions-vyacheslav", "ROLE_VYACHESLAV", "admin");
         setPermissionForRoom("questions-vyacheslav", "ROLE_MODERATOR_ADMIN", "admin");
         setPermissionForRoom("questions-vyacheslav", "ROLE_USER_0", "read_write");
 
-        // Обычные чаты (user1, user2, nutrition)
         setPermissionForRoom("user1", "ROLE_USER_0", "read_write");
         setPermissionForRoom("user2", "ROLE_USER_0", "read_write");
         setPermissionForRoom("nutrition", "ROLE_USER_0", "read_write");

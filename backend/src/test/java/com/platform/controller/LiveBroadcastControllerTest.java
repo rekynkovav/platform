@@ -1,358 +1,181 @@
 package com.platform.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.platform.dto.CreateBroadcastRequest;
+import com.platform.model.LiveBroadcast;
 import com.platform.model.dto.LiveBroadcastDto;
-import com.platform.model.enums.BroadcastStatus;
+import com.platform.service.BroadcastArchiveService;
 import com.platform.service.LiveBroadcastService;
+import com.platform.service.MetricsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.jwt.Jwt;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class LiveBroadcastControllerTest {
 
-    private MockMvc mockMvc;
-    private ObjectMapper objectMapper;
-
-    @Mock
-    private LiveBroadcastService liveBroadcastService;
-
-    @InjectMocks
-    private LiveBroadcastController liveBroadcastController;
-
-    private String userId;
-    private UUID userIdUuid;
-    private String broadcastId;
-    private UUID broadcastIdUuid;
+    private LiveBroadcastController controller;
+    private LiveBroadcastService broadcastService;
+    private MetricsService metricsService;
+    private BroadcastArchiveService archiveService;
+    private Jwt jwt;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(liveBroadcastController).build();
-        objectMapper = new ObjectMapper();
-
-        userId = "user-123";
-        userIdUuid = UUID.fromString(userId);
-        broadcastId = "broadcast-456";
-        broadcastIdUuid = UUID.fromString(broadcastId);
-    }
-
-    @Test
-    void createBroadcast_ValidRequest_ReturnsBroadcastDto() throws Exception {
-        // Arrange
-        String title = "My Live Stream";
-        String description = "Testing live broadcast";
-        LiveBroadcastDto expectedResponse = LiveBroadcastDto.builder()
-                .id(broadcastIdUuid)
-                .title(title)
-                .description(description)
-                .ownerId(userIdUuid)
-                .ownerName("TestUser")
-                .status(BroadcastStatus.IDLE)
-                .rtmpStreamKey(broadcastId)
-                .createdAt(Instant.now())
+        broadcastService = mock(LiveBroadcastService.class);
+        metricsService = mock(MetricsService.class);
+        archiveService = mock(BroadcastArchiveService.class);
+        controller = new LiveBroadcastController(broadcastService, metricsService, archiveService);
+        jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("user-123")
                 .build();
+    }
 
-        when(liveBroadcastService.createBroadcast(eq(title), eq(description), eq(userId)))
-                .thenReturn(expectedResponse);
+    // ==================== createAndStartBroadcast ====================
 
-        // Act & Assert
-        mockMvc.perform(post("/api/broadcasts")
-                        .header("X-User-Id", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\": \"" + title + "\", \"description\": \"" + description + "\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(broadcastId))
-                .andExpect(jsonPath("$.title").value(title))
-                .andExpect(jsonPath("$.description").value(description))
-                .andExpect(jsonPath("$.status").value("IDLE"))
-                .andExpect(jsonPath("$.rtmpStreamKey").value(broadcastId));
+    @Test
+    void createAndStart_ReturnsStreamUrlAndKey() {
+        LiveBroadcast broadcast = new LiveBroadcast();
+        broadcast.setId(UUID.randomUUID());
+        when(broadcastService.createBroadcast(anyString(), anyString(), anyString(), eq("user-123")))
+                .thenReturn(broadcast);
+        when(broadcastService.startBroadcast(eq(broadcast.getId().toString()), eq("user-123")))
+                .thenReturn("rtmp://server/live/key");
+
+        CreateBroadcastRequest request = new CreateBroadcastRequest();
+        request.setTitle("Test Stream");
+        request.setDescription("Desc");
+        request.setStreamType("rtmp");
+
+        ResponseEntity<Map<String, String>> response = controller.createAndStartBroadcast(request, jwt);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("rtmp://server/live/key", response.getBody().get("streamUrl"));
+        assertEquals("live", response.getBody().get("status"));
+        verify(metricsService).incrementBroadcasts();
+    }
+
+    // ==================== startBroadcast ====================
+
+    @Test
+    void startBroadcast_ReturnsStreamInfo() {
+        when(broadcastService.startBroadcast("bc-1", "user-123"))
+                .thenReturn("rtmp://server/live/bc-1");
+
+        ResponseEntity<Map<String, String>> response = controller.startBroadcast("bc-1", jwt);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("rtmp://server/live/bc-1", response.getBody().get("streamUrl"));
+        assertEquals("bc-1", response.getBody().get("streamKey"));
+        verify(metricsService).incrementBroadcasts();
+    }
+
+    // ==================== stopBroadcast / endBroadcast ====================
+
+    @Test
+    void stopBroadcast_ReturnsOk() {
+        ResponseEntity<Void> response = controller.stopBroadcast("bc-1", jwt);
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(broadcastService).stopBroadcast("bc-1", "user-123");
     }
 
     @Test
-    void createBroadcast_WithoutDescription_ReturnsBroadcastDto() throws Exception {
-        // Arrange
-        String title = "My Live Stream";
-        LiveBroadcastDto expectedResponse = LiveBroadcastDto.builder()
-                .id(broadcastIdUuid)
-                .title(title)
-                .ownerId(userIdUuid)
-                .ownerName("TestUser")
-                .status(BroadcastStatus.IDLE)
-                .rtmpStreamKey(broadcastId)
-                .createdAt(Instant.now())
-                .build();
+    void endBroadcast_DelegatesToStop() {
+        ResponseEntity<Void> response = controller.endBroadcast("bc-1", jwt);
 
-        when(liveBroadcastService.createBroadcast(eq(title), isNull(), eq(userId)))
-                .thenReturn(expectedResponse);
+        assertEquals(200, response.getStatusCode().value());
+        verify(broadcastService).stopBroadcast("bc-1", "user-123");
+    }
 
-        // Act & Assert
-        mockMvc.perform(post("/api/broadcasts")
-                        .header("X-User-Id", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\": \"" + title + "\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.description").doesNotExist());
+    // ==================== getActiveBroadcasts ====================
+
+    @Test
+    void getActiveBroadcasts_ReturnsMappedDtos() {
+        LiveBroadcast bc = new LiveBroadcast();
+        bc.setId(UUID.randomUUID());
+        LiveBroadcastDto dto = new LiveBroadcastDto();
+        when(broadcastService.getActiveBroadcasts()).thenReturn(List.of(bc));
+        when(broadcastService.toDto(bc)).thenReturn(dto);
+
+        ResponseEntity<List<LiveBroadcastDto>> response = controller.getActiveBroadcasts();
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(1, response.getBody().size());
+    }
+
+    // ==================== getBroadcastStats ====================
+
+    @Test
+    void getBroadcastStats_ReturnsStatsMap() {
+        LiveBroadcast bc = new LiveBroadcast();
+        bc.setId(UUID.randomUUID());
+        LiveBroadcastDto dto = new LiveBroadcastDto();
+        dto.setStatus("live");
+        dto.setViewerCount(42);
+        dto.setStartedAt(LocalDateTime.now());
+        when(broadcastService.getBroadcast("bc-1")).thenReturn(bc);
+        when(broadcastService.toDto(bc)).thenReturn(dto);
+
+        ResponseEntity<Map<String, Object>> response = controller.getBroadcastStats("bc-1", jwt);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("live", response.getBody().get("status"));
+        assertEquals(42, response.getBody().get("viewerCount"));
     }
 
     @Test
-    void createBroadcast_EmptyTitle_ReturnsBadRequest() throws Exception {
-        // Arrange
-        String emptyTitle = "";
+    void getBroadcastStats_NullFields_ReturnsDefaults() {
+        LiveBroadcast bc = new LiveBroadcast();
+        LiveBroadcastDto dto = new LiveBroadcastDto();
+        when(broadcastService.getBroadcast("bc-2")).thenReturn(bc);
+        when(broadcastService.toDto(bc)).thenReturn(dto);
 
-        // Act & Assert
-        mockMvc.perform(post("/api/broadcasts")
-                        .header("X-User-Id", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\": \"" + emptyTitle + "\"}"))
-                .andExpect(status().isBadRequest());
+        ResponseEntity<Map<String, Object>> response = controller.getBroadcastStats("bc-2", jwt);
+
+        assertEquals("UNKNOWN", response.getBody().get("status"));
+        assertEquals(0, response.getBody().get("viewerCount"));
+        assertEquals("", response.getBody().get("startedAt"));
+    }
+
+    // ==================== deleteBroadcast ====================
+
+    @Test
+    void deleteBroadcast_ReturnsOk() {
+        ResponseEntity<Void> response = controller.deleteBroadcast("bc-1", jwt);
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(broadcastService).deleteBroadcast("bc-1", "user-123");
+    }
+
+    // ==================== rtmpWebhook ====================
+
+    @Test
+    void rtmpWebhook_PublishAction_CallsOnStreamStart() {
+        Map<String, String> payload = Map.of("action", "publish", "streamKey", "sk-1");
+
+        ResponseEntity<Void> response = controller.rtmpWebhook(payload, null);
+
+        assertEquals(200, response.getStatusCode().value());
+        verify(broadcastService).onStreamStart("sk-1");
     }
 
     @Test
-    void startBroadcast_ValidRequest_ReturnsRtmpUrl() throws Exception {
-        // Arrange
-        String rtmpUrl = "rtmp://live.example.com/app/" + broadcastId;
-        when(liveBroadcastService.startBroadcast(eq(broadcastId), eq(userId)))
-                .thenReturn(rtmpUrl);
+    void rtmpWebhook_PublishDoneAction_CallsOnStreamStop() {
+        Map<String, String> payload = Map.of("action", "publish_done", "streamKey", "sk-2");
 
-        // Act & Assert
-        mockMvc.perform(post("/api/broadcasts/{id}/start", broadcastId)
-                        .header("X-User-Id", userId))
-                .andExpect(status().isOk())
-                .andExpect(content().string(rtmpUrl));
-    }
+        ResponseEntity<Void> response = controller.rtmpWebhook(payload, null);
 
-    @Test
-    void startBroadcast_NotOwner_ReturnsForbidden() throws Exception {
-        // Arrange
-        String otherUserId = "other-789";
-        when(liveBroadcastService.startBroadcast(eq(broadcastId), eq(otherUserId)))
-                .thenThrow(new com.platform.exception.AccessDeniedException("Access denied"));
-
-        // Act & Assert
-        mockMvc.perform(post("/api/broadcasts/{id}/start", broadcastId)
-                        .header("X-User-Id", otherUserId))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void stopBroadcast_ValidRequest_ReturnsNoContent() throws Exception {
-        // Arrange
-        when(liveBroadcastService.stopBroadcast(eq(broadcastId), eq(userId))).thenReturn(true);
-
-        // Act & Assert
-        mockMvc.perform(post("/api/broadcasts/{id}/stop", broadcastId)
-                        .header("X-User-Id", userId))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
-    void getBroadcast_ValidRequest_ReturnsBroadcastDto() throws Exception {
-        // Arrange
-        LiveBroadcastDto expectedResponse = LiveBroadcastDto.builder()
-                .id(broadcastIdUuid)
-                .title("Live Stream")
-                .description("Test broadcast")
-                .ownerId(userIdUuid)
-                .ownerName("TestUser")
-                .status(BroadcastStatus.LIVE)
-                .viewerCount(150)
-                .maxViewers(200)
-                .startedAt(Instant.now().minusMinutes(30))
-                .createdAt(Instant.now().minusHours(1))
-                .build();
-
-        when(liveBroadcastService.getBroadcast(eq(broadcastId))).thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/broadcasts/{id}", broadcastId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("LIVE"))
-                .andExpect(jsonPath("$.viewerCount").value(150))
-                .andExpect(jsonPath("$.maxViewers").value(200));
-    }
-
-    @Test
-    void getBroadcast_NotFound_ReturnsNotFound() throws Exception {
-        // Arrange
-        String nonExistentBroadcastId = "non-existent-broadcast";
-        when(liveBroadcastService.getBroadcast(eq(nonExistentBroadcastId)))
-                .thenThrow(new com.platform.exception.ResourceNotFoundException("Broadcast not found"));
-
-        // Act & Assert
-        mockMvc.perform(get("/api/broadcasts/{id}", nonExistentBroadcastId))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void getHlsPlaylist_ValidRequest_ReturnsHlsUrl() throws Exception {
-        // Arrange
-        String hlsUrl = "http://cdn.example.com/hls/" + broadcastId + "/index.m3u8";
-        when(liveBroadcastService.getHlsPlaylist(eq(broadcastId))).thenReturn(hlsUrl);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/broadcasts/{id}/hls", broadcastId))
-                .andExpect(status().isOk())
-                .andExpect(content().string(hlsUrl));
-    }
-
-    @Test
-    void getHlsPlaylist_NotLive_ReturnsBadRequest() throws Exception {
-        // Arrange
-        when(liveBroadcastService.getHlsPlaylist(eq(broadcastId)))
-                .thenThrow(new IllegalStateException("Broadcast is not live"));
-
-        // Act & Assert
-        mockMvc.perform(get("/api/broadcasts/{id}/hls", broadcastId))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void getActiveBroadcasts_ValidRequest_ReturnsBroadcasts() throws Exception {
-        // Arrange
-        LiveBroadcastDto broadcast1 = LiveBroadcastDto.builder()
-                .id(UUID.randomUUID())
-                .title("Stream 1")
-                .ownerId(userIdUuid)
-                .ownerName("User1")
-                .status(BroadcastStatus.LIVE)
-                .viewerCount(100)
-                .startedAt(Instant.now().minusMinutes(45))
-                .build();
-
-        LiveBroadcastDto broadcast2 = LiveBroadcastDto.builder()
-                .id(UUID.randomUUID())
-                .title("Stream 2")
-                .ownerId(UUID.randomUUID())
-                .ownerName("User2")
-                .status(BroadcastStatus.LIVE)
-                .viewerCount(50)
-                .startedAt(Instant.now().minusMinutes(20))
-                .build();
-
-        List<LiveBroadcastDto> expectedResponse = List.of(broadcast1, broadcast2);
-
-        when(liveBroadcastService.getActiveBroadcasts()).thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/broadcasts/active"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].status").value("LIVE"))
-                .andExpect(jsonPath("$[1].status").value("LIVE"));
-    }
-
-    @Test
-    void getActiveBroadcasts_Empty_ReturnsEmptyList() throws Exception {
-        // Arrange
-        when(liveBroadcastService.getActiveBroadcasts()).thenReturn(List.of());
-
-        // Act & Assert
-        mockMvc.perform(get("/api/broadcasts/active"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
-    }
-
-    @Test
-    void addViewer_ValidRequest_ReturnsOk() throws Exception {
-        // Arrange
-        when(liveBroadcastService.addViewer(eq(broadcastId))).thenReturn(true);
-
-        // Act & Assert
-        mockMvc.perform(post("/api/broadcasts/{id}/viewer", broadcastId))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void addViewer_BroadcastNotFound_ReturnsNotFound() throws Exception {
-        // Arrange
-        String nonExistentBroadcastId = "non-existent-broadcast";
-        when(liveBroadcastService.addViewer(eq(nonExistentBroadcastId)))
-                .thenThrow(new com.platform.exception.ResourceNotFoundException("Broadcast not found"));
-
-        // Act & Assert
-        mockMvc.perform(post("/api/broadcasts/{id}/viewer", nonExistentBroadcastId))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void deleteBroadcast_ValidRequest_ReturnsNoContent() throws Exception {
-        // Arrange
-        when(liveBroadcastService.deleteBroadcast(eq(broadcastId), eq(userId))).thenReturn(true);
-
-        // Act & Assert
-        mockMvc.perform(delete("/api/broadcasts/{id}", broadcastId)
-                        .header("X-User-Id", userId))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
-    void deleteBroadcast_NotOwner_ReturnsForbidden() throws Exception {
-        // Arrange
-        String otherUserId = "other-789";
-        when(liveBroadcastService.deleteBroadcast(eq(broadcastId), eq(otherUserId)))
-                .thenThrow(new com.platform.exception.AccessDeniedException("Access denied"));
-
-        // Act & Assert
-        mockMvc.perform(delete("/api/broadcasts/{id}", broadcastId)
-                        .header("X-User-Id", otherUserId))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void getUserBroadcasts_ValidRequest_ReturnsBroadcasts() throws Exception {
-        // Arrange
-        LiveBroadcastDto broadcast1 = LiveBroadcastDto.builder()
-                .id(UUID.randomUUID())
-                .title("My Stream 1")
-                .ownerId(userIdUuid)
-                .status(BroadcastStatus.ENDED)
-                .startedAt(Instant.now().minusDays(1))
-                .endedAt(Instant.now().minusDays(1).plusHours(2))
-                .build();
-
-        LiveBroadcastDto broadcast2 = LiveBroadcastDto.builder()
-                .id(UUID.randomUUID())
-                .title("My Stream 2")
-                .ownerId(userIdUuid)
-                .status(BroadcastStatus.IDLE)
-                .createdAt(Instant.now().minusHours(3))
-                .build();
-
-        List<LiveBroadcastDto> expectedResponse = List.of(broadcast1, broadcast2);
-
-        when(liveBroadcastService.getUserBroadcasts(eq(userId))).thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/broadcasts/user/{userId}", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].ownerId").value(userId))
-                .andExpect(jsonPath("$[1].ownerId").value(userId));
-    }
-
-    @Test
-    void getUserBroadcasts_NoBroadcasts_ReturnsEmptyList() throws Exception {
-        // Arrange
-        when(liveBroadcastService.getUserBroadcasts(eq(userId))).thenReturn(List.of());
-
-        // Act & Assert
-        mockMvc.perform(get("/api/broadcasts/user/{userId}", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+        assertEquals(200, response.getStatusCode().value());
+        verify(broadcastService).onStreamStop("sk-2");
     }
 }

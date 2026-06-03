@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,17 +18,19 @@ public interface LiveBroadcastRepository extends JpaRepository<LiveBroadcast, UU
 
     List<LiveBroadcast> findByStatus(BroadcastStatus status);
 
-    List<LiveBroadcast> findByOwnerId(String ownerId);
+    List<LiveBroadcast> findByOwnerId(UUID ownerId);
 
     Optional<LiveBroadcast> findByRtmpStreamKey(String streamKey);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
+    @Transactional
     @Query("UPDATE LiveBroadcast b SET b.viewerCount = b.viewerCount + 1 WHERE b.id = :id")
-    void incrementViewerCount(@Param("id") String id);
+    void incrementViewerCount(@Param("id") UUID id);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
+    @Transactional
     @Query("UPDATE LiveBroadcast b SET b.viewerCount = b.viewerCount - 1 WHERE b.id = :id AND b.viewerCount > 0")
-    void decrementViewerCount(@Param("id") String id);
+    void decrementViewerCount(@Param("id") UUID id);
 
     List<LiveBroadcast> findByStatusIn(List<BroadcastStatus> statuses);
 }

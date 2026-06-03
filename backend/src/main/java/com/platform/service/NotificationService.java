@@ -25,12 +25,22 @@ public class NotificationService {
     public Notification createAndSend(String userId, String type, String title, String message,
                                       String relatedId, String relatedRoomSlug) {
 
+        Long parsedRelatedId = null;
+        if (relatedId != null) {
+            try {
+                parsedRelatedId = Long.parseLong(relatedId);
+            } catch (NumberFormatException e) {
+                // relatedId is not numeric (e.g. UUID), store as null
+                parsedRelatedId = null;
+            }
+        }
+
         Notification notification = Notification.builder()
                 .userId(userId)
                 .type(type)
                 .title(title)
                 .message(message)
-                .relatedId(relatedId != null ? Long.parseLong(relatedId) : null)
+                .relatedId(parsedRelatedId)
                 .relatedRoomSlug(relatedRoomSlug)
                 .read(false)
                 .build();

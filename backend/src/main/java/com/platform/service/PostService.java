@@ -34,16 +34,25 @@ public class PostService {
 
     public List<PostDto> getFeed(String userId, String before, Pageable pageable) {
         List<Post> posts;
-
         if (before != null && !before.isEmpty()) {
             posts = postRepository.findFeedBefore(before, pageable);
         } else {
             posts = postRepository.findFeed(pageable);
         }
+        return posts.stream().map(post -> toDto(post, userId)).collect(Collectors.toList());
+    }
 
-        return posts.stream()
-                .map(post -> toDto(post, userId))
-                .collect(Collectors.toList());
+    /**
+     * Получить ленту по категории (nutrition, sport и т.д.)
+     */
+    public List<PostDto> getFeedByCategory(String category, String userId, String before, Pageable pageable) {
+        List<Post> posts;
+        if (before != null && !before.isEmpty()) {
+            posts = postRepository.findFeedByCategoryBefore(category, before, pageable);
+        } else {
+            posts = postRepository.findFeedByCategory(category, pageable);
+        }
+        return posts.stream().map(post -> toDto(post, userId)).collect(Collectors.toList());
     }
 
     public PostDto getPost(String postId, String userId) {
@@ -53,7 +62,7 @@ public class PostService {
     }
 
     @Transactional
-    public PostDto createPost(PostDto.CreateRequest request, org.springframework.security.oauth2.jwt.Jwt jwt) {
+    public PostDto createPost(PostDto.CreateRequest request, Jwt jwt) {
         String userId = jwt.getSubject();
         String userName = jwt.getClaim("preferred_username");
         String userRole = getUserRole(jwt);
@@ -66,6 +75,7 @@ public class PostService {
                 .authorRole(userRole)
                 .mediaUrl(request.getMediaUrl())
                 .mediaType(request.getMediaType())
+                .category(request.getCategory() != null ? request.getCategory() : "general")
                 .likesCount(0)
                 .commentsCount(0)
                 .sharesCount(0)
@@ -75,13 +85,12 @@ public class PostService {
                 .build();
 
         post = postRepository.save(post);
-        log.info("Post created: {} by {}", post.getId(), userId);
-
+        log.info("Post created: {} by {} in category {}", post.getId(), userId, post.getCategory());
         return toDto(post, userId);
     }
 
     @Transactional
-    public PostDto updatePost(String postId, PostDto.UpdateRequest request, org.springframework.security.oauth2.jwt.Jwt jwt) {
+    public PostDto updatePost(String postId, PostDto.UpdateRequest request, Jwt jwt) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
@@ -99,12 +108,11 @@ public class PostService {
         post.setUpdatedAt(LocalDateTime.now());
         post = postRepository.save(post);
         log.info("Post updated: {} by {}", postId, userId);
-
         return toDto(post, userId);
     }
 
     @Transactional
-    public void deletePost(String postId, org.springframework.security.oauth2.jwt.Jwt jwt) {
+    public void deletePost(String postId, Jwt jwt) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
 
@@ -117,25 +125,23 @@ public class PostService {
 
         post.setDeletedAt(LocalDateTime.now());
         postRepository.save(post);
-        log.info("Post deleted: {} by {}", postId, userId);
+        log.info("Post soft-deleted: {} by {}", postId, userId);
     }
 
     public PostDto.MediaUploadResponse uploadSecureMedia(MultipartFile file, String type) {
         try {
-            String fileId = UUID.randomUUID().toString();
-            // Получаем Jwt из контекста безопасности
-            org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            org.springframework.security.core.Authentication authentication =
+                    org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
             Jwt jwt = (Jwt) authentication.getPrincipal();
 
-            // Сохраняем файл через SecureMediaService
             com.platform.model.MediaFile mediaFile = secureMediaService.uploadSecureMedia(file, type, jwt, null);
 
             return PostDto.MediaUploadResponse.builder()
-                .url(mediaFile.getS3Key())
-                .type(mediaFile.getFileType())
-                .size(mediaFile.getFileSize())
-                .filename(mediaFile.getOriginalFilename())
-                .build();
+                    .url(mediaFile.getS3Key())
+                    .type(mediaFile.getFileType())
+                    .size(mediaFile.getFileSize())
+                    .filename(mediaFile.getOriginalFilename())
+                    .build();
         } catch (Exception e) {
             log.error("Failed to upload media", e);
             throw new RuntimeException("Failed to upload media", e);
@@ -144,7 +150,6 @@ public class PostService {
 
     private PostDto toDto(Post post, String userId) {
         boolean userLiked = reactionRepository.existsByPostIdAndUserIdAndType(post.getId(), userId, "like");
-
         List<CommentDto> recentComments = commentService.getRecentComments(post.getId(), 3);
 
         return PostDto.builder()
@@ -166,7 +171,7 @@ public class PostService {
                 .build();
     }
 
-    private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
+    private String getUserRole(Jwt jwt) {
         return RoleUtils.getUserRole(jwt);
     }
 

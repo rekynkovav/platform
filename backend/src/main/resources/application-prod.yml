@@ -45,7 +45,7 @@ spring:
 
   liquibase:
     enabled: true
-    change-log: classpath:db/changelog/db.changelog-master.yaml
+    change-log: classpath:db/changelog/db.changelog-master.xml
 
   main:
     allow-circular-references: false
@@ -94,7 +94,7 @@ app:
 
 security:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://platform.example.com,https://admin.platform.example.com,https://api.platform.example.com}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://platform.local,https://api.platform.local,https://auth.platform.local,http://localhost:3000}
 
 bucket4j:
   enabled: true
@@ -118,5 +118,3 @@ yandex:
     bucket: ${YANDEX_S3_BUCKET:platform-media}
     endpoint: https://storage.yandexcloud.net
     region: ru-central1
-
-

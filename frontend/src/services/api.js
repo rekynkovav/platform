@@ -165,3 +165,38 @@ export const demoApi = {
 };
 
 export default api;
+// Events & Materials API (EventsHub)
+export const eventsApi = {
+    getUpcoming: () => api.get('/events/upcoming'),
+    getPast: () => api.get('/events/past'),
+    getNext: () => api.get('/events/next'),
+    getById: (id) => api.get(`/events/${id}`),
+    create: (data) => api.post('/events', data),
+    update: (id, data) => api.put(`/events/${id}`, data),
+    delete: (id) => api.delete(`/events/${id}`),
+    // Materials
+    getMaterialsBySection: (sectionId) => api.get(`/events/materials/${sectionId}`),
+    getMaterial: (id) => api.get(`/events/materials/item/${id}`),
+    createMaterial: (data) => api.post('/events/materials', data),
+    updateMaterial: (id, data) => api.put(`/events/materials/${id}`, data),
+    deleteMaterial: (id) => api.delete(`/events/materials/${id}`)
+};
+
+// Feedback API (отзывы и предложения в EventsHub)
+export const feedbackApi = {
+    getAll: () => api.get('/events/materials/feedback'),
+    create: (data) => api.post('/events/materials', { ...data, sectionId: 'feedback', type: 'text' }),
+    delete: (id) => api.delete(`/events/materials/${id}`)
+};
+
+// Notifications API
+export const notificationApi = {
+    getUserNotifications: () => api.get('/notifications'),
+    getUnread: () => api.get('/notifications/unread'),
+    markAsRead: (id) => api.put(`/notifications/${id}/read`),
+    markAllAsRead: () => api.put('/notifications/read-all'),
+    // Совместимость с фронтендом (сохранение на сервере)
+    updateNotifications: (notifications) => api.post('/notifications/sync', notifications),
+    // События для уведомлений
+    getUpcomingEvents: () => api.get('/events/upcoming')
+};

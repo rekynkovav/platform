@@ -23,6 +23,7 @@ public class PostDto {
     private String authorRole;
     private String mediaUrl;
     private String mediaType;
+    private String category;
     private Integer likesCount;
     private Integer commentsCount;
     private Integer sharesCount;
@@ -41,6 +42,7 @@ public class PostDto {
         private String content;
         private String mediaUrl;
         private String mediaType;
+        private String category;
     }
 
     @Data

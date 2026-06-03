@@ -16,7 +16,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -50,6 +49,12 @@ public class SecurityConfig {
 
                         // Админка
                         .requestMatchers("/api/admin/**").hasAnyRole("MODERATOR_ADMIN", "SUPER_ADMIN", "VYACHESLAV")
+
+                        // Дашборд (конфигурация меню)
+                        .requestMatchers("/api/dashboard/**").hasAnyRole("MODERATOR_ADMIN", "SUPER_ADMIN", "VYACHESLAV")
+
+                        // Демо-эндпоинты (только для авторизованных)
+                        .requestMatchers("/api/demo/**").authenticated()
 
                         // Пользователи
                         .requestMatchers("/api/users/**").authenticated()

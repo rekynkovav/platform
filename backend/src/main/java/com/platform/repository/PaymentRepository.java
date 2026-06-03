@@ -13,17 +13,17 @@ import java.util.UUID;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
-    List<Payment> findByUserId(String userId);
+    List<Payment> findByUserId(UUID userId);
 
     List<Payment> findByStatus(Payment.PaymentStatus status);
 
     @Query("SELECT p FROM Payment p WHERE p.status = 'PENDING' AND p.expiresAt < :now")
     List<Payment> findExpiredPayments(LocalDateTime now);
 
-    Optional<Payment> findByIdAndUserId(String id, String userId);
+    Optional<Payment> findByIdAndUserId(UUID id, UUID userId);
 
     @Query("SELECT p FROM Payment p WHERE p.status = 'PENDING' ORDER BY p.createdAt DESC")
     List<Payment> findPendingPayments();
 
-    List<Payment> findByUserIdAndStatus(String userId, Payment.PaymentStatus status);
+    List<Payment> findByUserIdAndStatus(UUID userId, Payment.PaymentStatus status);
 }

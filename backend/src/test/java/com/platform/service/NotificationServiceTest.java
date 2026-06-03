@@ -1,13 +1,13 @@
 package com.platform.service;
 
-import com.platform.exception.SecurityException;
+import com.platform.model.ChatRoom;
+import com.platform.model.Message;
 import com.platform.model.Notification;
-import com.platform.model.dto.NotificationDto;
 import com.platform.repository.NotificationRepository;
+import com.platform.websocket.ChatWebSocketHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,293 +19,256 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
 
-    @Mock
-    private NotificationRepository notificationRepository;
-
-    @Mock
-    private ChatWebSocketHandler webSocketHandler;
+    @Mock private NotificationRepository notificationRepository;
+    @Mock private ChatWebSocketHandler webSocketHandler;
 
     @InjectMocks
     private NotificationService notificationService;
 
     private String userId;
-    private UUID userIdUuid;
-    private String notificationId;
-    private UUID notificationIdUuid;
-    private String otherUserId;
-    private UUID otherUserIdUuid;
+    private Notification notification;
 
     @BeforeEach
     void setUp() {
-        userId = "user-123";
-        userIdUuid = UUID.fromString(userId);
-        notificationId = "notification-456";
-        notificationIdUuid = UUID.fromString(notificationId);
-        otherUserId = "other-789";
-        otherUserIdUuid = UUID.fromString(otherUserId);
+        userId = UUID.randomUUID().toString();
+        notification = Notification.builder()
+                .id(1L)
+                .userId(userId)
+                .type("new_message")
+                .title("New Message")
+                .message("Hello")
+                .read(false)
+                .createdAt(Instant.now())
+                .build();
     }
 
-    @Test
-    void createAndSend_SavesAndSendsNotification() {
-        // Arrange
-        String type = "new_message";
-        String content = "You have a new message";
-        String relatedId = "message-123";
+    // ==================== createAndSend ====================
 
+    @Test
+    void createAndSend_SavesAndSendsViaWebSocket() {
         when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
-            Notification notification = inv.getArgument(0);
-            notification.setId(notificationIdUuid);
-            return notification;
+            Notification n = inv.getArgument(0);
+            n.setId(1L);
+            return n;
         });
 
-        // Act
-        notificationService.createAndSend(userId, type, content, relatedId);
+        Notification result = notificationService.createAndSend(
+                userId, "new_message", "Title", "Body", "123", "general");
 
-        // Assert
-        ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notificationCaptor.capture());
-
-        Notification savedNotification = notificationCaptor.getValue();
-        assertThat(savedNotification.getUserId()).isEqualTo(userIdUuid);
-        assertThat(savedNotification.getType()).isEqualTo(type);
-        assertThat(savedNotification.getContent()).isEqualTo(content);
-        assertThat(savedNotification.getRelatedId()).isEqualTo(relatedId);
-        assertThat(savedNotification.isRead()).isFalse();
-
-        verify(webSocketHandler).sendNotificationToUser(userId, any(NotificationDto.class));
+        assertThat(result).isNotNull();
+        assertThat(result.getUserId()).isEqualTo(userId);
+        assertThat(result.getType()).isEqualTo("new_message");
+        assertThat(result.getRead()).isFalse();
+        verify(notificationRepository).save(any(Notification.class));
+        verify(webSocketHandler).sendNotificationToUser(eq(userId), any(Notification.class));
     }
 
     @Test
-    void getUnreadForUser_ReturnsUnreadNotifications() {
-        // Arrange
-        Notification unread1 = Notification.builder()
-                .id(UUID.randomUUID())
-                .userId(userIdUuid)
-                .type("new_message")
-                .content("Message 1")
-                .read(false)
-                .build();
+    void createAndSend_NullRelatedId_SetsNullLong() {
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
+            Notification n = inv.getArgument(0);
+            n.setId(2L);
+            return n;
+        });
 
-        Notification unread2 = Notification.builder()
-                .id(UUID.randomUUID())
-                .userId(userIdUuid)
-                .type("new_question")
-                .content("Question 1")
-                .read(false)
-                .build();
+        Notification result = notificationService.createAndSend(
+                userId, "info", "Info", "Text", null, null);
 
-        when(notificationRepository.findByUserIdAndRead(userIdUuid, false))
-                .thenReturn(List.of(unread1, unread2));
+        assertThat(result.getRelatedId()).isNull();
+        assertThat(result.getRelatedRoomSlug()).isNull();
+    }
 
-        // Act
-        List<NotificationDto> result = notificationService.getUnreadForUser(userId);
+    // ==================== getUnreadForUser ====================
 
-        // Assert
+    @Test
+    void getUnreadForUser_ReturnsUnreadList() {
+        when(notificationRepository.findByUserIdAndReadFalse(userId))
+                .thenReturn(List.of(notification));
+
+        List<Notification> result = notificationService.getUnreadForUser(userId);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getRead()).isFalse();
+    }
+
+    @Test
+    void getUnreadForUser_NoUnread_ReturnsEmpty() {
+        when(notificationRepository.findByUserIdAndReadFalse(userId))
+                .thenReturn(List.of());
+
+        List<Notification> result = notificationService.getUnreadForUser(userId);
+
+        assertThat(result).isEmpty();
+    }
+
+    // ==================== getAllForUser ====================
+
+    @Test
+    void getAllForUser_ReturnsAllNotifications() {
+        Notification read = Notification.builder()
+                .id(2L).userId(userId).type("info").read(true).build();
+        when(notificationRepository.findByUserIdOrderByCreatedAtDesc(userId))
+                .thenReturn(List.of(notification, read));
+
+        List<Notification> result = notificationService.getAllForUser(userId);
+
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).isRead()).isFalse();
-        assertThat(result.get(1).isRead()).isFalse();
-        verify(notificationRepository).findByUserIdAndRead(userIdUuid, false);
     }
 
-    @Test
-    void markAsReadForUser_Owner_MarksAsRead() {
-        // Arrange
-        Notification notification = Notification.builder()
-                .id(notificationIdUuid)
-                .userId(userIdUuid)
-                .type("new_message")
-                .content("Test notification")
-                .read(false)
-                .build();
-
-        when(notificationRepository.findById(notificationIdUuid)).thenReturn(Optional.of(notification));
-        when(notificationRepository.save(any(Notification.class))).thenReturn(notification);
-
-        // Act
-        notificationService.markAsReadForUser(notificationId, userId);
-
-        // Assert
-        assertThat(notification.isRead()).isTrue();
-        verify(notificationRepository).save(notification);
-    }
+    // ==================== markAsRead ====================
 
     @Test
-    void markAsReadForUser_NotOwner_ThrowsException() {
-        // Arrange
-        Notification notification = Notification.builder()
-                .id(notificationIdUuid)
-                .userId(userIdUuid)  // Belongs to userId
-                .type("new_message")
-                .content("Test notification")
-                .read(false)
-                .build();
+    void markAsRead_Exists_MarksRead() {
+        when(notificationRepository.findById(1L)).thenReturn(Optional.of(notification));
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        when(notificationRepository.findById(notificationIdUuid)).thenReturn(Optional.of(notification));
+        notificationService.markAsRead("1");
 
-        // Act & Assert
-        assertThatThrownBy(() -> notificationService.markAsReadForUser(notificationId, otherUserId))
-                .isInstanceOf(SecurityException.class)
-                .hasMessageContaining("not authorized");
-
-        verify(notificationRepository, never()).save(any(Notification.class));
-    }
-
-    @Test
-    void markAllAsRead_MarksAllUnreadAsRead() {
-        // Arrange
-        Notification unread1 = Notification.builder()
-                .id(UUID.randomUUID())
-                .userId(userIdUuid)
-                .type("new_message")
-                .content("Message 1")
-                .read(false)
-                .build();
-
-        Notification unread2 = Notification.builder()
-                .id(UUID.randomUUID())
-                .userId(userIdUuid)
-                .type("new_question")
-                .content("Question 1")
-                .read(false)
-                .build();
-
-        when(notificationRepository.findByUserIdAndRead(userIdUuid, false))
-                .thenReturn(List.of(unread1, unread2));
-        when(notificationRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-
-        // Act
-        notificationService.markAllAsRead(userId);
-
-        // Assert
-        assertThat(unread1.isRead()).isTrue();
-        assertThat(unread2.isRead()).isTrue();
-        verify(notificationRepository).saveAll(anyList());
-    }
-
-    @Test
-    void notifyAboutNewQuestionMessage_QuestionMessage_SetsTypeNewQuestion() {
-        // Arrange
-        String questionId = "question-123";
-        String questionContent = "How to implement this feature?";
-        String senderName = "QuestionAuthor";
-
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
-            Notification notification = inv.getArgument(0);
-            notification.setId(notificationIdUuid);
-            return notification;
-        });
-
-        // Act
-        notificationService.notifyAboutNewQuestionMessage(userId, questionId, questionContent, senderName);
-
-        // Assert
-        ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notificationCaptor.capture());
-
-        Notification savedNotification = notificationCaptor.getValue();
-        assertThat(savedNotification.getType()).isEqualTo("new_question");
-        assertThat(savedNotification.getContent()).contains("How to implement this feature?");
-        assertThat(savedNotification.getContent()).contains("QuestionAuthor");
-        assertThat(savedNotification.getRelatedId()).isEqualTo(questionId);
-
-        verify(webSocketHandler).sendNotificationToUser(userId, any(NotificationDto.class));
-    }
-
-    @Test
-    void notifyAboutNewQuestionMessage_AnswerMessage_SetsTypeNewAnswer() {
-        // Arrange
-        String questionId = "question-123";
-        String answerContent = "Ответ: You need to use the following approach...";
-        String senderName = "AnswerAuthor";
-
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
-            Notification notification = inv.getArgument(0);
-            notification.setId(notificationIdUuid);
-            return notification;
-        });
-
-        // Act
-        notificationService.notifyAboutNewQuestionMessage(userId, questionId, answerContent, senderName);
-
-        // Assert
-        ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notificationCaptor.capture());
-
-        Notification savedNotification = notificationCaptor.getValue();
-        assertThat(savedNotification.getType()).isEqualTo("new_answer");
-        assertThat(savedNotification.getContent()).contains("Ответ: You need to use");
-        assertThat(savedNotification.getContent()).contains("AnswerAuthor");
-
-        verify(webSocketHandler).sendNotificationToUser(userId, any(NotificationDto.class));
-    }
-
-    @Test
-    void notifyAboutNewQuestionMessage_LongContent_TruncatesTo80Chars() {
-        // Arrange
-        String questionId = "question-123";
-        String longContent = "This is a very long question content that exceeds eighty characters and needs to be truncated for the notification preview.";
-        String senderName = "LongQuestionAuthor";
-
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
-            Notification notification = inv.getArgument(0);
-            notification.setId(notificationIdUuid);
-            return notification;
-        });
-
-        // Act
-        notificationService.notifyAboutNewQuestionMessage(userId, questionId, longContent, senderName);
-
-        // Assert
-        ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notificationCaptor.capture());
-
-        Notification savedNotification = notificationCaptor.getValue();
-        String notificationContent = savedNotification.getContent();
-        assertThat(notificationContent.length()).isLessThanOrEqualTo(80 + senderName.length() + 10); // Account for sender name
-        assertThat(notificationContent).contains("...");
-
-        verify(webSocketHandler).sendNotificationToUser(userId, any(NotificationDto.class));
-    }
-
-    @Test
-    void markAsRead_Exists_MarksAsRead() {
-        // Arrange
-        Notification notification = Notification.builder()
-                .id(notificationIdUuid)
-                .userId(userIdUuid)
-                .type("new_message")
-                .content("Test notification")
-                .read(false)
-                .build();
-
-        when(notificationRepository.findById(notificationIdUuid)).thenReturn(Optional.of(notification));
-        when(notificationRepository.save(any(Notification.class))).thenReturn(notification);
-
-        // Act
-        notificationService.markAsRead(notificationId);
-
-        // Assert
-        assertThat(notification.isRead()).isTrue();
+        assertThat(notification.getRead()).isTrue();
         verify(notificationRepository).save(notification);
     }
 
     @Test
     void markAsRead_NotFound_DoesNothing() {
-        // Arrange
-        String nonExistentNotificationId = "non-existent-notification";
-        UUID nonExistentUuid = UUID.fromString(nonExistentNotificationId);
-        when(notificationRepository.findById(nonExistentUuid)).thenReturn(Optional.empty());
+        when(notificationRepository.findById(999L)).thenReturn(Optional.empty());
 
-        // Act
-        notificationService.markAsRead(nonExistentNotificationId);
+        notificationService.markAsRead("999");
 
-        // Assert
-        verify(notificationRepository, never()).save(any(Notification.class));
+        verify(notificationRepository, never()).save(any());
+    }
+
+    // ==================== markAsReadForUser ====================
+
+    @Test
+    void markAsReadForUser_OwnerCanMark() {
+        when(notificationRepository.findById(1L)).thenReturn(Optional.of(notification));
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        notificationService.markAsReadForUser(1L, userId);
+
+        assertThat(notification.getRead()).isTrue();
+        verify(notificationRepository).save(notification);
+    }
+
+    @Test
+    void markAsReadForUser_NonOwner_ThrowsSecurityException() {
+        String otherUserId = UUID.randomUUID().toString();
+        when(notificationRepository.findById(1L)).thenReturn(Optional.of(notification));
+
+        assertThatThrownBy(() -> notificationService.markAsReadForUser(1L, otherUserId))
+                .isInstanceOf(SecurityException.class);
+
+        verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void markAsReadForUser_NotFound_DoesNothing() {
+        when(notificationRepository.findById(999L)).thenReturn(Optional.empty());
+
+        notificationService.markAsReadForUser(999L, userId);
+
+        verify(notificationRepository, never()).save(any());
+    }
+
+    // ==================== markAllAsRead ====================
+
+    @Test
+    void markAllAsRead_MarksAllUnreadAsRead() {
+        Notification n1 = Notification.builder().id(1L).userId(userId).read(false).build();
+        Notification n2 = Notification.builder().id(2L).userId(userId).read(false).build();
+
+        when(notificationRepository.findByUserIdAndReadFalse(userId))
+                .thenReturn(List.of(n1, n2));
+        when(notificationRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        notificationService.markAllAsRead(userId);
+
+        assertThat(n1.getRead()).isTrue();
+        assertThat(n2.getRead()).isTrue();
+        verify(notificationRepository).saveAll(List.of(n1, n2));
+    }
+
+    @Test
+    void markAllAsRead_NoUnread_SavesEmptyList() {
+        when(notificationRepository.findByUserIdAndReadFalse(userId))
+                .thenReturn(List.of());
+        when(notificationRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        notificationService.markAllAsRead(userId);
+
+        verify(notificationRepository).saveAll(List.of());
+    }
+
+    // ==================== notifyAboutNewQuestionMessage ====================
+
+    @Test
+    void notifyAboutNewQuestionMessage_Question_CreatesNewQuestionNotification() {
+        UUID msgId = UUID.randomUUID();
+        Message msg = Message.builder()
+                .id(msgId).userId(UUID.fromString(userId)).userName("User")
+                .content("What is protein?").roomId(UUID.randomUUID())
+                .build();
+        ChatRoom room = ChatRoom.builder().slug("questions-nutrition").name("Q").build();
+
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
+            Notification n = inv.getArgument(0);
+            n.setId(10L);
+            return n;
+        });
+
+        notificationService.notifyAboutNewQuestionMessage(msg, room);
+
+        verify(notificationRepository).save(argThat(n ->
+                "new_question".equals(n.getType()) && "Новый вопрос".equals(n.getTitle())));
+        verify(webSocketHandler).sendNotificationToUser(eq(userId), any(Notification.class));
+    }
+
+    @Test
+    void notifyAboutNewQuestionMessage_Answer_CreatesNewAnswerNotification() {
+        UUID msgId = UUID.randomUUID();
+        Message msg = Message.builder()
+                .id(msgId).userId(UUID.fromString(userId)).userName("Admin")
+                .content("Ответ: Protein is essential.").roomId(UUID.randomUUID())
+                .build();
+        ChatRoom room = ChatRoom.builder().slug("questions-nutrition").name("Q").build();
+
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
+            Notification n = inv.getArgument(0);
+            n.setId(11L);
+            return n;
+        });
+
+        notificationService.notifyAboutNewQuestionMessage(msg, room);
+
+        verify(notificationRepository).save(argThat(n ->
+                "new_answer".equals(n.getType()) && "Получен ответ".equals(n.getTitle())));
+    }
+
+    @Test
+    void notifyAboutNewQuestionMessage_LongContent_Truncates() {
+        String longContent = "A".repeat(100);
+        UUID msgId = UUID.randomUUID();
+        Message msg = Message.builder()
+                .id(msgId).userId(UUID.fromString(userId)).userName("User")
+                .content(longContent).roomId(UUID.randomUUID())
+                .build();
+        ChatRoom room = ChatRoom.builder().slug("questions-general").name("Q").build();
+
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> {
+            Notification n = inv.getArgument(0);
+            n.setId(12L);
+            return n;
+        });
+
+        notificationService.notifyAboutNewQuestionMessage(msg, room);
+
+        verify(notificationRepository).save(argThat(n ->
+                n.getMessage() != null && n.getMessage().endsWith("...") && n.getMessage().length() == 80));
     }
 }

@@ -1,12 +1,11 @@
 package com.platform.service;
 
-import com.platform.exception.AccessDeniedException;
 import com.platform.exception.ResourceNotFoundException;
 import com.platform.model.ChatRoom;
-import com.platform.model.ChatRoomPermission;
 import com.platform.model.MediaFile;
 import com.platform.model.Message;
 import com.platform.model.dto.MessageDto;
+import com.platform.model.dto.QuestionDto;
 import com.platform.repository.ChatRoomPermissionRepository;
 import com.platform.repository.ChatRoomRepository;
 import com.platform.repository.MediaFileRepository;
@@ -17,328 +16,553 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ChatServiceTest {
 
-    @Mock
-    private MessageRepository messageRepository;
-
-    @Mock
-    private UserService userService;
-
-    @Mock
-    private MediaFileRepository mediaFileRepository;
-
-    @Mock
-    private ChatRoomRepository chatRoomRepository;
-
-    @Mock
-    private ChatRoomService chatRoomService;
-
-    @Mock
-    private ChatRoomPermissionRepository chatRoomPermissionRepository;
+    @Mock private MessageRepository messageRepository;
+    @Mock private UserService userService;
+    @Mock private MediaFileRepository mediaFileRepository;
+    @Mock private ChatRoomRepository chatRoomRepository;
+    @Mock private ChatRoomService chatRoomService;
+    @Mock private ChatRoomPermissionRepository chatRoomPermissionRepository;
 
     @InjectMocks
     private ChatService chatService;
 
     private String userId;
-    private UUID userIdUuid;
-    private String userName;
-    private String roomSlug;
+    private String otherUserId;
+    private UUID userUuid;
+    private UUID roomUuid;
+    private ChatRoom chatRoom;
 
     @BeforeEach
     void setUp() {
-        userId = "user-123";
-        userIdUuid = UUID.fromString(userId);
-        userName = "TestUser";
-        roomSlug = "test-room";
+        userId = UUID.randomUUID().toString();
+        otherUserId = UUID.randomUUID().toString();
+        userUuid = UUID.fromString(userId);
+        roomUuid = UUID.randomUUID();
+
+        chatRoom = ChatRoom.builder()
+                .id(roomUuid)
+                .slug("general")
+                .name("General Chat")
+                .description("General discussion")
+                .build();
+    }
+
+    // ==================== getGeneralMessages ====================
+
+    @Test
+    void getGeneralMessages_NoBefore_ReturnsMessages() {
+        Message msg = buildMessage("general", "Hello");
+        when(messageRepository.findByChatTypeOrderByCreatedAtDesc(eq("general"), any(Pageable.class)))
+                .thenReturn(List.of(msg));
+
+        List<MessageDto> result = chatService.getGeneralMessages(20, null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getContent()).isEqualTo("Hello");
     }
 
     @Test
-    void sendToGeneralChat_SavesMessageCorrectly() {
-        // Arrange
-        String content = "Hello world!";
-        when(userService.getUserName(userId)).thenReturn(userName);
-        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> {
-            Message msg = inv.getArgument(0);
-            msg.setId(UUID.randomUUID());
-            return msg;
-        });
+    void getGeneralMessages_WithBefore_ReturnsMessagesBeforeDate() {
+        String before = Instant.now().toString();
+        Message msg = buildMessage("general", "Old message");
+        when(messageRepository.findByChatTypeAndCreatedAtBefore(eq("general"), any(Instant.class), any(Pageable.class)))
+                .thenReturn(List.of(msg));
 
-        // Act
-        MessageDto result = chatService.sendToGeneralChat(userId, content, null);
+        List<MessageDto> result = chatService.getGeneralMessages(20, before);
 
-        // Assert
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getGeneralMessages_InvalidDateFormat_ThrowsException() {
+        assertThatThrownBy(() -> chatService.getGeneralMessages(20, "not-a-date"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    // ==================== getAdminGroupMessages ====================
+
+    @Test
+    void getAdminGroupMessages_NoBefore_ReturnsMessages() {
+        Message msg = buildMessage("admin_group", "Admin msg");
+        when(messageRepository.findByChatTypeOrderByCreatedAtDesc(eq("admin_group"), any(Pageable.class)))
+                .thenReturn(List.of(msg));
+
+        List<MessageDto> result = chatService.getAdminGroupMessages(10, null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getChatType()).isEqualTo("admin_group");
+    }
+
+    @Test
+    void getAdminGroupMessages_WithBefore_ReturnsFiltered() {
+        String before = Instant.now().toString();
+        when(messageRepository.findByChatTypeAndCreatedAtBefore(eq("admin_group"), any(Instant.class), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        List<MessageDto> result = chatService.getAdminGroupMessages(10, before);
+
+        assertThat(result).isEmpty();
+    }
+
+    // ==================== getPrivateMessages ====================
+
+    @Test
+    void getPrivateMessages_NoBefore_ReturnsMessages() {
+        Message msg = buildMessage("private", "Private hello");
+        when(messageRepository.findPrivateMessages(eq(userId), eq(otherUserId), any(Pageable.class)))
+                .thenReturn(List.of(msg));
+
+        List<MessageDto> result = chatService.getPrivateMessages(userId, otherUserId, 20, null);
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getPrivateMessages_WithBefore_ReturnsFiltered() {
+        String before = Instant.now().toString();
+        when(messageRepository.findPrivateMessagesBefore(eq(userId), eq(otherUserId), any(Instant.class), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        List<MessageDto> result = chatService.getPrivateMessages(userId, otherUserId, 20, before);
+
+        assertThat(result).isEmpty();
+    }
+
+    // ==================== sendToGeneralChat ====================
+
+    @Test
+    void sendToGeneralChat_WithoutMedia_SavesAndReturns() {
+        when(userService.getUserName(userId)).thenReturn("TestUser");
+        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        MessageDto result = chatService.sendToGeneralChat(userId, "Hello general");
+
         assertThat(result).isNotNull();
-        assertThat(result.getContent()).isEqualTo(content);
-        assertThat(result.getUserName()).isEqualTo(userName);
+        assertThat(result.getContent()).isEqualTo("Hello general");
         assertThat(result.getChatType()).isEqualTo("general");
+        assertThat(result.getUserName()).isEqualTo("TestUser");
         verify(messageRepository).save(any(Message.class));
     }
 
     @Test
-    void sendToGeneralChat_WithMedia_SavesMessageWithMedia() {
-        // Arrange
-        String content = "Hello with media!";
-        String mediaId = "media-456";
-        UUID mediaIdUuid = UUID.fromString(mediaId);
+    void sendToGeneralChat_WithMedia_IncludesMediaInfo() {
+        String mediaId = "media-123";
+        MediaFile media = new MediaFile();
+        media.setFileType("image/png");
+        media.setOriginalFilename("photo.png");
 
-        MediaFile mediaFile = MediaFile.builder()
-                .id(mediaIdUuid)
-                .fileName("test.jpg")
-                .mediaType("image/jpeg")
-                .build();
+        when(userService.getUserName(userId)).thenReturn("TestUser");
+        when(mediaFileRepository.findById(mediaId)).thenReturn(Optional.of(media));
+        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        when(userService.getUserName(userId)).thenReturn(userName);
-        when(mediaFileRepository.findById(mediaIdUuid)).thenReturn(Optional.of(mediaFile));
-        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> {
-            Message msg = inv.getArgument(0);
-            msg.setId(UUID.randomUUID());
-            return msg;
-        });
+        MessageDto result = chatService.sendToGeneralChat(userId, "With photo", mediaId);
 
-        // Act
-        MessageDto result = chatService.sendToGeneralChat(userId, content, mediaId);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getContent()).isEqualTo(content);
-        assertThat(result.getMediaId()).isEqualTo(mediaIdUuid);
-        assertThat(result.getMediaType()).isEqualTo("image/jpeg");
-        assertThat(result.getFileName()).isEqualTo("test.jpg");
-        verify(messageRepository).save(any(Message.class));
+        assertThat(result.getMediaId()).isEqualTo(mediaId);
+        assertThat(result.getMediaType()).isEqualTo("image/png");
+        assertThat(result.getFileName()).isEqualTo("photo.png");
     }
 
+    // ==================== sendToAdminGroup ====================
+
     @Test
-    void sendToGeneralChat_WithNonExistentMedia_ThrowsException() {
-        // Arrange
-        String content = "Hello with non-existent media!";
-        String mediaId = "non-existent-media";
-        UUID mediaIdUuid = UUID.fromString(mediaId);
+    void sendToAdminGroup_SavesAndReturns() {
+        when(userService.getUserName(userId)).thenReturn("Admin");
+        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        when(userService.getUserName(userId)).thenReturn(userName);
-        when(mediaFileRepository.findById(mediaIdUuid)).thenReturn(Optional.empty());
+        MessageDto result = chatService.sendToAdminGroup(userId, "Admin announcement");
 
-        // Act & Assert
-        assertThatThrownBy(() -> chatService.sendToGeneralChat(userId, content, mediaId))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Media file not found");
-
-        verify(messageRepository, never()).save(any(Message.class));
+        assertThat(result.getChatType()).isEqualTo("admin_group");
+        assertThat(result.getContent()).isEqualTo("Admin announcement");
     }
 
+    // ==================== sendPrivateMessage ====================
+
     @Test
-    void sendPrivateMessage_SavesPrivateMessage() {
-        // Arrange
-        String content = "Private message";
-        String recipientId = "recipient-789";
-        UUID recipientIdUuid = UUID.fromString(recipientId);
+    void sendPrivateMessage_SavesWithRecipient() {
+        when(userService.getUserName(userId)).thenReturn("Sender");
+        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        when(userService.getUserName(userId)).thenReturn(userName);
-        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> {
-            Message msg = inv.getArgument(0);
-            msg.setId(UUID.randomUUID());
-            return msg;
-        });
+        MessageDto result = chatService.sendPrivateMessage(userId, otherUserId, "Secret msg");
 
-        // Act
-        MessageDto result = chatService.sendPrivateMessage(userId, recipientId, content, null);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getContent()).isEqualTo(content);
-        assertThat(result.getRecipientId()).isEqualTo(recipientIdUuid);
         assertThat(result.getChatType()).isEqualTo("private");
-        verify(messageRepository).save(any(Message.class));
+        assertThat(result.getRecipientId()).isEqualTo(UUID.fromString(otherUserId));
+        assertThat(result.getContent()).isEqualTo("Secret msg");
+    }
+
+    // ==================== markAsRead ====================
+
+    @Test
+    void markAsRead_RecipientMatches_MarksRead() {
+        UUID msgId = UUID.randomUUID();
+        Message msg = Message.builder()
+                .id(msgId).recipientId(userUuid).isRead(false).build();
+
+        when(messageRepository.findById(msgId)).thenReturn(Optional.of(msg));
+        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        chatService.markAsRead(msgId.toString(), userId);
+
+        assertThat(msg.getIsRead()).isTrue();
+        verify(messageRepository).save(msg);
     }
 
     @Test
-    void markAsRead_ValidRecipient_MarksAsRead() {
-        // Arrange
-        String messageId = "message-123";
-        UUID messageIdUuid = UUID.fromString(messageId);
+    void markAsRead_RecipientDoesNotMatch_DoesNotMark() {
+        UUID msgId = UUID.randomUUID();
+        UUID otherRecipient = UUID.randomUUID();
+        Message msg = Message.builder()
+                .id(msgId).recipientId(otherRecipient).isRead(false).build();
 
-        Message message = Message.builder()
-                .id(messageIdUuid)
-                .recipientId(userIdUuid)
-                .isRead(false)
-                .build();
+        when(messageRepository.findById(msgId)).thenReturn(Optional.of(msg));
 
-        when(messageRepository.findById(messageIdUuid)).thenReturn(Optional.of(message));
-        when(messageRepository.save(any(Message.class))).thenReturn(message);
+        chatService.markAsRead(msgId.toString(), userId);
 
-        // Act
-        chatService.markAsRead(messageId, userId);
-
-        // Assert
-        assertThat(message.isRead()).isTrue();
-        verify(messageRepository).save(message);
-    }
-
-    @Test
-    void markAsRead_WrongRecipient_DoesNotMarkAsRead() {
-        // Arrange
-        String messageId = "message-123";
-        UUID messageIdUuid = UUID.fromString(messageId);
-        String wrongUserId = "wrong-user-456";
-
-        Message message = Message.builder()
-                .id(messageIdUuid)
-                .recipientId(userIdUuid)  // Original recipient
-                .isRead(false)
-                .build();
-
-        when(messageRepository.findById(messageIdUuid)).thenReturn(Optional.of(message));
-
-        // Act
-        chatService.markAsRead(messageId, wrongUserId);
-
-        // Assert
-        assertThat(message.isRead()).isFalse();
-        verify(messageRepository, never()).save(any(Message.class));
+        assertThat(msg.getIsRead()).isFalse();
+        verify(messageRepository, never()).save(any());
     }
 
     @Test
     void markAsRead_MessageNotFound_ThrowsException() {
-        // Arrange
-        String messageId = "non-existent-message";
-        UUID messageIdUuid = UUID.fromString(messageId);
+        UUID msgId = UUID.randomUUID();
+        when(messageRepository.findById(msgId)).thenReturn(Optional.empty());
 
-        when(messageRepository.findById(messageIdUuid)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThatThrownBy(() -> chatService.markAsRead(messageId, userId))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Message not found");
-
-        verify(messageRepository, never()).save(any(Message.class));
+        assertThatThrownBy(() -> chatService.markAsRead(msgId.toString(), userId))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
+
+    // ==================== getUnreadCount ====================
+
+    @Test
+    void getUnreadCount_ReturnsCount() {
+        when(messageRepository.countUnreadByRecipient(userId)).thenReturn(5L);
+
+        long count = chatService.getUnreadCount(userId);
+
+        assertThat(count).isEqualTo(5L);
+    }
+
+    // ==================== getMessages (paginated) ====================
+
+    @Test
+    void getMessages_ReturnsPage() {
+        Page<MessageDto> page = new PageImpl<>(List.of());
+        when(messageRepository.findMessageDtosByRoomId(eq(roomUuid), any(Pageable.class)))
+                .thenReturn(page);
+
+        Page<MessageDto> result = chatService.getMessages(roomUuid.toString(), 0, 20);
+
+        assertThat(result).isNotNull();
+    }
+
+    // ==================== getMessagesAfter (cursor) ====================
+
+    @Test
+    void getMessagesAfter_WithCursor_ReturnsMessagesBeforeCursor() {
+        UUID cursorId = UUID.randomUUID();
+        Message msg = buildMessage("room", "After cursor");
+        when(messageRepository.findByRoomIdAndIdLessThanOrderByCreatedAtDesc(eq(roomUuid), eq(cursorId), any(Pageable.class)))
+                .thenReturn(List.of(msg));
+
+        List<MessageDto> result = chatService.getMessagesAfter(roomUuid.toString(), cursorId.toString(), 10);
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getMessagesAfter_NullCursor_ReturnsLatestMessages() {
+        Message msg = buildMessage("room", "Latest");
+        when(messageRepository.findByRoomId(eq(roomUuid), any(Pageable.class)))
+                .thenReturn(List.of(msg));
+
+        List<MessageDto> result = chatService.getMessagesAfter(roomUuid.toString(), null, 10);
+
+        assertThat(result).hasSize(1);
+    }
+
+    // ==================== getMessagesByRoom ====================
 
     @Test
     void getMessagesByRoom_HasPermission_ReturnsMessages() {
-        // Arrange
-        ChatRoom chatRoom = ChatRoom.builder()
-                .id(UUID.randomUUID())
-                .slug(roomSlug)
-                .build();
+        when(chatRoomRepository.findBySlug("general")).thenReturn(Optional.of(chatRoom));
+        when(chatRoomService.hasPermission(roomUuid, "USER", "read")).thenReturn(true);
+        Message msg = buildMessage("room", "Room msg");
+        when(messageRepository.findByRoomIdOrderByCreatedAtDesc(eq(roomUuid), any(Pageable.class)))
+                .thenReturn(List.of(msg));
 
-        ChatRoomPermission permission = ChatRoomPermission.builder()
-                .userId(userIdUuid)
-                .chatRoom(chatRoom)
-                .build();
+        List<MessageDto> result = chatService.getMessagesByRoom("general", 20, null, "USER");
 
-        Message message = Message.builder()
-                .id(UUID.randomUUID())
-                .content("Test message")
-                .userId(userIdUuid)
-                .roomSlug(roomSlug)
-                .build();
-
-        when(chatRoomRepository.findBySlug(roomSlug)).thenReturn(Optional.of(chatRoom));
-        when(chatRoomPermissionRepository.findByUserIdAndChatRoom(userIdUuid, chatRoom))
-                .thenReturn(Optional.of(permission));
-        when(messageRepository.findByRoomSlugOrderByCreatedAtDesc(roomSlug))
-                .thenReturn(List.of(message));
-
-        // Act
-        List<MessageDto> result = chatService.getMessagesByRoom(roomSlug, null, null, userId);
-
-        // Assert
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getContent()).isEqualTo("Test message");
-        assertThat(result.get(0).getRoomSlug()).isEqualTo(roomSlug);
     }
 
     @Test
-    void getMessagesByRoom_NoPermission_ThrowsException() {
-        // Arrange
-        ChatRoom chatRoom = ChatRoom.builder()
-                .id(UUID.randomUUID())
-                .slug(roomSlug)
-                .build();
+    void getMessagesByRoom_NoPermission_ThrowsAccessDenied() {
+        when(chatRoomRepository.findBySlug("general")).thenReturn(Optional.of(chatRoom));
+        when(chatRoomService.hasPermission(roomUuid, "GUEST", "read")).thenReturn(false);
 
-        when(chatRoomRepository.findBySlug(roomSlug)).thenReturn(Optional.of(chatRoom));
-        when(chatRoomPermissionRepository.findByUserIdAndChatRoom(userIdUuid, chatRoom))
-                .thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThatThrownBy(() -> chatService.getMessagesByRoom(roomSlug, null, null, userId))
-                .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Access denied");
+        assertThatThrownBy(() -> chatService.getMessagesByRoom("general", 20, null, "GUEST"))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
     void getMessagesByRoom_RoomNotFound_ThrowsException() {
-        // Arrange
-        String nonExistentRoom = "non-existent-room";
-        when(chatRoomRepository.findBySlug(nonExistentRoom)).thenReturn(Optional.empty());
+        when(chatRoomRepository.findBySlug("nonexistent")).thenReturn(Optional.empty());
 
-        // Act & Assert
-        assertThatThrownBy(() -> chatService.getMessagesByRoom(nonExistentRoom, null, null, userId))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Chat room not found");
+        assertThatThrownBy(() -> chatService.getMessagesByRoom("nonexistent", 20, null, "USER"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // ==================== sendMessageToRoom ====================
+
+    @Test
+    void sendMessageToRoom_HasPermission_SavesAndReturns() {
+        when(chatRoomRepository.findBySlug("general")).thenReturn(Optional.of(chatRoom));
+        when(chatRoomService.hasPermission(roomUuid, "USER", "read_write")).thenReturn(true);
+        when(userService.getUserName(userId)).thenReturn("TestUser");
+        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        MessageDto result = chatService.sendMessageToRoom("general", userId, "Hello room", null, "USER");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).isEqualTo("Hello room");
+        assertThat(result.getRoomSlug()).isEqualTo("general");
+        verify(messageRepository).save(any(Message.class));
     }
 
     @Test
-    void getUnreadCount_DelegatesToRepository() {
-        // Arrange
-        long expectedCount = 5L;
-        when(messageRepository.countByRecipientIdAndIsRead(userIdUuid, false))
-                .thenReturn(expectedCount);
+    void sendMessageToRoom_NoPermission_ThrowsAccessDenied() {
+        when(chatRoomRepository.findBySlug("general")).thenReturn(Optional.of(chatRoom));
+        when(chatRoomService.hasPermission(roomUuid, "GUEST", "read_write")).thenReturn(false);
 
-        // Act
-        long result = chatService.getUnreadCount(userId);
+        assertThatThrownBy(() -> chatService.sendMessageToRoom("general", userId, "Hi", null, "GUEST"))
+                .isInstanceOf(AccessDeniedException.class);
+    }
 
-        // Assert
-        assertThat(result).isEqualTo(expectedCount);
-        verify(messageRepository).countByRecipientIdAndIsRead(userIdUuid, false);
+    // ==================== createQuestion ====================
+
+    @Test
+    void createQuestion_CreatesAndReturns() {
+        ChatRoom questionRoom = ChatRoom.builder()
+                .id(roomUuid).slug("questions-nutrition").name("Questions").build();
+        when(chatRoomRepository.findBySlug("questions-nutrition")).thenReturn(Optional.of(questionRoom));
+        when(userService.getUserName(userId)).thenReturn("Asker");
+        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> {
+            Message m = inv.getArgument(0);
+            if (m.getId() == null) m.setId(UUID.randomUUID());
+            return m;
+        });
+
+        QuestionDto.CreateRequest request = new QuestionDto.CreateRequest();
+        request.setQuestion("How to eat healthy?");
+
+        QuestionDto result = chatService.createQuestion("nutrition", request, userId);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getQuestion()).isEqualTo("How to eat healthy?");
+        assertThat(result.getMode()).isEqualTo("nutrition");
+        assertThat(result.isAnswered()).isFalse();
     }
 
     @Test
-    void getGeneralMessages_WithBefore_ParsesDateCorrectly() {
-        // Arrange
-        String before = "2024-01-15T10:30:00Z";
-        Instant expectedInstant = Instant.parse(before);
+    void createQuestion_RoomNotFound_ThrowsException() {
+        when(chatRoomRepository.findBySlug("questions-fake")).thenReturn(Optional.empty());
 
-        Message message = Message.builder()
+        QuestionDto.CreateRequest request = new QuestionDto.CreateRequest();
+        request.setQuestion("Test?");
+
+        assertThatThrownBy(() -> chatService.createQuestion("fake", request, userId))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // ==================== answerQuestion ====================
+
+    @Test
+    void answerQuestion_AnswersAndReturns() {
+        UUID questionId = UUID.randomUUID();
+        Message questionMsg = Message.builder()
+                .id(questionId).userId(userUuid).userName("Asker")
+                .content("What is protein?").roomId(roomUuid).roomSlug("questions-nutrition")
+                .chatType("question").createdAt(LocalDateTime.now()).build();
+
+        when(messageRepository.findById(questionId)).thenReturn(Optional.of(questionMsg));
+        when(userService.getUserName(userId)).thenReturn("AdminDoc");
+        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        QuestionDto.AnswerRequest request = new QuestionDto.AnswerRequest();
+        request.setAnswer("Protein is essential nutrient.");
+
+        QuestionDto result = chatService.answerQuestion(questionId.toString(), request, userId);
+
+        assertThat(result.isAnswered()).isTrue();
+        assertThat(result.getAnswer()).isEqualTo("Protein is essential nutrient.");
+        assertThat(result.getAnsweredBy()).isEqualTo("AdminDoc");
+    }
+
+    @Test
+    void answerQuestion_QuestionNotFound_ThrowsException() {
+        UUID questionId = UUID.randomUUID();
+        when(messageRepository.findById(questionId)).thenReturn(Optional.empty());
+
+        QuestionDto.AnswerRequest request = new QuestionDto.AnswerRequest();
+        request.setAnswer("Answer");
+
+        assertThatThrownBy(() -> chatService.answerQuestion(questionId.toString(), request, userId))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void answerQuestion_InvalidIdFormat_ThrowsException() {
+        QuestionDto.AnswerRequest request = new QuestionDto.AnswerRequest();
+        request.setAnswer("Answer");
+
+        assertThatThrownBy(() -> chatService.answerQuestion("not-a-uuid", request, userId))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    // ==================== deleteQuestion ====================
+
+    @Test
+    void deleteQuestion_AuthorCanDelete() {
+        UUID questionId = UUID.randomUUID();
+        Message questionMsg = Message.builder()
+                .id(questionId).userId(userUuid).roomId(roomUuid).roomSlug("questions-general")
+                .content("My question").build();
+
+        when(messageRepository.findById(questionId)).thenReturn(Optional.of(questionMsg));
+        when(userService.isAdmin(userId)).thenReturn(false);
+        when(messageRepository.findByRoomIdOrderByCreatedAtAsc(eq(roomUuid), any(Pageable.class)))
+                .thenReturn(List.of(questionMsg));
+
+        chatService.deleteQuestion(questionId.toString(), userId);
+
+        verify(messageRepository).delete(questionMsg);
+    }
+
+    @Test
+    void deleteQuestion_AdminCanDelete() {
+        UUID questionId = UUID.randomUUID();
+        UUID otherUser = UUID.randomUUID();
+        Message questionMsg = Message.builder()
+                .id(questionId).userId(otherUser).roomId(roomUuid).roomSlug("questions-general")
+                .content("Other's question").build();
+
+        when(messageRepository.findById(questionId)).thenReturn(Optional.of(questionMsg));
+        when(userService.isAdmin(userId)).thenReturn(true);
+        when(messageRepository.findByRoomIdOrderByCreatedAtAsc(eq(roomUuid), any(Pageable.class)))
+                .thenReturn(List.of(questionMsg));
+
+        chatService.deleteQuestion(questionId.toString(), userId);
+
+        verify(messageRepository).delete(questionMsg);
+    }
+
+    @Test
+    void deleteQuestion_NonAuthorNonAdmin_ThrowsAccessDenied() {
+        UUID questionId = UUID.randomUUID();
+        UUID otherUser = UUID.randomUUID();
+        Message questionMsg = Message.builder()
+                .id(questionId).userId(otherUser).roomId(roomUuid).roomSlug("questions-general")
+                .content("Other's question").build();
+
+        when(messageRepository.findById(questionId)).thenReturn(Optional.of(questionMsg));
+        when(userService.isAdmin(userId)).thenReturn(false);
+
+        assertThatThrownBy(() -> chatService.deleteQuestion(questionId.toString(), userId))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void deleteQuestion_AlsoDeletesAnswers() {
+        UUID questionId = UUID.randomUUID();
+        UUID answerId = UUID.randomUUID();
+        Message questionMsg = Message.builder()
+                .id(questionId).userId(userUuid).roomId(roomUuid).roomSlug("questions-general")
+                .content("My question").build();
+        Message answerMsg = Message.builder()
+                .id(answerId).userId(UUID.randomUUID()).roomId(roomUuid)
+                .recipientId(questionId).content("Answer").build();
+
+        when(messageRepository.findById(questionId)).thenReturn(Optional.of(questionMsg));
+        when(userService.isAdmin(userId)).thenReturn(false);
+        when(messageRepository.findByRoomIdOrderByCreatedAtAsc(eq(roomUuid), any(Pageable.class)))
+                .thenReturn(List.of(questionMsg, answerMsg));
+
+        chatService.deleteQuestion(questionId.toString(), userId);
+
+        verify(messageRepository).delete(answerMsg);
+        verify(messageRepository).delete(questionMsg);
+    }
+
+    // ==================== getQuestionsByMode ====================
+
+    @Test
+    void getQuestionsByMode_RoomExists_ReturnsSortedQuestions() {
+        ChatRoom qRoom = ChatRoom.builder().id(roomUuid).slug("questions-nutrition").name("Q").build();
+        when(chatRoomRepository.findBySlug("questions-nutrition")).thenReturn(Optional.of(qRoom));
+
+        UUID q1Id = UUID.randomUUID();
+        UUID q2Id = UUID.randomUUID();
+        Message q1 = Message.builder().id(q1Id).userId(userUuid).userName("User1")
+                .content("Q1").roomId(roomUuid).createdAt(LocalDateTime.now().minusHours(2)).build();
+        Message q2 = Message.builder().id(q2Id).userId(userUuid).userName("User2")
+                .content("Q2").roomId(roomUuid).createdAt(LocalDateTime.now().minusHours(1)).build();
+        Message a1 = Message.builder().id(UUID.randomUUID()).userId(UUID.randomUUID()).userName("Admin")
+                .content("A1").roomId(roomUuid).recipientId(q1Id).createdAt(LocalDateTime.now()).build();
+
+        when(messageRepository.findByRoomIdOrderByCreatedAtAsc(eq(roomUuid), any(Pageable.class)))
+                .thenReturn(List.of(q1, q2, a1));
+
+        List<QuestionDto> result = chatService.getQuestionsByMode("nutrition", userId);
+
+        assertThat(result).hasSize(2);
+        // Unanswered first
+        assertThat(result.get(0).getId()).isEqualTo(q2Id.toString());
+        assertThat(result.get(0).isAnswered()).isFalse();
+        // Answered second
+        assertThat(result.get(1).getId()).isEqualTo(q1Id.toString());
+        assertThat(result.get(1).isAnswered()).isTrue();
+        assertThat(result.get(1).getAnswer()).isEqualTo("A1");
+    }
+
+    @Test
+    void getQuestionsByMode_RoomNotFound_ReturnsEmptyList() {
+        when(chatRoomRepository.findBySlug("questions-fake")).thenReturn(Optional.empty());
+
+        List<QuestionDto> result = chatService.getQuestionsByMode("fake", userId);
+
+        assertThat(result).isEmpty();
+    }
+
+    // ==================== Helpers ====================
+
+    private Message buildMessage(String chatType, String content) {
+        return Message.builder()
                 .id(UUID.randomUUID())
-                .content("Old message")
-                .chatType("general")
+                .content(content)
+                .userId(userUuid)
+                .userName("TestUser")
+                .chatType(chatType)
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
                 .build();
-
-        when(messageRepository.findByChatTypeAndCreatedAtBefore("general", expectedInstant))
-                .thenReturn(List.of(message));
-
-        // Act
-        List<MessageDto> result = chatService.getGeneralMessages(before);
-
-        // Assert
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getContent()).isEqualTo("Old message");
-        verify(messageRepository).findByChatTypeAndCreatedAtBefore("general", expectedInstant);
-    }
-
-    @Test
-    void getGeneralMessages_InvalidDate_ThrowsException() {
-        // Arrange
-        String invalidDate = "not-a-date";
-
-        // Act & Assert
-        assertThatThrownBy(() -> chatService.getGeneralMessages(invalidDate))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Invalid date format");
-
-        verify(messageRepository, never()).findByChatTypeAndCreatedAtBefore(any(), any());
     }
 }

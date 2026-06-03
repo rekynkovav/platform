@@ -1,0 +1,157 @@
+# Минимальный docker-compose для разработки и тестирования
+# Запуск: docker compose -f docker-compose.dev.yml up -d --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: platform_db
+      POSTGRES_USER: platform_user
+      POSTGRES_PASSWORD: platform_pass_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/postgres/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U platform_user -d platform_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - platform_network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/platform_db
+      KC_DB_USERNAME: platform_user
+      KC_DB_PASSWORD: platform_pass_2026
+      KC_HOSTNAME: auth.platform.local
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+      KC_PROXY: edge
+      KC_HTTP_RELATIVE_PATH: /auth
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: ["start-dev", "--import-realm", "--http-relative-path=/auth"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - platform_network
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_pass}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_pass}
+    ports:
+      - "6379:6379"
+    container_name: platform-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_pass}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - platform_network
+    restart: unless-stopped
+
+  rtmp:
+    image: alfg/nginx-rtmp
+    ports:
+      - "1935:1935"
+      - "8000:80"
+    volumes:
+      - ./rtmp.conf:/etc/nginx/nginx.conf:ro
+      - hls:/hls
+    environment:
+      - HLS_PATH=/hls
+    restart: unless-stopped
+    networks:
+      - platform_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      PROFILE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/platform_db
+      DB_USER: platform_user
+      DB_PASSWORD: platform_pass_2026
+      KEYCLOAK_URL: http://keycloak:8080/auth
+      KEYCLOAK_REALM: platform
+      KEYCLOAK_CLIENT_ID: platform-backend
+      MEDIA_PATH: /app/uploads
+      MEDIA_BASE_URL: https://platform.local/media
+      RTMP_SERVER_URL: rtmp://rtmp:1935/live
+      HLS_SERVER_URL: http://rtmp:80/hls
+    ports:
+      - "8081:8081"
+    volumes:
+      - uploads:/app/uploads
+      - hls:/hls:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      rtmp:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      - platform_network
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - platform_network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/conf.d/platform.conf:/etc/nginx/conf.d/platform.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - uploads:/uploads:ro
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+      - keycloak
+    networks:
+      - platform_network
+
+volumes:
+  postgres_data:
+  uploads:
+  hls:
+
+networks:
+  platform_network:
+    driver: bridge

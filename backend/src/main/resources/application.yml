@@ -49,8 +49,8 @@ bucket4j:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/platform}
-          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/platform/protocol/openid-connect/certs}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak:8080/auth/realms/platform}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/auth/realms/platform/protocol/openid-connect/certs}
 
   web:
     resources:
@@ -95,10 +95,8 @@ app:
       algorithm: "AES/CBC/PKCS5Padding"
 
 keycloak:
-  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8080}
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080/auth}
   realm: ${KEYCLOAK_REALM:platform}
   resource: ${KEYCLOAK_RESOURCE:platform-backend}
   credentials:
     secret: ${KEYCLOAK_SECRET:}
-
-

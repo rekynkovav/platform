@@ -88,15 +88,13 @@ public class LiveBroadcast {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        viewerCount = 0;
-        maxViewers = 0;
-        isPublic = true;
-        isChatEnabled = true;
-        isReactionsEnabled = true;
-        isRecording = false;
-        if (status == null) {
-            status = BroadcastStatus.IDLE;
-        }
+        if (createdAt == null) createdAt = LocalDateTime.now();
+        if (viewerCount == null) viewerCount = 0;
+        if (maxViewers == null) maxViewers = 0;
+        if (isPublic == null) isPublic = true;
+        if (isChatEnabled == null) isChatEnabled = true;
+        if (isReactionsEnabled == null) isReactionsEnabled = true;
+        if (isRecording == null) isRecording = false;
+        if (status == null) status = BroadcastStatus.IDLE;
     }
 }

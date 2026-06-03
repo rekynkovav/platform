@@ -111,7 +111,7 @@ public class StreamingFileService {
         int bytesRead;
         long totalRead = 0;
 
-        while ((bytesRead = inputStream.read(buffer)) != -1 && totalRead < size) {
+        while (totalRead < size && (bytesRead = inputStream.read(buffer, 0, (int) Math.min(BUFFER_SIZE, size - totalRead))) != -1) {
             outputStream.write(buffer, 0, bytesRead);
             totalRead += bytesRead;
         }

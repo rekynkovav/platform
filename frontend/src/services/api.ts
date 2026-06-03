@@ -294,3 +294,102 @@ export const adminApi = {
 };
 
 export default api;
+// === SYNC WITH api.js — missing endpoints ===
+
+export interface EventMaterial {
+  id: string;
+  sectionId: string;
+  type: string;
+  title: string;
+  content?: string;
+  url?: string;
+  mediaId?: string;
+  createdBy?: string;
+  authorName?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const eventsApi = {
+  getUpcoming: (): Promise<any[]> => api.get('/events/upcoming'),
+  getPast: (): Promise<any[]> => api.get('/events/past'),
+  getNext: (): Promise<any> => api.get('/events/next'),
+  getById: (id: string): Promise<any> => api.get(`/events/${id}`),
+  create: (data: any): Promise<any> => api.post('/events', data),
+  update: (id: string, data: any): Promise<any> => api.put(`/events/${id}`, data),
+  delete: (id: string): Promise<void> => api.delete(`/events/${id}`),
+  // Materials
+  getMaterialsBySection: (sectionId: string): Promise<EventMaterial[]> =>
+    api.get(`/events/materials/${sectionId}`),
+  getMaterial: (id: string): Promise<EventMaterial> =>
+    api.get(`/events/materials/item/${id}`),
+  createMaterial: (data: any): Promise<EventMaterial> =>
+    api.post('/events/materials', data),
+  updateMaterial: (id: string, data: any): Promise<EventMaterial> =>
+    api.put(`/events/materials/${id}`, data),
+  deleteMaterial: (id: string): Promise<void> =>
+    api.delete(`/events/materials/${id}`)
+};
+
+export const feedbackApi = {
+  getAll: (): Promise<EventMaterial[]> => api.get('/events/materials/feedback'),
+  create: (data: any): Promise<EventMaterial> =>
+    api.post('/events/materials', { ...data, sectionId: 'feedback', type: 'text' }),
+  delete: (id: string): Promise<void> => api.delete(`/events/materials/${id}`)
+};
+
+export const notificationApi = {
+  getUserNotifications: (): Promise<any[]> => api.get('/notifications'),
+  getUnread: (): Promise<any[]> => api.get('/notifications/unread'),
+  markAsRead: (id: number): Promise<void> => api.put(`/notifications/${id}/read`),
+  markAllAsRead: (): Promise<void> => api.put('/notifications/read-all'),
+  updateNotifications: (notifications: any[]): Promise<any> =>
+    api.post('/notifications/sync', notifications),
+  getUpcomingEvents: (): Promise<any[]> => api.get('/events/upcoming')
+};
+
+export const dashboardApi = {
+  getMenuData: (): Promise<any> => api.get('/dashboard/menu'),
+  saveMenuData: (data: any): Promise<any> => api.post('/dashboard/menu', data)
+};
+
+export const feedApi = {
+  getMainFeed: (): Promise<any[]> => api.get('/feed/main'),
+  getNutritionFeed: (): Promise<any[]> => api.get('/feed/nutrition'),
+  createPost: (data: any): Promise<any> => api.post('/feed/posts', data),
+  updatePost: (id: string, data: any): Promise<any> => api.put(`/feed/posts/${id}`, data),
+  deletePost: (id: string): Promise<void> => api.delete(`/feed/posts/${id}`)
+};
+
+export const demoApi = {
+  getDemoRole: (): Promise<any> => api.get('/demo/role'),
+  setDemoRole: (role: string): Promise<any> => api.post('/demo/role', { role }),
+  getWillAttendCounts: (): Promise<any> => api.get('/demo/will-attend-counts'),
+  saveWillAttendCounts: (counts: any): Promise<any> => api.post('/demo/will-attend-counts', counts),
+  hasUserAttended: (broadcastId: string, userId: string): Promise<any> =>
+    api.get(`/demo/attended/${broadcastId}/${userId}`),
+  markUserAttended: (broadcastId: string, userId: string): Promise<any> =>
+    api.post(`/demo/attended/${broadcastId}/${userId}`),
+  getDashboardMenuData: (): Promise<any> => api.get('/demo/dashboard-menu'),
+  saveDashboardMenuData: (data: any): Promise<any> => api.post('/demo/dashboard-menu', data),
+  getBroadcasts: (): Promise<any[]> => api.get('/demo/broadcasts'),
+  saveBroadcasts: (broadcasts: any[]): Promise<any> => api.post('/demo/broadcasts', broadcasts),
+  getScheduledEvents: (): Promise<any[]> => api.get('/demo/scheduled-events'),
+  saveScheduledEvents: (events: any[]): Promise<any> => api.post('/demo/scheduled-events', events)
+};
+
+// Extended chatApi with QuestionDto methods
+export const chatQuestionsApi = {
+  getQuestionsDto: (mode: string): Promise<any[]> =>
+    api.get(`/chat/questions-dto/${mode}`),
+  sendQuestionDto: (mode: string, data: { question: string }): Promise<any> =>
+    api.post(`/chat/questions-dto/${mode}`, data),
+  answerQuestionDto: (questionId: string, data: { answer: string }): Promise<any> =>
+    api.post(`/chat/questions-dto/${questionId}/answer`, data),
+  deleteQuestionDto: (questionId: string): Promise<void> =>
+    api.delete(`/chat/questions-dto/${questionId}`),
+  archiveAnsweredQuestionsDto: (mode: string): Promise<{ archived: number; mode: string }> =>
+    api.post(`/chat/questions-dto/${mode}/archive`)
+};

@@ -11,10 +11,17 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose is not installed"
+# Поддержка docker compose v2 и docker-compose v1
+if command -v docker &> /dev/null && docker compose version &> /dev/null; then
+    COMPOSE_CMD="docker compose"
+elif command -v docker-compose &> /dev/null; then
+    COMPOSE_CMD="docker-compose"
+else
+    echo "❌ Docker Compose is not installed (neither v1 nor v2)"
     exit 1
 fi
+
+echo "📦 Using: $COMPOSE_CMD"
 
 # Создание директорий для SSL
 mkdir -p docker/nginx/ssl
@@ -38,11 +45,11 @@ fi
 
 # Остановка старых контейнеров
 echo "🛑 Stopping old containers..."
-docker-compose down
+$COMPOSE_CMD down
 
 # Запуск
 echo "🐳 Starting containers..."
-docker-compose up -d
+$COMPOSE_CMD up -d
 
 echo ""
 echo "✅ Platform started successfully!"
@@ -51,11 +58,12 @@ echo "📍 Access URLs:"
 echo "   Main site:     https://platform.local"
 echo "   API:           https://api.platform.local"
 echo "   Keycloak:      https://auth.platform.local"
+echo "   CDN:           http://localhost:8001"
 echo ""
 echo "👤 Test credentials:"
 echo "   Admin:      admin / admin123"
 echo "   Moderator:  moderator / moderator123"
 echo "   User:       user / user123"
 echo ""
-echo "📊 Check status: docker-compose ps"
-echo "📝 View logs:    docker-compose logs -f"
+echo "📊 Check status: $COMPOSE_CMD ps"
+echo "📝 View logs:    $COMPOSE_CMD logs -f"

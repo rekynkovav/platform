@@ -1,7 +1,12 @@
 package com.platform.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.platform.exception.GlobalExceptionHandler;
+import com.platform.model.dto.ChatRoomDto;
 import com.platform.model.dto.MessageDto;
+import com.platform.model.dto.QuestionDto;
+import com.platform.service.ChatRoomService;
 import com.platform.service.ChatService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,291 +14,233 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import static com.platform.controller.TestSecurityHelper.securityContextFilter;
+import static com.platform.controller.TestSecurityHelper.withAuth;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ChatControllerTest {
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
 
-    @Mock
-    private ChatService chatService;
+    @Mock private ChatService chatService;
+    @Mock private ChatRoomService chatRoomService;
 
     @InjectMocks
     private ChatController chatController;
 
     private String userId;
-    private UUID userIdUuid;
-    private String messageId;
-    private UUID messageIdUuid;
-    private String roomSlug;
+    private Jwt userJwt;
+    private Jwt adminJwt;
+    private JwtAuthenticationToken userAuth;
+    private JwtAuthenticationToken adminAuth;
+    private MessageDto messageDto;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(chatController).build();
-        objectMapper = new ObjectMapper();
+        mockMvc = MockMvcBuilders.standaloneSetup(chatController)
+                .addFilters(securityContextFilter())
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
+        objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
-        userId = "user-123";
-        userIdUuid = UUID.fromString(userId);
-        messageId = "message-456";
-        messageIdUuid = UUID.fromString(messageId);
-        roomSlug = "general-chat";
-    }
+        userId = UUID.randomUUID().toString();
 
-    @Test
-    void sendToGeneralChat_ValidRequest_ReturnsMessageDto() throws Exception {
-        // Arrange
-        String content = "Hello world!";
-        MessageDto expectedResponse = MessageDto.builder()
-                .id(messageIdUuid)
-                .content(content)
-                .userId(userIdUuid)
-                .userName("TestUser")
-                .chatType("general")
-                .createdAt(Instant.now())
+        userJwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .claim("sub", userId)
+                .claim("preferred_username", "user")
+                .claim("realm_access.roles", "USER_0")
                 .build();
 
-        when(chatService.sendToGeneralChat(eq(userId), eq(content), isNull()))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(post("/api/chat/general")
-                        .header("X-User-Id", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\": \"" + content + "\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(messageId))
-                .andExpect(jsonPath("$.content").value(content))
-                .andExpect(jsonPath("$.chatType").value("general"));
-    }
-
-    @Test
-    void sendToGeneralChat_WithMedia_ReturnsMessageDto() throws Exception {
-        // Arrange
-        String content = "Hello with media!";
-        String mediaId = "media-789";
-        MessageDto expectedResponse = MessageDto.builder()
-                .id(messageIdUuid)
-                .content(content)
-                .userId(userIdUuid)
-                .mediaId(UUID.fromString(mediaId))
-                .mediaType("image/jpeg")
-                .fileName("test.jpg")
-                .chatType("general")
-                .createdAt(Instant.now())
+        adminJwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .claim("sub", userId)
+                .claim("preferred_username", "admin")
+                .claim("realm_access.roles", "SUPER_ADMIN")
                 .build();
 
-        when(chatService.sendToGeneralChat(eq(userId), eq(content), eq(mediaId)))
-                .thenReturn(expectedResponse);
+        userAuth = new JwtAuthenticationToken(userJwt, List.of(new SimpleGrantedAuthority("ROLE_USER_0")));
+        adminAuth = new JwtAuthenticationToken(adminJwt, List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
 
-        // Act & Assert
-        mockMvc.perform(post("/api/chat/general")
-                        .header("X-User-Id", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\": \"" + content + "\", \"mediaId\": \"" + mediaId + "\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.mediaId").value(mediaId))
-                .andExpect(jsonPath("$.mediaType").value("image/jpeg"))
-                .andExpect(jsonPath("$.fileName").value("test.jpg"));
-    }
-
-    @Test
-    void sendToGeneralChat_MissingUserId_ReturnsBadRequest() throws Exception {
-        // Arrange
-        String content = "Hello world!";
-
-        // Act & Assert
-        mockMvc.perform(post("/api/chat/general")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\": \"" + content + "\"}"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void sendToGeneralChat_EmptyContent_ReturnsBadRequest() throws Exception {
-        // Arrange
-        String emptyContent = "";
-
-        // Act & Assert
-        mockMvc.perform(post("/api/chat/general")
-                        .header("X-User-Id", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\": \"" + emptyContent + "\"}"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void sendPrivateMessage_ValidRequest_ReturnsMessageDto() throws Exception {
-        // Arrange
-        String content = "Private message";
-        String recipientId = "recipient-789";
-        MessageDto expectedResponse = MessageDto.builder()
-                .id(messageIdUuid)
-                .content(content)
-                .userId(userIdUuid)
-                .recipientId(UUID.fromString(recipientId))
-                .userName("TestUser")
-                .chatType("private")
-                .createdAt(Instant.now())
-                .build();
-
-        when(chatService.sendPrivateMessage(eq(userId), eq(recipientId), eq(content), isNull()))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(post("/api/chat/private")
-                        .header("X-User-Id", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"recipientId\": \"" + recipientId + "\", \"content\": \"" + content + "\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.recipientId").value(recipientId))
-                .andExpect(jsonPath("$.chatType").value("private"));
-    }
-
-    @Test
-    void getMessagesByRoom_ValidRequest_ReturnsMessages() throws Exception {
-        // Arrange
-        MessageDto message1 = MessageDto.builder()
+        messageDto = MessageDto.builder()
                 .id(UUID.randomUUID())
-                .content("Message 1")
-                .userId(userIdUuid)
-                .userName("User1")
-                .roomSlug(roomSlug)
-                .createdAt(Instant.now().minusSeconds(300))
+                .content("Hello!")
+                .userId(UUID.fromString(userId))
+                .userName("user")
+                .chatType("room")
+                .roomSlug("general")
+                .createdAt(LocalDateTime.now())
                 .build();
 
-        MessageDto message2 = MessageDto.builder()
-                .id(UUID.randomUUID())
-                .content("Message 2")
-                .userId(UUID.randomUUID())
-                .userName("User2")
-                .roomSlug(roomSlug)
-                .createdAt(Instant.now().minusSeconds(150))
-                .build();
+        // Глобальные lenient stubs для методов, вызываемых с разными аргументами
+        lenient().when(chatService.getMessagesByRoom(anyString(), anyInt(), any(), anyString()))
+                .thenReturn(List.of(messageDto));
+        lenient().when(chatService.sendMessageToRoom(anyString(), anyString(), anyString(), any(), anyString()))
+                .thenReturn(messageDto);
+    }
 
-        List<MessageDto> expectedResponse = List.of(message1, message2);
+    // ==================== GET /api/chat/{roomSlug} ====================
 
-        when(chatService.getMessagesByRoom(eq(roomSlug), isNull(), isNull(), eq(userId)))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/chat/room/{slug}", roomSlug)
-                        .header("X-User-Id", userId))
+    @Test
+    void getMessagesByRoom_ValidRoom_ReturnsOk() throws Exception {
+        mockMvc.perform(get("/api/chat/{roomSlug}", "general")
+                        .with(withAuth(userAuth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].roomSlug").value(roomSlug))
-                .andExpect(jsonPath("$[1].roomSlug").value(roomSlug));
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].content").value("Hello!"));
     }
 
     @Test
-    void getMessagesByRoom_WithPagination_ReturnsMessages() throws Exception {
-        // Arrange
-        String before = "2024-01-15T10:30:00Z";
-        Integer limit = 50;
+    void getMessagesByRoom_RoomNotFound_Returns404() throws Exception {
+        when(chatService.getMessagesByRoom(eq("nonexistent"), anyInt(), any(), anyString()))
+                .thenThrow(new com.platform.exception.ResourceNotFoundException("not found"));
 
-        MessageDto message = MessageDto.builder()
-                .id(UUID.randomUUID())
-                .content("Old message")
-                .userId(userIdUuid)
-                .userName("User1")
-                .roomSlug(roomSlug)
-                .createdAt(Instant.parse(before).minusSeconds(60))
-                .build();
-
-        List<MessageDto> expectedResponse = List.of(message);
-
-        when(chatService.getMessagesByRoom(eq(roomSlug), eq(before), eq(limit), eq(userId)))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/chat/room/{slug}", roomSlug)
-                        .header("X-User-Id", userId)
-                        .param("before", before)
-                        .param("limit", limit.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
-    }
-
-    @Test
-    void getGeneralMessages_ValidRequest_ReturnsMessages() throws Exception {
-        // Arrange
-        String before = "2024-01-15T10:30:00Z";
-
-        MessageDto message = MessageDto.builder()
-                .id(UUID.randomUUID())
-                .content("General message")
-                .userId(userIdUuid)
-                .userName("User1")
-                .chatType("general")
-                .createdAt(Instant.parse(before).minusSeconds(60))
-                .build();
-
-        List<MessageDto> expectedResponse = List.of(message);
-
-        when(chatService.getGeneralMessages(eq(before)))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/chat/general")
-                        .param("before", before))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].chatType").value("general"));
-    }
-
-    @Test
-    void markAsRead_ValidRequest_ReturnsOk() throws Exception {
-        // Arrange
-        when(chatService.markAsRead(eq(messageId), eq(userId))).thenReturn(true);
-
-        // Act & Assert
-        mockMvc.perform(post("/api/chat/messages/{id}/read", messageId)
-                        .header("X-User-Id", userId))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void markAsRead_MessageNotFound_ReturnsNotFound() throws Exception {
-        // Arrange
-        String nonExistentMessageId = "non-existent-message";
-        when(chatService.markAsRead(eq(nonExistentMessageId), eq(userId)))
-                .thenThrow(new com.platform.exception.ResourceNotFoundException("Message not found"));
-
-        // Act & Assert
-        mockMvc.perform(post("/api/chat/messages/{id}/read", nonExistentMessageId)
-                        .header("X-User-Id", userId))
+        mockMvc.perform(get("/api/chat/{roomSlug}", "nonexistent")
+                        .with(withAuth(userAuth)))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    void getUnreadCount_ValidRequest_ReturnsCount() throws Exception {
-        // Arrange
-        long unreadCount = 5L;
-        when(chatService.getUnreadCount(eq(userId))).thenReturn(unreadCount);
+    void getMessagesByRoom_AccessDenied_Returns403() throws Exception {
+        when(chatService.getMessagesByRoom(eq("private-room"), anyInt(), any(), anyString()))
+                .thenThrow(new org.springframework.security.access.AccessDeniedException("no access"));
 
-        // Act & Assert
-        mockMvc.perform(get("/api/chat/unread-count")
-                        .header("X-User-Id", userId))
+        mockMvc.perform(get("/api/chat/{roomSlug}", "private-room")
+                        .with(withAuth(userAuth)))
+                .andExpect(status().isForbidden());
+    }
+
+    // ==================== POST /api/chat/{roomSlug} ====================
+
+    @Test
+    void sendMessageToRoom_ReturnsOk() throws Exception {
+        MessageDto.SendRequest request = new MessageDto.SendRequest();
+        request.setContent("Hi there");
+
+        mockMvc.perform(post("/api/chat/{roomSlug}", "general")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(withAuth(userAuth)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("5"));
+                .andExpect(jsonPath("$.content").value("Hello!"));
+    }
+
+    // ==================== GET /api/chat/rooms ====================
+
+    @Test
+    void getRooms_ReturnsList() throws Exception {
+        ChatRoomDto dto = ChatRoomDto.builder()
+                .slug("questions-general").type("question").name("General Q&A").isActive(true).build();
+        when(chatRoomService.getQuestionRoomsDto()).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/chat/rooms")
+                        .with(withAuth(userAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].slug").value("questions-general"));
+    }
+
+    // ==================== Legacy: GET /api/chat/unread ====================
+
+    @Test
+    void getUnreadCount_ReturnsNumber() throws Exception {
+        when(chatService.getUnreadCount(anyString())).thenReturn(7L);
+
+        mockMvc.perform(get("/api/chat/unread")
+                        .with(withAuth(userAuth)))
+                .andExpect(status().isOk());
+    }
+
+    // ==================== Questions DTO ====================
+
+    @Test
+    void getQuestions_ReturnsList() throws Exception {
+        QuestionDto q = QuestionDto.builder()
+                .id("q-1").question("How?").mode("nutrition").isAnswered(false)
+                .createdAt(LocalDateTime.now()).build();
+        when(chatService.getQuestionsByMode(eq("nutrition"), anyString())).thenReturn(List.of(q));
+
+        mockMvc.perform(get("/api/chat/questions-dto/{mode}", "nutrition")
+                        .with(withAuth(userAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].question").value("How?"));
     }
 
     @Test
-    void getUnreadCount_MissingUserId_ReturnsBadRequest() throws Exception {
-        // Act & Assert
-        mockMvc.perform(get("/api/chat/unread-count"))
-                .andExpect(status().isBadRequest());
+    void createQuestion_ReturnsCreated() throws Exception {
+        QuestionDto.CreateRequest request = new QuestionDto.CreateRequest();
+        request.setQuestion("What is protein?");
+
+        QuestionDto result = QuestionDto.builder()
+                .id("q-2").question("What is protein?").mode("nutrition")
+                .isAnswered(false).createdAt(LocalDateTime.now()).build();
+
+        when(chatService.createQuestion(eq("nutrition"), any(QuestionDto.CreateRequest.class), anyString()))
+                .thenReturn(result);
+
+        mockMvc.perform(post("/api/chat/questions-dto/{mode}", "nutrition")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(withAuth(userAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.question").value("What is protein?"));
+    }
+
+    @Test
+    void answerQuestion_AdminCanAnswer() throws Exception {
+        QuestionDto.AnswerRequest request = new QuestionDto.AnswerRequest();
+        request.setAnswer("Protein is essential.");
+
+        QuestionDto result = QuestionDto.builder()
+                .id("q-1").question("How?").answer("Protein is essential.")
+                .isAnswered(true).answeredBy("admin").mode("nutrition").build();
+
+        when(chatService.answerQuestion(eq("q-1"), any(QuestionDto.AnswerRequest.class), anyString()))
+                .thenReturn(result);
+
+        mockMvc.perform(post("/api/chat/questions-dto/{questionId}/answer", "q-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(withAuth(adminAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.answered").value(true));
+    }
+
+    @Test
+    void deleteQuestion_Returns204() throws Exception {
+        doNothing().when(chatService).deleteQuestion(eq("q-1"), anyString());
+
+        mockMvc.perform(delete("/api/chat/questions-dto/{questionId}", "q-1")
+                        .with(withAuth(adminAuth)))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void archiveAnsweredQuestions_ReturnsCount() throws Exception {
+        when(chatService.archiveAnsweredQuestions(eq("nutrition"), anyString())).thenReturn(3);
+
+        mockMvc.perform(post("/api/chat/questions-dto/{mode}/archive", "nutrition")
+                        .with(withAuth(adminAuth)))
+                .andExpect(status().isOk());
     }
 }

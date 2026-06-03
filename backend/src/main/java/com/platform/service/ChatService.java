@@ -9,7 +9,6 @@ import com.platform.repository.MediaFileRepository;
 import com.platform.repository.MessageRepository;
 import com.platform.repository.ChatRoomPermissionRepository;
 import org.springframework.security.access.AccessDeniedException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -27,6 +26,7 @@ import com.platform.repository.ChatRoomRepository;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,7 +43,6 @@ public class ChatService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomService chatRoomService;
     private final ChatRoomPermissionRepository chatRoomPermissionRepository;
-    // private final NotificationService notificationService;
 
     public ChatService(MessageRepository messageRepository,
                       UserService userService,
@@ -59,33 +58,25 @@ public class ChatService {
         this.chatRoomPermissionRepository = chatRoomPermissionRepository;
     }
 
+    // ==================================================================
+    // === LEGACY МЕТОДЫ (совместимость) ===
+    // ==================================================================
+
     @Timed(value = "chat.get_general_messages", description = "Time to get general messages")
     @Transactional(readOnly = true, timeout = 5)
     public List<MessageDto> getGeneralMessages(int limit, String before) {
         try {
-            log.debug("Getting general messages, limit: {}, before: {}", limit, before);
             Pageable pageable = PageRequest.of(0, limit);
             List<Message> messages;
-
             if (before != null && !before.isEmpty()) {
                 Instant beforeInstant = Instant.parse(before);
-                messages = messageRepository.findByChatTypeAndCreatedAtBefore(
-                        "general", beforeInstant, pageable);
+                messages = messageRepository.findByChatTypeAndCreatedAtBefore("general", beforeInstant, pageable);
             } else {
                 messages = messageRepository.findByChatTypeOrderByCreatedAtDesc("general", pageable);
             }
-
-            log.debug("Retrieved {} general messages", messages.size());
-            return messages.stream()
-                    .map(this::toDto)
-                    .collect(Collectors.toList());
-
+            return messages.stream().map(this::toDto).collect(Collectors.toList());
         } catch (DateTimeParseException e) {
-            log.error("Invalid date format for 'before' parameter: {}", before, e);
             throw new IllegalArgumentException("Некорректный формат даты: " + before, e);
-        } catch (Exception e) {
-            log.error("Error getting general messages: {}", e.getMessage(), e);
-            throw new RuntimeException("Ошибка при получении общих сообщений: " + e.getMessage(), e);
         }
     }
 
@@ -93,66 +84,44 @@ public class ChatService {
     public List<MessageDto> getAdminGroupMessages(int limit, String before) {
         Pageable pageable = PageRequest.of(0, limit);
         List<Message> messages;
-
         if (before != null && !before.isEmpty()) {
             Instant beforeInstant = Instant.parse(before);
-            messages = messageRepository.findByChatTypeAndCreatedAtBefore(
-                    "admin_group", beforeInstant, pageable);
+            messages = messageRepository.findByChatTypeAndCreatedAtBefore("admin_group", beforeInstant, pageable);
         } else {
             messages = messageRepository.findByChatTypeOrderByCreatedAtDesc("admin_group", pageable);
         }
-
-        return messages.stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return messages.stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Timed(value = "chat.get_private_messages", description = "Time to get private messages")
     public List<MessageDto> getPrivateMessages(String userId, String otherUserId, int limit, String before) {
         Pageable pageable = PageRequest.of(0, limit);
         List<Message> messages;
-
         if (before != null && !before.isEmpty()) {
             Instant beforeInstant = Instant.parse(before);
-            messages = messageRepository.findPrivateMessagesBefore(
-                    userId, otherUserId, beforeInstant, pageable);
+            messages = messageRepository.findPrivateMessagesBefore(userId, otherUserId, beforeInstant, pageable);
         } else {
             messages = messageRepository.findPrivateMessages(userId, otherUserId, pageable);
         }
-
-        return messages.stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return messages.stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Timed(value = "chat.send_general", description = "Time to send message to general chat")
     @Transactional(rollbackFor = Exception.class, timeout = 10)
     public MessageDto sendToGeneralChat(String userId, String content, String mediaId) {
         String userName = userService.getUserName(userId);
-
-        // Получаем медиа данные заранее
         Optional<MediaFile> mediaOpt = getMediaFile(mediaId);
-
         Message message = Message.builder()
-                .id(UUID.randomUUID())
-                .content(content)
-                .userId(UUID.fromString(userId))
-                .userName(userName)
-                .chatType("general")
-                .isRead(false)
-                .createdAt(LocalDateTime.now())
+                .id(UUID.randomUUID()).content(content).userId(UUID.fromString(userId)).userName(userName)
+                .chatType("general").isRead(false).createdAt(LocalDateTime.now())
                 .mediaId(mediaOpt.map(m -> mediaId).orElse(null))
                 .mediaType(mediaOpt.map(MediaFile::getFileType).orElse(null))
                 .fileName(mediaOpt.map(MediaFile::getOriginalFilename).orElse(null))
                 .build();
-
         message = messageRepository.save(message);
-        log.info("Message sent to general chat: {} by {}, mediaId: {}", message.getId(), userId, mediaId);
-
         return toDto(message);
     }
 
-    // Совместимость со старым API
     public MessageDto sendToGeneralChat(String userId, String content) {
         return sendToGeneralChat(userId, content, null);
     }
@@ -161,29 +130,18 @@ public class ChatService {
     @Transactional
     public MessageDto sendToAdminGroup(String userId, String content, String mediaId) {
         String userName = userService.getUserName(userId);
-
         Optional<MediaFile> mediaOpt = getMediaFile(mediaId);
-
         Message message = Message.builder()
-                .id(UUID.randomUUID())
-                .content(content)
-                .userId(UUID.fromString(userId))
-                .userName(userName)
-                .chatType("admin_group")
-                .isRead(false)
-                .createdAt(LocalDateTime.now())
+                .id(UUID.randomUUID()).content(content).userId(UUID.fromString(userId)).userName(userName)
+                .chatType("admin_group").isRead(false).createdAt(LocalDateTime.now())
                 .mediaId(mediaOpt.map(m -> mediaId).orElse(null))
                 .mediaType(mediaOpt.map(MediaFile::getFileType).orElse(null))
                 .fileName(mediaOpt.map(MediaFile::getOriginalFilename).orElse(null))
                 .build();
-
         message = messageRepository.save(message);
-        log.info("Message sent to admin group: {} by {}, mediaId: {}", message.getId(), userId, mediaId);
-
         return toDto(message);
     }
 
-    // Совместимость со старым API
     public MessageDto sendToAdminGroup(String userId, String content) {
         return sendToAdminGroup(userId, content, null);
     }
@@ -192,64 +150,29 @@ public class ChatService {
     @Transactional
     public MessageDto sendPrivateMessage(String fromUserId, String toUserId, String content, String mediaId) {
         String fromUserName = userService.getUserName(fromUserId);
-        String toUserName = userService.getUserName(toUserId);
-
         Optional<MediaFile> mediaOpt = getMediaFile(mediaId);
-
         Message message = Message.builder()
-                .id(UUID.randomUUID())
-                .content(content)
-                .userId(UUID.fromString(fromUserId))
-                .userName(fromUserName)
-                .recipientId(UUID.fromString(toUserId))
-                .chatType("private")
-                .isRead(false)
-                .createdAt(LocalDateTime.now())
+                .id(UUID.randomUUID()).content(content).userId(UUID.fromString(fromUserId)).userName(fromUserName)
+                .recipientId(UUID.fromString(toUserId)).chatType("private").isRead(false).createdAt(LocalDateTime.now())
                 .mediaId(mediaOpt.map(m -> mediaId).orElse(null))
                 .mediaType(mediaOpt.map(MediaFile::getFileType).orElse(null))
                 .fileName(mediaOpt.map(MediaFile::getOriginalFilename).orElse(null))
                 .build();
-
         message = messageRepository.save(message);
-        log.info("Private message sent: {} -> {}, mediaId: {}", fromUserId, toUserId, mediaId);
-
         return toDto(message);
     }
 
-    // Совместимость со старым API
     public MessageDto sendPrivateMessage(String fromUserId, String toUserId, String content) {
         return sendPrivateMessage(fromUserId, toUserId, content, null);
     }
 
-    private Optional<MediaFile> getMediaFile(String mediaId) {
-        if (mediaId == null || mediaId.isEmpty()) {
-            return Optional.empty();
-        }
-        return mediaFileRepository.findById(mediaId);
-    }
-
     @Transactional
     public void markAsRead(String messageId, String userId) {
-        try {
-            log.debug("Marking message as read: messageId: {}, userId: {}", messageId, userId);
-
-            Message message = messageRepository.findById(UUID.fromString(messageId))
-                    .orElseThrow(() -> new ResourceNotFoundException("Message not found: " + messageId));
-
-            if (message.getRecipientId() != null && message.getRecipientId().equals(UUID.fromString(userId))) {
-                message.setIsRead(true);
-                messageRepository.save(message);
-                log.info("Message marked as read: {} by {}", messageId, userId);
-            } else {
-                log.warn("User {} is not the recipient of message {}", userId, messageId);
-            }
-
-        } catch (ResourceNotFoundException e) {
-            log.error("Message not found for mark as read: {}", messageId, e);
-            throw e;
-        } catch (Exception e) {
-            log.error("Error marking message {} as read by user {}: {}", messageId, userId, e.getMessage(), e);
-            throw new RuntimeException("Ошибка при отметке сообщения как прочитанного: " + e.getMessage(), e);
+        Message message = messageRepository.findById(UUID.fromString(messageId))
+                .orElseThrow(() -> new ResourceNotFoundException("Message not found: " + messageId));
+        if (message.getRecipientId() != null && message.getRecipientId().equals(UUID.fromString(userId))) {
+            message.setIsRead(true);
+            messageRepository.save(message);
         }
     }
 
@@ -271,14 +194,318 @@ public class ChatService {
         UUID roomUuid = UUID.fromString(roomId);
         UUID cursorUuid = cursor != null ? UUID.fromString(cursor) : null;
         Pageable pageable = PageRequest.of(0, limit);
-
         if (cursorUuid != null) {
             return messageRepository.findByRoomIdAndIdLessThanOrderByCreatedAtDesc(roomUuid, cursorUuid, pageable)
-                .stream().map(this::toDto).collect(Collectors.toList());
+                    .stream().map(this::toDto).collect(Collectors.toList());
         } else {
             return messageRepository.findByRoomId(roomUuid, pageable)
-                .stream().map(this::toDto).collect(Collectors.toList());
+                    .stream().map(this::toDto).collect(Collectors.toList());
         }
+    }
+
+    // ==================================================================
+    // === ПОТОЛОЧНЫЕ МЕТОДЫ (room-based) ===
+    // ==================================================================
+
+    @Cacheable(value = "chatMessages", key = "#roomSlug + '_' + #limit + '_' + #before")
+    public List<MessageDto> getMessagesByRoom(String roomSlug, int limit, Instant before, String userRole) {
+        ChatRoom room = chatRoomRepository.findBySlug(roomSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Chat room not found: " + roomSlug));
+        if (!chatRoomService.hasPermission(room.getId(), userRole, "read")) {
+            throw new AccessDeniedException("Нет прав на чтение комнаты: " + roomSlug);
+        }
+        List<Message> messages;
+        if (before == null) {
+            messages = messageRepository.findByRoomIdOrderByCreatedAtDesc(room.getId(), PageRequest.of(0, limit));
+        } else {
+            messages = messageRepository.findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(
+                    room.getId(), before, PageRequest.of(0, limit));
+        }
+        return messages.stream().map(this::toDto).toList();
+    }
+
+    @Timed(value = "chat.get_messages_by_room_paginated", description = "Time to get paginated messages by room")
+    @Cacheable(value = "chatMessagesPaginated", key = "#roomSlug + '_' + #page + '_' + #size")
+    public Page<MessageDto> getMessagesByRoomWithPagination(String roomSlug, int page, int size, String userRole) {
+        ChatRoom room = chatRoomRepository.findBySlug(roomSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Chat room not found: " + roomSlug));
+        if (!chatRoomService.hasPermission(room.getId(), userRole, "read")) {
+            throw new AccessDeniedException("Нет прав на чтение комнаты: " + roomSlug);
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        List<Message> messages = messageRepository.findByRoomId(room.getId(), pageable);
+        return new PageImpl<>(messages.stream().map(this::toDto).collect(Collectors.toList()), pageable, messages.size());
+    }
+
+    @CacheEvict(value = {"chatMessages", "unreadNotifications", "allNotifications"}, allEntries = true)
+    @Transactional(rollbackFor = Exception.class)
+    public MessageDto sendMessageToRoom(String roomSlug, String userId, String content, String mediaId, String userRole) {
+        ChatRoom room = chatRoomRepository.findBySlug(roomSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Chat room not found: " + roomSlug));
+        if (!chatRoomService.hasPermission(room.getId(), userRole, "read_write")) {
+            throw new AccessDeniedException("Нет прав на отправку сообщений в комнату: " + roomSlug);
+        }
+        String userName = userService.getUserName(userId);
+        Message message = Message.builder()
+                .id(UUID.randomUUID())
+                .userId(UUID.fromString(userId))
+                .userName(userName)
+                .content(content != null ? content : "")
+                .mediaId(mediaId)
+                .roomId(room.getId())
+                .roomSlug(room.getSlug())
+                .chatType("room")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+        Message saved = messageRepository.save(message);
+        log.info("Message sent to room {} by user {}", roomSlug, userId);
+        return toDto(saved);
+    }
+
+    // ==================================================================
+    // === QUESTION DTO — ПОЛНАЯ РЕАЛИЗАЦИЯ ===
+    // ==================================================================
+
+    /**
+     * Получить вопросы по режиму. Вопросы хранятся как сообщения в комнате questions-{mode}.
+     * Ответы — как дочерние сообщения с recipientId = id вопроса.
+     */
+    @Cacheable(value = "questionsByMode", key = "#mode + '_' + #userId")
+    public List<QuestionDto> getQuestionsByMode(String mode, String userId) {
+        String roomSlug = "questions-" + mode;
+        ChatRoom room = chatRoomRepository.findBySlug(roomSlug).orElse(null);
+        if (room == null) {
+            log.warn("Question room not found for mode: {}", mode);
+            return List.of();
+        }
+
+        // Получаем все сообщения из комнаты (вопросы и ответы)
+        List<Message> allMessages = messageRepository.findByRoomIdOrderByCreatedAtAsc(
+                room.getId(), PageRequest.of(0, 5000));
+
+        // Разделяем на вопросы (без recipientId) и ответы (с recipientId)
+        List<QuestionDto> questions = new ArrayList<>();
+        for (Message msg : allMessages) {
+            if (msg.getRecipientId() == null) {
+                // Это вопрос
+                QuestionDto q = QuestionDto.builder()
+                        .id(msg.getId().toString())
+                        .question(msg.getContent())
+                        .authorId(msg.getUserId() != null ? msg.getUserId().toString() : null)
+                        .authorName(msg.getUserName())
+                        .mode(mode)
+                        .isAnswered(false)
+                        .createdAt(msg.getCreatedAt())
+                        .build();
+                questions.add(q);
+            }
+        }
+
+        // Находим ответы для каждого вопроса
+        for (QuestionDto q : questions) {
+            for (Message msg : allMessages) {
+                if (msg.getRecipientId() != null && msg.getRecipientId().toString().equals(q.getId())) {
+                    q.setAnswer(msg.getContent());
+                    q.setAnswered(true);
+                    q.setAnsweredAt(msg.getCreatedAt());
+                    q.setAnsweredBy(msg.getUserName());
+                    break; // один ответ на вопрос
+                }
+            }
+        }
+
+        // Сортируем: неотвеченные сначала, затем по дате DESC
+        questions.sort((a, b) -> {
+            if (a.isAnswered() != b.isAnswered()) return a.isAnswered() ? 1 : -1;
+            return b.getCreatedAt().compareTo(a.getCreatedAt());
+        });
+
+        return questions;
+    }
+
+    /**
+     * Создать вопрос в комнате questions-{mode}
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = {"chatMessages", "questionsByMode"}, allEntries = true)
+    public QuestionDto createQuestion(String mode, QuestionDto.CreateRequest request, String userId) {
+        String roomSlug = "questions-" + mode;
+        ChatRoom room = chatRoomRepository.findBySlug(roomSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Комната вопросов не найдена: " + roomSlug));
+
+        String userName = userService.getUserName(userId);
+
+        Message message = Message.builder()
+                .id(UUID.randomUUID())
+                .userId(UUID.fromString(userId))
+                .userName(userName)
+                .content(request.getQuestion())
+                .roomId(room.getId())
+                .roomSlug(room.getSlug())
+                .chatType("question")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Message saved = messageRepository.save(message);
+        log.info("Question created in mode {} by user {}: {}", mode, userId, saved.getId());
+
+        return QuestionDto.builder()
+                .id(saved.getId().toString())
+                .question(saved.getContent())
+                .authorId(userId)
+                .authorName(userName)
+                .mode(mode)
+                .isAnswered(false)
+                .createdAt(saved.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * Ответить на вопрос. Создаёт сообщение с recipientId = questionId.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = {"chatMessages", "questionsByMode"}, allEntries = true)
+    public QuestionDto answerQuestion(String questionId, QuestionDto.AnswerRequest request, String adminId) {
+        UUID questionUuid;
+        try {
+            questionUuid = UUID.fromString(questionId);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Некорректный формат ID вопроса: " + questionId, e);
+        }
+
+        Message questionMsg = messageRepository.findById(questionUuid)
+                .orElseThrow(() -> new ResourceNotFoundException("Вопрос не найден: " + questionId));
+
+        String adminName = userService.getUserName(adminId);
+
+        // Создаём ответ как сообщение с recipientId = id вопроса
+        Message answerMsg = Message.builder()
+                .id(UUID.randomUUID())
+                .userId(UUID.fromString(adminId))
+                .userName(adminName)
+                .content(request.getAnswer())
+                .roomId(questionMsg.getRoomId())
+                .roomSlug(questionMsg.getRoomSlug())
+                .recipientId(questionUuid)
+                .chatType("answer")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        messageRepository.save(answerMsg);
+        log.info("Question {} answered by admin {}", questionId, adminId);
+
+        return QuestionDto.builder()
+                .id(questionId)
+                .question(questionMsg.getContent())
+                .authorId(questionMsg.getUserId() != null ? questionMsg.getUserId().toString() : null)
+                .authorName(questionMsg.getUserName())
+                .mode(extractModeFromSlug(questionMsg.getRoomSlug()))
+                .isAnswered(true)
+                .createdAt(questionMsg.getCreatedAt())
+                .answeredAt(answerMsg.getCreatedAt())
+                .answeredBy(adminName)
+                .answer(request.getAnswer())
+                .build();
+    }
+
+    /**
+     * Удаление вопроса по ID. Проверяет права: автор или админ.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = {"chatMessages", "questionsByMode"}, allEntries = true)
+    public void deleteQuestion(String questionId, String userId) {
+        UUID questionUuid;
+        try {
+            questionUuid = UUID.fromString(questionId);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Некорректный формат ID вопроса: " + questionId, e);
+        }
+
+        Message message = messageRepository.findById(questionUuid)
+                .orElseThrow(() -> new ResourceNotFoundException("Вопрос не найден: " + questionId));
+
+        boolean isAuthor = message.getUserId() != null && message.getUserId().toString().equals(userId);
+        boolean isAdmin = userService.isAdmin(userId);
+
+        if (!isAuthor && !isAdmin) {
+            throw new AccessDeniedException("Нет прав на удаление этого вопроса");
+        }
+
+        // Удаляем также все ответы на этот вопрос
+        List<Message> allInRoom = messageRepository.findByRoomIdOrderByCreatedAtAsc(
+                message.getRoomId(), PageRequest.of(0, 10000));
+        for (Message msg : allInRoom) {
+            if (questionUuid.equals(msg.getRecipientId())) {
+                messageRepository.delete(msg);
+            }
+        }
+
+        messageRepository.delete(message);
+        log.info("Question {} deleted by user {}", questionId, userId);
+    }
+
+    /**
+     * Архивирование отвеченных вопросов старше 24 часов.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = {"chatMessages", "questionsByMode"}, allEntries = true)
+    public int archiveAnsweredQuestions(String mode, String userId) {
+        String activeRoomSlug = "questions-" + mode;
+        String archivedRoomSlug = activeRoomSlug + "-archived";
+
+        ChatRoom room = chatRoomRepository.findBySlug(activeRoomSlug)
+                .orElseThrow(() -> new ResourceNotFoundException("Комната вопросов не найдена: " + activeRoomSlug));
+
+        // Создаём архивную комнату если не существует
+        chatRoomRepository.findBySlug(archivedRoomSlug).orElseGet(() -> {
+            ChatRoom archivedRoom = ChatRoom.builder()
+                    .slug(archivedRoomSlug)
+                    .name(room.getName() + " (архив)")
+                    .description("Архив отвеченных вопросов")
+                    .build();
+            return chatRoomRepository.save(archivedRoom);
+        });
+
+        List<Message> allMessages = messageRepository.findByRoomIdOrderByCreatedAtAsc(
+                room.getId(), PageRequest.of(0, 10000));
+
+        LocalDateTime cutoff = LocalDateTime.now().minusHours(24);
+        int archivedCount = 0;
+
+        for (Message msg : allMessages) {
+            if (msg.getRecipientId() == null && msg.getCreatedAt() != null && msg.getCreatedAt().isBefore(cutoff)) {
+                // Проверяем есть ли ответ
+                boolean hasAnswer = allMessages.stream()
+                        .anyMatch(m -> msg.getId().equals(m.getRecipientId()));
+                if (hasAnswer) {
+                    msg.setRoomSlug(archivedRoomSlug);
+                    messageRepository.save(msg);
+                    // Переносим и ответы
+                    for (Message answer : allMessages) {
+                        if (msg.getId().equals(answer.getRecipientId())) {
+                            answer.setRoomSlug(archivedRoomSlug);
+                            messageRepository.save(answer);
+                        }
+                    }
+                    archivedCount++;
+                }
+            }
+        }
+
+        log.info("Archived {} answered questions for mode {}", archivedCount, mode);
+        return archivedCount;
+    }
+
+    // ==================================================================
+    // === ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ===
+    // ==================================================================
+
+    private Optional<MediaFile> getMediaFile(String mediaId) {
+        if (mediaId == null || mediaId.isEmpty()) return Optional.empty();
+        return mediaFileRepository.findById(mediaId);
     }
 
     private MessageDto toDto(Message message) {
@@ -299,150 +526,17 @@ public class ChatService {
                 .build();
     }
 
-    /**
-     * Потолочный метод получения сообщений — с проверкой прав по роли пользователя
-     */
-    @Cacheable(value = "chatMessages", key = "#roomSlug + '_' + #limit + '_' + #before")
-    public List<MessageDto> getMessagesByRoom(String roomSlug, int limit, Instant before, String userRole) {
-        try {
-            log.debug("Getting messages for room: {}, limit: {}, before: {}, userRole: {}",
-                     roomSlug, limit, before, userRole);
-
-            ChatRoom room = chatRoomRepository.findBySlug(roomSlug)
-                    .orElseThrow(() -> new ResourceNotFoundException("Chat room not found: " + roomSlug));
-
-            // Проверка прав
-            if (!chatRoomService.hasPermission(room.getId(), userRole, "read")) {
-                log.warn("Access denied for user role {} to room {}", userRole, roomSlug);
-                throw new AccessDeniedException("Нет прав на чтение комнаты: " + roomSlug);
+    private String extractModeFromSlug(String slug) {
+        if (slug == null) return "general";
+        // questions-general -> general, questions-nutrition -> nutrition
+        if (slug.startsWith("questions-")) {
+            String mode = slug.substring("questions-".length());
+            // Убираем суффикс -archived если есть
+            if (mode.endsWith("-archived")) {
+                mode = mode.substring(0, mode.length() - "-archived".length());
             }
-
-            List<Message> messages;
-            if (before == null) {
-                messages = messageRepository.findByRoomIdOrderByCreatedAtDesc(room.getId(), PageRequest.of(0, limit));
-            } else {
-                messages = messageRepository.findByRoomIdAndCreatedAtBeforeOrderByCreatedAtDesc(
-                        room.getId(), before, PageRequest.of(0, limit));
-            }
-
-            log.debug("Retrieved {} messages for room {}", messages.size(), roomSlug);
-            return messages.stream().map(this::toDto).toList();
-
-        } catch (ResourceNotFoundException e) {
-            log.error("Chat room not found: {}", roomSlug, e);
-            throw e;
-        } catch (AccessDeniedException e) {
-            log.error("Access denied for room {}: {}", roomSlug, e.getMessage(), e);
-            throw e;
-        } catch (Exception e) {
-            log.error("Error getting messages for room {}: {}", roomSlug, e.getMessage(), e);
-            throw new RuntimeException("Ошибка при получении сообщений: " + e.getMessage(), e);
+            return mode;
         }
-    }
-
-    /**
-     * Метод для получения сообщений с пагинацией
-     */
-    @Timed(value = "chat.get_messages_by_room_paginated", description = "Time to get paginated messages by room")
-    @Cacheable(value = "chatMessagesPaginated", key = "#roomSlug + '_' + #page + '_' + #size")
-    public Page<MessageDto> getMessagesByRoomWithPagination(String roomSlug, int page, int size, String userRole) {
-        try {
-            log.debug("Getting paginated messages for room: {}, page: {}, size: {}, userRole: {}",
-                     roomSlug, page, size, userRole);
-
-            ChatRoom room = chatRoomRepository.findBySlug(roomSlug)
-                    .orElseThrow(() -> new ResourceNotFoundException("Chat room not found: " + roomSlug));
-
-            // Проверка прав
-            if (!chatRoomService.hasPermission(room.getId(), userRole, "read")) {
-                log.warn("Access denied for user role {} to room {}", userRole, roomSlug);
-                throw new AccessDeniedException("Нет прав на чтение комнаты: " + roomSlug);
-            }
-
-            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-            List<Message> messages = messageRepository.findByRoomId(room.getId(), pageable);
-
-            log.debug("Retrieved {} messages for room {} (page {})", messages.size(), roomSlug, page);
-            return new PageImpl<>(messages.stream().map(this::toDto).collect(Collectors.toList()), pageable, messages.size());
-
-        } catch (ResourceNotFoundException e) {
-            log.error("Chat room not found: {}", roomSlug, e);
-            throw e;
-        } catch (AccessDeniedException e) {
-            log.error("Access denied for room {}: {}", roomSlug, e.getMessage(), e);
-            throw e;
-        } catch (Exception e) {
-            log.error("Error getting paginated messages for room {}: {}", roomSlug, e.getMessage(), e);
-            throw new RuntimeException("Ошибка при получении сообщений: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Потолочный метод отправки сообщения — с проверкой прав
-     */
-    @CacheEvict(value = {"chatMessages", "unreadNotifications", "allNotifications"}, allEntries = true)
-    public MessageDto sendMessageToRoom(String roomSlug, String userId, String content, String mediaId, String userRole) {
-        try {
-            log.debug("Sending message to room: {}, userId: {}, content length: {}, mediaId: {}, userRole: {}",
-                     roomSlug, userId, content != null ? content.length() : 0, mediaId, userRole);
-
-            ChatRoom room = chatRoomRepository.findBySlug(roomSlug)
-                    .orElseThrow(() -> new ResourceNotFoundException("Chat room not found: " + roomSlug));
-
-            // Проверка прав на запись
-            if (!chatRoomService.hasPermission(room.getId(), userRole, "read_write")) {
-                log.warn("Write access denied for user role {} to room {}", userRole, roomSlug);
-                throw new AccessDeniedException("Нет прав на отправку сообщений в комнату: " + roomSlug);
-            }
-
-            Message message = Message.builder()
-                    .id(UUID.randomUUID())
-                    .userId(UUID.fromString(userId))
-                    .content(content != null ? content : "")
-                    .mediaId(mediaId)
-                    .roomId(room.getId())
-                    .roomSlug(room.getSlug())
-                    .build();
-
-            Message saved = messageRepository.save(message);
-
-            // === УВЕДОМЛЕНИЯ ДЛЯ ВКЛАДКИ ПОМОЩЬ ===
-            // Временно отключено из-за циклической зависимости
-            // if (room.getSlug().startsWith("questions-")) {
-            //     notificationService.notifyAboutNewQuestionMessage(saved, room);
-            // }
-
-            log.debug("Message sent successfully to room {} with id {}", roomSlug, saved.getId());
-            return toDto(saved);
-
-        } catch (ResourceNotFoundException e) {
-            log.error("Chat room not found for sending message: {}", roomSlug, e);
-            throw e;
-        } catch (AccessDeniedException e) {
-            log.error("Access denied for sending message to room {}: {}", roomSlug, e.getMessage(), e);
-            throw e;
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid UUID format for userId {}: {}", userId, e.getMessage(), e);
-            throw new IllegalArgumentException("Некорректный формат идентификатора пользователя: " + e.getMessage(), e);
-        } catch (Exception e) {
-            log.error("Error sending message to room {}: {}", roomSlug, e.getMessage(), e);
-            throw new RuntimeException("Ошибка при отправке сообщения: " + e.getMessage(), e);
-        }
-    }
-
-    // Заглушки для методов вопросов (QuestionDto)
-    public List<QuestionDto> getQuestionsByMode(String mode, String userId) {
-        log.warn("Method getQuestionsByMode not implemented - returning empty list");
-        return List.of();
-    }
-
-    public QuestionDto createQuestion(String mode, QuestionDto.CreateRequest request, String userId) {
-        log.warn("Method createQuestion not implemented - returning null");
-        return null;
-    }
-
-    public QuestionDto answerQuestion(String questionId, QuestionDto.AnswerRequest request, String adminId) {
-        log.warn("Method answerQuestion not implemented - returning null");
-        return null;
+        return "general";
     }
 }
