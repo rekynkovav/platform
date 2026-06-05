@@ -19,7 +19,7 @@
 | `react-dom` | ^18.2.0 | Рендеринг в DOM |
 | `react-router-dom` | ^6.20.0 | Маршрутизация (не используется активно) |
 | `keycloak-js` | ^24.0.3 | Аутентификация |
-| `axios` | ^1.7.2 | HTTP-к��иент |
+| `axios` | ^1.7.2 | HTTP-клиент |
 | `lodash` | ^4.17.21 | Утилиты (не используется в предоставленном коде) |
 | `react-window` | ^1.8.10 | Виртуализация списков (не внедрена) |
 | `react-scripts` | ^5.0.1 | Сборщик |
@@ -256,7 +256,7 @@ frontend/src/
 
 ### 24. `frontend/src/components/UserProfile/UserProfile.css`
 
-- Стили для профиля: карточки, подпи��ки, QR, банковские детали, аватар.
+- Стили для профиля: карточки, подпики, QR, банковские детали, аватар.
 - Содержит множество специфичных классов (`.profile-avatar-container`, `.period-card`, `.bank-details-grid`).
 - Адаптивная вёрстка, анимация fadeIn.
 
@@ -310,7 +310,7 @@ frontend/src/
 - **Магические строки**: сравнение ролей через `=== 'MODERATOR_ADMIN'` вместо `ROLES.MODERATOR_ADMIN`.
 - **Нет TypeScript** – все ошибки типов выявляются только в runtime.
 - **Нет тестов** – ни одного тестового файла.
-- **Нет разделения на слои** – бизнес-логика, API-вызовы, UI-логика пер��мешаны.
+- **Нет разделения на слои** – бизнес-логика, API-вызовы, UI-логика пермешаны.
 - **Неиспользуемая функциональность**: react-router, react-window.
 - **Удалённый хук useWebSocket** – сломал LiveBroadcastView и GeneralChat.
 - **Пустой хук useWebSocket.js** – занимает место, импорты сломаны.
@@ -347,3 +347,336 @@ frontend/src/
 - незавершённого рефакторинга (удаление хука без обновления зависимостей).
 
 Для перехода к стабильной production-версии требуется глубокий рефакторинг крупных компонентов, внедрение единого подхода к состоянию, TypeScript и тестирование.
+
+---
+
+## Анализ файлов backend (дополнение)
+
+### Общая характеристика
+
+Backend представляет собой Spring Boot 3.2.5 приложение. Кодовая база – около 200+ тысяч строк Java-кода (исходники + тесты). Проект является монолитным REST-сервером с встроенной WebSocket-поддержкой и гибридным кэшированием (Caffeine + Redis).
+
+### Структура проекта
+
+```
+backend/
+├── src/main/java/com/platform/
+│   ├── PlatformApplication.java         # Точка входа
+│   ├── aspect/                          # AOP аспекты (@Timed, @Counted)
+│   ├── config/                          # ~25 классов конфигурации (Security, WebSocket, Cache, Async, Jackson, Retry, Resilience, RateLimiting, Metrics, CORS, ProductionGuard, EnvValidator)
+│   ├── controller/                      # ~20 REST контроллеров
+│   ├── dto/                             # CreateBroadcastRequest (импорт из другого пакета)
+│   ├── exception/                       # 8 кастомных исключений + GlobalExceptionHandler
+│   ├── filter/                          # IpRateLimitFilter,
+│   ├── health/                          # Кастомные HealthIndicator (Redis, Database, Disk, AllServices)
+│   ├── model/                           # ~20 JPA-сущностей + перечисления
+│   ├── monitoring/                      # CircuitBreakerMonitor, MemoryMonitor, HotKeyMonitor, ConnectionPoolMonitor
+│   ├── repository/                      # ~15 Spring Data JPA репозиториев
+│   ├── security/                        # JwtValidationFilter, BruteForceProtectionFilter
+│   ├── service/                         # ~40 сервисов (бизнес-логика, интеграции)
+│   ├── util/                            # RoleUtils, SqlValidator, XssSanitizer, ValidationUtils, IdGenerator
+│   ├── validation/                      # FileValidator
+│   └── websocket/                       # ChatWebSocketHandler, BroadcastStatsWebSocketHandler, WebSocketHandshakeInterceptor, RedisWebSocketRegistry, RedisWebSocketSessionRegistry
+├── src/main/resources/
+│   ├── application.properties           # Основная конфигурация
+│   ├── application.yml                  # Альтернативная YAML-конфигурация
+│   ├── application-dev.yml             # Профиль разработки
+│   ├── application-prod.yml            # Профиль продакшена
+│   ├── application-staging.yml         # Профиль стейджинга
+│   ├── application-test.yml            # Тестовый профиль
+│   ├── logback-spring.xml              # Логирование (JSON)
+│   ├── db/changelog/                    # 50+ Liquibase миграций (v1–v13)
+│   └── static/                          # Статические ресурсы
+├── src/test/java/com/platform/          # ~100+ тестовых классов
+├── src/test/resources/                  # Тестовые конфиги
+├── Dockerfile                           # Многоступенчатая сборка
+├── docker/                              # Docker Compose, Keycloak настройки
+├── pom.xml                              # Maven проект
+└── *.md                                 # Документация
+```
+
+### Технологический стек backend
+
+| Категория | Технология | Версия |
+|-----------|-----------|--------|
+| Фреймворк | Spring Boot | 3.2.5 |
+| Язык | Java | 17 |
+| Сборка | Maven | 3.9 |
+| База данных | PostgreSQL (драйвер) | - |
+| Миграции | Liquibase | - |
+| Кэш | Caffeine + Spring Cache | 3.1.8 |
+| Распределённый кэш | Redis (Lettuce) | - |
+| ORM | Hibernate (через Spring Data JPA) | - |
+| Аутентификация | Keycloak (OAuth2 JWT) + admin-client | 24.0.3 |
+| API | Spring Web, REST, WebSocket | - |
+| Документация API | Springdoc OpenAPI | 2.5.0 |
+| Rate Limiting | bucket4j | 0.12.10 |
+| Circuit Breaker | Resilience4j (spring-cloud-starter) | 3.1.1 / 2.1.0 |
+| Retry | Spring Retry | - |
+| Мониторинг | Micrometer (Prometheus, Zipkin/Brave) | - |
+| Логирование | Logback + JSON | 0.1.5 |
+| Шифрование | AES/GCM, AES/CBC (кастомная реализация) | - |
+| Хранилище | AWS S3 SDK (Yandex Cloud) | 1.12.720 |
+| QR-коды | ZXing | 3.5.3 |
+| Тестирование | JUnit 5, Mockito, AssertJ, Spring Boot Test, Testcontainers, H2 | - |
+| Анализ покрытия | JaCoCo | 0.8.11 |
+| Видео | FFmpeg (вызовы через ProcessBuilder) | - |
+
+### Основные компоненты backend
+
+#### Контроллеры (REST API)
+
+| Контроллер | Путь | Описание |
+|------------|------|----------|
+| AdminController | `/api/admin` | Управление пользователями, постами, модерация, статистика |
+| ArchiveController | `/api/archives` | CRUD для архивов записей эфиров |
+| ChatController | `/api/chat` | Общий чат, админ-чат, приватные сообщения, вопросы/ответы |
+| CommentController | `/api/posts/{postId}/comments` | Комментарии к постам |
+| ContactController | `/api/contacts` | Контакты пользователей |
+| DashboardController | `/api/dashboard` | Данные для меню дашборда (stub) |
+| DemoController | `/api/demo` | Заглушки для 12 демо-эндпоинтов |
+| EventController | `/api/events` | События/эфиры |
+| EventMaterialController | `/api/events/materials` | Материалы разделов EventsHub |
+| FeedController | `/api/feed` | Лента новостей (главная, nutrition) |
+| HealthController | `/api/health` | Health checks (ffmpeg, WebSocket) |
+| LiveBroadcastController | `/api/broadcast` | Создание, запуск, остановка трансляций; RTMP webhook |
+| MediaController | `/api/media` | Загрузка, стриминг, скачивание медиа |
+| NotificationController | `/api/notifications` | Уведомления |
+| PaymentController | `/api/payments` | Платежи (создание, подтверждение админом, QR) |
+| PostController | `/api/posts` | CRUD постов |
+| ReactionController | `/api/posts/{postId}/reactions` | Лайки/реакции |
+| UserController | `/api/users` | Профиль и его обновление |
+| WebRTCController | `/api/webrtc` | WebRTC offer (заглушка) |
+
+#### Сервисы (бизнес-логика)
+
+**Основные сервисы:**
+- `AdminService` — управление пользователями, модерация, статистика
+- `ArchiveService` — архив записей
+- `BroadcastArchiveService` — архивирование стримов (HLS → MP4 через FFmpeg, загрузка в S3)
+- `ChatRoomService` — комнаты чата, права доступа
+- `ChatService` — сообщения, вопросы, пагинация
+
+**Сервисы безопасности и медиа:**
+- `SecureMediaService` — загрузка, стриминг, удаление медиа с проверкой прав
+- `EncryptionService` — AES-256 шифрование/дешифрование
+- `WatermarkService` — невидимые водяные знаки через FFmpeg
+- `HLSStreamingService` — HLS конвертация видео
+
+**Сервисы инфраструктуры:**
+- `LocalStorageService` / `S3StorageService` — хранилище (Local для dev, S3 для prod)
+- `MediaStorageService` — загрузка медиа через StorageService
+- `MediaQueueService` — очередь FFmpeg задач
+- `MediaCleanupService` — очистка старых HLS сегментов
+
+**Сервисы коммуникации:**
+- `NotificationService` — уведомления (создание, отправка через WebSocket)
+- `ResilienceService` — обёртка над Resilience4j
+- `KeycloakService` — управление ролями через Keycloak admin API
+- `AuditService` — логирование действий
+
+**Сервисы оплаты:**
+- `PaymentService` — создание платежей, подтверждение, истечение
+- `QRCodeService` — генерация QR-кодов и данных для СБП
+
+**Сервисы мониторинга:**
+- `MetricsService` — Micrometer счётчики, таймеры, gauges
+- `UploadLimitService` — лимиты загрузок (Redis)
+- `UserSessionService` — управление сессиями (блокировка токенов)
+- `StreamingFileService` — частичная загрузка файлов
+
+**Прочие сервисы:**
+- `UserService` — CRUD пользователей с кэшированием
+- `PostService` — CRUD постов, лента
+- `CommentService` — комментарии
+- `ReactionService` — реакции (toggle)
+- `EventService` — события
+- `EventMaterialService` — материалы разделов
+- `ContactService` — контакты
+- `MessageArchiveService` — архивация старых сообщений
+
+#### Модели (JPA-сущности)
+
+| Сущность | Таблица | Описание |
+|----------|---------|----------|
+| User | users | Пользователи |
+| Post | posts | Посты (категории: general, nutrition и т.д.) |
+| Comment | comments | Комментарии к постам |
+| Reaction | reactions | Лайки/реакции |
+| Event | events | События/эфиры |
+| Message | messages | Сообщения чата (партиционированы по месяцам) |
+| Archive | archives | Архивы записей |
+| LiveBroadcast | live_broadcasts | Прямые трансляции |
+| Payment | payments | Платежи (6 статусов: PENDING → ... → REFUNDED) |
+| MediaFile | media_files | Медиафайлы (зашифрованные) |
+| AccessLog | access_logs | Логи доступа к медиа |
+| Contact | contacts | Контакты пользователей |
+| EventMaterial | event_materials | Материалы разделов EventsHub |
+| ChatRoom | chat_rooms | Комнаты чата |
+| ChatRoomPermission | chat_room_permissions | Права доступа к комнатам |
+| Notification | notifications | Уведомления |
+
+#### DTO (Data Transfer Objects)
+
+- `UserDto`, `PostDto`, `CommentDto`, `EventDto`, `ArchiveDto`, `PaymentDto`, `MessageDto`, `ChatRoomDto`, `QuestionDto`, `ReactionDto`, `ContactDto`, `MediaFileDto`, `LiveBroadcastDto`, `AdminStatsDto`, `EventMaterialDto`, `CreateBroadcastRequest`
+
+#### Репозитории (Spring Data JPA)
+
+Все репозитории используют кастомные запросы (`@Query`), модифицирующие методы (`@Modifying`), агрегации (`COUNT`, `SUM`). Примеры:
+
+- `MessageRepository` — сложные запросы для пагинации, курсора, приватных сообщений, подсчёта новых
+- `PostRepository` — лента с фильтром по категории
+- `LiveBroadcastRepository` — инкремент/декремент зрителей
+- `ArchiveRepository` — поиск по `startTime`
+- `PaymentRepository` — поиск истёкших платежей, ожидающих подтверждения
+- `MediaFileRepository` — инкремент просмотров/скачиваний
+- `NotificationRepository` — непрочитанные уведомления
+
+#### Конфигурации
+
+| Конфигурация | Назначение |
+|--------------|-----------|
+| SecurityConfig | OAuth2 resource server, CORS, CSRF, JWT converter |
+| WebSocketConfig | Регистрация WebSocket хендлеров |
+| CacheConfig | Redis cache manager с разными TTL для разных кэшей |
+| AsyncConfig | Thread pool для @Async (task, ffmpeg, email) |
+| JacksonConfig | ObjectMapper с JavaTimeModule, безопасные настройки |
+| CorsConfig | CORS для `/api/**` |
+| PlatformCircuitBreakerConfig | Circuit breaker для БД и внешних API |
+| ResilienceConfig | Keycloak CB, retry, bulkhead, time limiter |
+| RetryConfig | RetryTemplate для БД и внешних API |
+| MetricsConfig | Включение AOP для @Timed |
+| RateLimitingConfig | Redis template для bucket4j |
+| ProductionGuard | Проверка конфигурации при продакшен-профиле |
+| EnvValidator | Валидация переменных окружения при старте |
+
+#### Обработка ошибок
+
+`GlobalExceptionHandler` обрабатывает:
+
+| Исключение | HTTP статус |
+|-----------|-------------|
+| ResourceNotFoundException | 404 |
+| AccessDeniedException | 403 |
+| BusinessException | 400 |
+| MethodArgumentNotValidException | 400 |
+| ConstraintViolationException | 400 |
+| HttpMessageNotReadableException | 400 |
+| MethodArgumentTypeMismatchException | 400 |
+| OptimisticLockingFailureException | 409 |
+| Остальные Exception | 500 |
+
+Также объявлены кастомные исключения: `BadRequestException`, `ConflictException`, `UnauthorizedException`, `ValidationException`.
+
+#### WebSocket
+
+| Компонент | Назначение |
+|-----------|-----------|
+| ChatWebSocketHandler | Обработка чат-сообщений (rate limiting, broadcast, retry) |
+| BroadcastStatsWebSocketHandler | Подсчёт зрителей, отправка статистики |
+| WebSocketHandshakeInterceptor | Проверка JWT при handshake |
+| RedisWebSocketRegistry | Регистрация сессий в Redis для кластеризации |
+| RedisWebSocketSessionRegistry | Хранение сессий, отправка сообщений через Redis |
+
+#### Фильтры
+
+| Фильтр | Назначение |
+|--------|-----------|
+| IpRateLimitFilter | Rate limiting по IP (Caffeine, разный лимит для auth/chat/payments) |
+| JwtValidationFilter | Валидация JWT, проверка срока действия |
+| BruteForceProtectionFilter | Защита логина от перебора (Redis, 5 попыток → блокировка 15 мин) |
+
+#### Мониторинг
+
+| Компонент | Назначение |
+|-----------|-----------|
+| CircuitBreakerMonitor | Логирование состояния circuit breaker каждые 10 сек |
+| MemoryMonitor | Логирование памяти, GC каждую минуту |
+| HotKeyMonitor | Отслеживание «горячих» ключей кэша |
+| ConnectionPoolMonitor | Статистика HikariCP пула |
+
+#### Тестирование
+
+Проект содержит **более 100 тестовых классов** (около 800 тестов). Покрытие включает:
+
+- **Unit-тесты сервисов** – все основные сервисы покрыты (ChatService, UserService, PaymentService, AdminService, CommentService, ReactionService, ArchiveService, EventMaterialService, BroadcastArchiveService, LiveBroadcastService, NotificationService, ContactService и др.)
+- **Unit-тесты контроллеров** – все контроллеры (через MockMvc standaloneSetup, ручной SecurityContextFilter)
+- **DataJpaTest** – репозитории (H2, PostgreSQL режим)
+- **Тесты конфигураций** – Security, Cors, Cache, Async, Jackson, CircuitBreaker, Retry, Resilience, WebSocket
+- **Тесты моделей и DTO** – Builder, сериализация
+- **Тесты утилит** – RoleUtils, SqlValidator, XssSanitizer, ValidationUtils
+- **Тесты фильтров** – IpRateLimitFilter, BruteForce
+- **Тесты HealthIndicators** – Redis, Database, Disk, AllServices
+- **Тесты WebSocket** – ChatWebSocketHandler, BroadcastStatsWebSocketHandler, RedisWebSocketRegistry, HandshakeInterceptor
+- **Тесты исключений** – все кастомные исключения, ErrorResponse
+- **Интеграционные тесты** – LiveBroadcastIntegrationTest (Testcontainers)
+
+Используемые тестовые библиотеки: JUnit 5, Mockito, AssertJ, Spring Boot Test, @DataJpaTest, @WebMvcTest, Testcontainers, H2.
+
+### База данных (Liquibase миграции)
+
+Миграции разбиты на версии v1–v13:
+
+- **v1**: 10 таблиц (users, posts, comments, reactions, events, messages, archives, live_broadcasts, notifications, indexes)
+- **v2**: начальные пользователи/роли
+- **v3**: media_files и payments
+- **v4**: media поля в messages
+- **v5**: chat_rooms, room_id в messages, room permissions
+- **v6**: дефолтные комнаты и права, индексы, версионность
+- **v7**: партиционирование messages по месяцам
+- **v8**: поля архивации в live_broadcasts
+- **v9**: очистка и начальные данные
+- **v10**: access_logs
+- **v11**: contacts
+- **v12**: event_materials
+- **v13**: исправление схемы notifications
+
+### Потенциальные проблемы backend
+
+1. **Конфликт конфигураций** — `bucket4j.enabled` включён в `application.properties`, но отключён в `application.yml`. Приоритет YAML выше, поэтому bucket4j может быть неактивен.
+
+2. **Размер multipart** — в `application.properties` сначала установлено `max-file-size=100MB`, затем переопределено на `10KB` для чата. Это может привести к путанице.
+
+3. **`enable_lazy_load_no_trans=true`** — может скрыть проблемы с ленивой загрузкой, но снижает производительность.
+
+4. **Избыточность тестов** — многие тесты проверяют только то, что метод не выбрасывает исключение, без проверки логики.
+
+5. **Большое количество тестовых классов** (> 100) замедляет сборку.
+
+6. **Отсутствие обработки `ValidationException`** — кастомное исключение не перехватывается `GlobalExceptionHandler`, может упасть с 500.
+
+7. **Смешение Builder и конструкторов** — единообразие не соблюдено.
+
+8. **`hibernate.cache.use_second_level_cache=false`** настройка в `application.properties`, хотя есть Spring Cache (Caffeine). Это нормально, но может ввести в заблуждение.
+
+9. **Тестовая конфигурация `TestJpaConfig`** исключает множество автоконфигураций, что может скрыть проблемы.
+
+10. **Большое количество тестов** может быть регрессионным бременем.
+
+### Анализ Dockerfile (backend)
+
+**Файл:** `backend/Dockerfile`
+
+**Многоступенчатая сборка:**
+- **Stage 1 (builder):** Образ `maven:3.9-eclipse-temurin-21`, рабочая директория `/app`. Выполняется `mvn dependency:go-offline`, затем копируются исходники из `backend/src/` и собирается jar (`mvn clean package -DskipTests`).
+- **Stage 2 (runtime):** Образ `eclipse-temurin:17-jre-alpine`, рабочая директория `/app`. Устанавливается `ffmpeg` (необходим для HLS и водяных знаков). Создаётся пользователь `platform`, каталог для логов, затем jar копируется из builder. Порт 8081. Запуск: `java $JAVA_OPTS -jar app.jar`.
+
+**Анализ:**
+- Размер образа минимизирован за счёт двух стадий.
+- Версия JDK в builder (21) не совпадает с runtime (17). Это может вызвать конфликт, если collector использует API 21. Но Maven собирает с target 17 (см. pom.xml), поэтому проблем быть не должно.
+- `ffmpeg` устанавливается в runtime, что необходимо для HLS и водяных знаков.
+- Используется непривилегированный пользователь (`platform`), что соответствует лучшим практикам безопасности.
+- Отсутствует `HEALTHCHECK`.
+- Файл не содержит инструкций для мультиплатформенной сборки (например, `--platform`).
+
+**Рекомендации:**
+- Добавить `HEALTHCHECK` для проверки работоспособности контейнера.
+- Указать явно `--platform=linux/amd64` при сборке для совместимости.
+- Объединить установку пакетов в одну команду для уменьшения числа слоёв.
+- Проверить, что версия Maven (3.9) совместима с Java 21.
+
+### Заключение по backend
+
+Backend представляет собой зрелое корпоративное приложение с богатой бизнес-логикой, реализованной в виде микросервисоподобных сервисов. Проект отличается высокой детализацией: отдельные сервисы для шифрования, HLS, водяных знаков, кэширования, rate limiting, circuit breaker. Тестирование покрывает практически все слои приложения, включая конфигурации и WebSocket. Некоторые проблемы (конфликт конфигов, избыточность тестов) не критичны и могут быть исправлены по мере развития проекта.
+
+Dockerfile реализован грамотно с учётом многоступенчатой сборки и безопасности, но может быть улучшен добавлением `HEALTHCHECK` и уточнением платформы.
