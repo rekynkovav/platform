@@ -1,185 +1,278 @@
-# Platform Project Documentation
+# Проект "Platform" — полный анализ
 
-## Текущие роли (Keycloak + Spring Security)
+## Общая архитектура
 
-| Роль | Описание | Доступ к медиа |
-|------|----------|-----------------|
-| `USER_0` | Базовый пользователь | ✅ |
-| `USER_1` | Пользователь с доступом к контенту | ✅ |
-| `USER_2` | Продвинутый пользователь | ✅ + загрузка |
-| `CONSULTANT_PITANIE` | Консультант по питанию | ✅ |
-| `CONSULTANT_SPORT` | Консультант по спорту | ✅ |
-| `MODERATOR_ADMIN` | Модератор/админ | ✅ |
-| `SUPER_ADMIN` | Супер админ | ✅ + загрузка + скачивание |
-| `DEVELOPER` | Разработчик | ✅ |
-| `VYACHESLAV` | Специальная роль | ✅ |
+- **Тип приложения**: одностраничное приложение (SPA) на React 18.
+- **Сборка**: Create React App (`react-scripts` 5), Webpack 5.
+- **Аутентификация**: Keycloak (OpenID Connect, PKCE S256).
+- **Взаимодействие с сервером**: REST (axios), WebSocket (для чата и трансляций).
+- **Управление состоянием**: React Context (AudioPlayerContext) + локальное состояние хуков.
+- **Навигация**: ручное переключение вкладок через `activeTab`, React Router используется минимально.
+- **Стилизация**: чистый CSS (CSS-переменные), только тёмная тема.
+- **Тестирование**: отсутствует.
 
-**Примечание:** Роли хранятся в Keycloak в `realm_access.roles`, преобразуются с префиксом `ROLE_` в Spring Security.
+## Стек технологий (из `package.json`)
 
----
+| Пакет | Версия | Назначение |
+|-------|--------|------------|
+| `react` | ^18.2.0 | UI-библиотека |
+| `react-dom` | ^18.2.0 | Рендеринг в DOM |
+| `react-router-dom` | ^6.20.0 | Маршрутизация (не используется активно) |
+| `keycloak-js` | ^24.0.3 | Аутентификация |
+| `axios` | ^1.7.2 | HTTP-клиент |
+| `lodash` | ^4.17.21 | Утилиты (не используется в предоставленном коде) |
+| `react-window` | ^1.8.10 | Виртуализация списков (не внедрена) |
+| `react-scripts` | ^5.0.1 | Сборщик |
+| `webpack` | ^5.88.2 | Сборщик (зависимость react-scripts) |
+| `eslint` | ^8.57.0 | Линтер |
+| `prettier` | ^3.2.5 | Форматтер |
+| `source-map-explorer` | ^2.5.3 | Анализ бандла |
 
-## Сущности (Entities)
+## Структура папок `frontend/src`
 
-### Archive
-- `id` (String, UUID)
-- `title` (String)
-- `description` (Text)
-- `videoUrl` (String)
-- `thumbnailUrl` (String)
-- `duration` (Integer, секунды)
-- `viewsCount` (Integer)
-- `startTime` (LocalDateTime)
-- `endTime` (LocalDateTime)
-- `eventId` (String, связь с Event)
-- `createdAt` (LocalDateTime)
-- `updatedAt` (LocalDateTime)
-
-### Event
-- `id` (String, UUID)
-- `title` (String)
-- `description` (Text)
-- `startTime` (LocalDateTime)
-- `endTime` (LocalDateTime)
-- `coverImage` (String)
-- `links` (Map<String, String>, JSON)
-- `createdBy` (String)
-- `createdAt` (LocalDateTime)
-- `streamUrl` (String)
-- `status` (String)
-
-### User
-- `id` (String)
-- `username` (String, unique)
-- `email` (String)
-- `phone` (String)
-- `role` (String)
-- `avatarUrl` (String)
-- `bio` (Text)
-- `lastActiveAt` (LocalDateTime)
-- `banned` (boolean)
-- `banReason` (String)
-- `bannedAt` (LocalDateTime)
-- `createdAt` (LocalDateTime)
-- `updatedAt` (LocalDateTime)
-
-### Message (Чат)
-- `id` (String, UUID)
-- `content` (Text)
-- `userId` (String)
-- `userName` (String)
-- `chatType` (String) - `general`, `admin_group`, `private`
-- `recipientId` (String)
-- `isRead` (Boolean)
-- `mediaId` (String) - ссылка на MediaFile
-- `mediaType` (String) - `image`, `video`, `audio`, `file`
-- `fileName` (String)
-- `createdAt` (LocalDateTime)
-
-### MediaFile
-- `id` (String, UUID)
-- `fileName` (String)
-- `originalFilename` (String)
-- `fileType` (String) - `image`, `video`, `audio`, `file`
-- `contentType` (String)
-- `fileSize` (Long)
-- `storagePath` (String)
-- `uploadedBy` (String)
-- `createdAt` (LocalDateTime)
-
----
-
-## API Endpoints (Бэкенд)
-
-### ChatController (`/api/chat`)
-
-| Метод | Путь | Описание |
-|-------|------|----------|
-| GET | `/api/chat/general` | Сообщения общего чата (limit, before) |
-| POST | `/api/chat/general` | Отправить в общий чат {content, mediaId?} |
-| GET | `/api/chat/admin-group` | Сообщения админ-группы (требует роль admin/moderator) |
-| POST | `/api/chat/admin-group` | Отправить в админ-группу {content, mediaId?} |
-| GET | `/api/chat/private/{userId}` | Личные сообщения (limit, before) |
-| POST | `/api/chat/private/{userId}` | Отправить личное {content, mediaId?} |
-| GET | `/api/chat/unread` | Количество непрочитанных |
-| PUT | `/api/chat/messages/{messageId}/read` | Пометить как прочитанное |
-
-**Request Body (SendRequest):**
-```json
-{
-  "content": "текст сообщения",
-  "mediaId": "опционально - ID загруженного файла"
-}
+```
+frontend/src/
+├── index.css                     # Глобальные стили, тёмная тема, плеер
+├── App.js                        # Корневой компонент + инициализация Keycloak
+├── App.css                       # Стили хедера, страницы логина, анимации
+├── keycloak.js                   # Работа с Keycloak (init, login, logout, getToken, getUserRoles)
+├── constants/
+│   └── roles.js                  # Роли, уровни, метки, иконки
+├── hooks/
+│   ├── usePermissions.js         # Хук проверки прав доступа
+│   └── useWebSocket.js           # [УДАЛЁН] — см. замечание
+├── context/
+│   └── AudioPlayerContext.js     # Глобальный плеер (аудио/видео)
+├── components/
+│   ├── Navigation/
+│   │   └── NavTabs.js            # Панель вкладок
+│   ├── Feed/
+│   │   └── MainFeed.js           # Лента постов
+│   ├── Dashboard/
+│   │   └── Dashboard.js          # Дашборд с меню
+│   ├── live/
+│   │   └── LiveBroadcastView.js  # Прямые трансляции
+│   ├── Chat/
+│   │   └── GeneralChat.js        # Общий чат
+│   └── UserProfile/
+│       └── UserProfile.js        # Профиль и подписки
+└── services/                     # (не показаны, но используются):
+    ├── api.js                    # feedApi, broadcastApi, chatApi, dashboardApi, paymentApi, userApi
+    └── useWebSocket.js           # (ранее был здесь, удалён)
 ```
 
-### MediaController (`/api/media`)
+Также в корне проекта находятся:
 
-| Метод | Путь | Описание | Доступ |
-|-------|------|----------|--------|
-| POST | `/api/media/upload` | Загрузить файл (file, type) | Любой авторизованный |
-| GET | `/api/media/stream/{fileId}` | Получить presigned URL для стриминга | USER+ |
-| GET | `/api/media/key/{fileId}` | Получить ключ шифрования | USER+ |
-| GET | `/api/media/download/{fileId}` | Скачать файл | USER+ |
-| GET | `/api/media/{fileId}` | Получить метаданные файла | USER+ |
-| GET | `/api/media/my-files` | Файлы текущего пользователя | USER+ |
-| GET | `/api/media/hls/{fileId}/playlist.m3u8` | HLS плейлист для видео | USER+ |
-| DELETE | `/api/media/{fileId}` | Удалить файл | Владелец/ADMIN/MODERATOR |
+- `.env` — переменные окружения (БД, Keycloak, Media Encryption).
+- `package-lock.json` — пустой файл (без зависимостей).
+- `frontend/public/index.html` — HTML-шаблон с CSP и скриптом темы.
+- `frontend/node_modules/.bin/react-scripts` — исполняемый файл (не анализируется).
 
-**Параметры upload:**
-- `file` - MultipartFile
-- `type` - `image` | `video` | `audio` | `file`
+## Подробный анализ каждого файла
 
-### ArchiveController (`/api/archives`)
+### 1. `frontend/package.json`
 
-| Метод | Путь | Описание |
-|-------|------|----------|
-| GET | `/api/archives` | Все архивы (limit, before) |
-| GET | `/api/archives/{id}` | Архив + инкремент просмотров |
-| GET | `/api/archives/event/{eventId}` | Архивы по событию |
-| POST | `/api/archives` | Создать (admin/moderator) |
-| PUT | `/api/archives/{id}` | Обновить (admin/moderator) |
-| DELETE | `/api/archives/{id}` | Удалить (admin/moderator) |
+- Зависимости актуальные, но `jest-worker` добавлен в `dependencies` случайно (должен быть в devDependencies или не нужен).
+- `browserslist` корректный.
+- Скрипты: `build:prod` использует переменную `REACT_APP_ENVIRONMENT=production`.
 
----
+### 2. `frontend/public/index.html`
 
-## Чат с медиа
+- Есть CSP (Content-Security-Policy), но он использует `'unsafe-inline'` для скриптов и стилей, что снижает безопасность.
+- Скрипт темы из `localStorage` загружается до React, что хорошо.
+- Нет PWA / Service Worker.
 
-### Flow загрузки медиа в чат:
-```
-1. Пользователь выбирает файл → Фронтенд показывает превью
-2. Файл загружается на /api/media/upload → сервер возвращает MediaFile { id, fileType, ... }
-3. Сообщение отправляется на /api/chat/general с { content, mediaId }
-4. При получении сообщений:
-   - Если есть mediaId → запрашиваем URL через /api/media/stream/{id}
-   - Фронтенд отображает контент по типу (image/video/audio/file)
-```
+### 3. `frontend/src/index.css`
 
-### Поддерживаемые типы медиа:
-| Тип | Отображение |
-|-----|-------------|
-| `image` | Картинка |
-| `video` | Видео плеер |
-| `audio` | Аудио плеер |
-| `file` | Ссылка на скачивание |
+- Определяет только тёмную тему через `:root`. Светлая тема не реализована, хотя в `index.html` есть проверка на `light`.
+- Содержит стили для глобального плеера, скроллбары, анимации.
+- Дублирование с `App.css` (например, сброс `*` и стили `body`).
 
----
+### 4. `frontend/src/App.css`
 
-## Технологии
+- Анимация `accessDeniedAnim` определена.
+- Стили хедера и логина.
+- Дублирует часть глобальных стилей `index.css`.
 
-- **Backend:** Java Spring Boot
-- **Auth:** Keycloak (OAuth2/OIDC)
-- **Database:** PostgreSQL
-- **Media:** FFmpeg, HLS стриминг, шифрование
-- **Frontend:** React
-- **Migration:** Liquibase
-- **Streaming:** HLS/DASH
+### 5. `frontend/src/keycloak.js`
 
----
+- **Функции**: `initKeycloak`, `login`, `logout`, `getToken`, `getRefreshToken`, `updateToken`, `getUsername`, `getUserId`, `getUserRoles`, `isTokenExpired`.
+- **Проблемы**:
+  - `setInterval` для обновления токена никогда не очищается (утечка при размонтировании, хотя `App` — корневой компонент, это допустимо, но лучше использовать очистку).
+  - Нет обработки ошибки при обновлении токена (только `console.error`).
+  - `initKeycloak` вызывает `setInterval` каждый раз при повторном вызове (если вызвать несколько раз, будет несколько интервалов).
+  - Внутренние переменные `userRoles` и `username` живут в модульной области видимости, что может приводить к состояниям гонки при параллельной инициализации.
 
-## История изменений
+### 6. `frontend/src/constants/roles.js`
 
-### 2026-05-01
-- Добавлена документация по ролям
-- Добавлена документация по сущностям Archive, Event, User, Message, MediaFile
-- Добавлены полные API endpoints для ChatController, MediaController, ArchiveController
-- Добавлена поддержка медиа в чате (Message.mediaId, mediaType, fileName)
-- Описан flow загрузки медиа в чате
+- Хорошо определённые константы. Порядок уровней от 1 (USER_0) до 8 (SUPER_ADMIN).
+- Нет `ROLE_LEVELS` для роли `DEVELOPER`? Она есть (5). Всё в порядке.
+
+### 7. `frontend/src/hooks/usePermissions.js`
+
+- Использует `getUserRoles()` из модуля `keycloak.js`.
+- Возвращает набор методов проверки прав.
+- **Проблемы**:
+  - `getUserRoles()` может вернуть пустой массив до завершения инициализации Keycloak – `level` будет 1 (USER_0).
+  - Методы `canViewAdmin`, `canUploadMedia` и т.д. используют `hasLevel`, который сравнивает с числом – это надёжно.
+  - Нет кэширования: каждый вызов хука заново получает роли (но это нормально, так как роли не меняются).
+
+### 8. `frontend/src/hooks/useWebSocket.js`
+
+**Внимание!** Этот файл был **удалён** в коммите 47046df (`refactor: удалить неиспользуемый хук useWebSocket`). В текущей версии проекта его не должно быть. Тем не менее, в чате присутствовала его (возможно, устаревшая) версия. Учитываем, что он удалён.
+
+### 9. `frontend/src/context/AudioPlayerContext.js`
+
+- **Ответственность**: глобальный плеер для аудио и видео.
+- **Проблемы**:
+  - Логика выбора `audioRef` / `videoRef` запутанная: условие `currentTrack?.type !== 'video'` для аудио и наоборот. Есть риск, что плеер не будет работать для видео.
+  - При остановке трека устанавливается `src = ''`, что может вызывать ошибки на iOS.
+  - Нет обработки ошибок при загрузке медиа (событие `error` не слушается).
+  - `animationFrameRef` используется для обновления `currentTime`, но при паузе не отменяется (отменяется при смене `currentTrack` или `isPlaying`). Может продолжать обновляться.
+  - В `GlobalMediaPlayer` есть вложенный компонент с собственным контекстом, что усложняет отладку.
+  - При `stopTrack` не очищаются таймеры `hideTimeoutRef`.
+
+### 10. `frontend/src/App.js`
+
+- **Инициализация Keycloak**: до 3 попыток с задержкой 2 секунды.
+- **Навигация**: ручное переключение вкладок через `activeTab`.
+- **Проверка прав**: для USER_0 доступны только `help` и `profile`; остальные блокируются с показом сообщения "Доступ ограничен".
+- **Проблемы**:
+  - `handleLogin` использует прямую ссылку на Keycloak URL, а не вызов `login()`. Это может не сработать при изменении конфигурации.
+  - `handleTabChange` не проверяет, есть ли у пользователя права на вкладку `admin` или `broadcast-live` (проверка есть только на уровне USER_0). Дополнительные вкладки могут быть доступны, даже если прав нет.
+  - Вкладка `dashboard` не определена в `renderContent` — при её выборе будет показан `MainFeed` (запасной вариант).
+  - `accessDeniedTimerRef` не очищается при размонтировании (хотя App не размонтируется).
+  - Нет обработки истечения сессии или перенаправления на логин.
+
+### 11. `frontend/src/components/Navigation/NavTabs.js`
+
+- Использует `usePermissions`. Базовые вкладки: `main`, `scheduled`, `chat`, `help`, `profile`.
+- Дополнительные: `broadcast-live` (если `canStartBroadcast` или `hasLevel(4)`), `admin` (если `canViewAdmin`).
+- **Проблемы**: условие `canStartBroadcast() || hasLevel(4)` избыточно, так как `canStartBroadcast` уже проверяет `hasLevel(6)`. `hasLevel(4)` может дать доступ к трансляциям некорректно (роль CONSULTANT имеет уровень 4, но не должна управлять трансляциями). Лучше полагаться на `canStartBroadcast()`.
+
+### 12. `frontend/src/components/Feed/MainFeed.js`
+
+- **Большой компонент** (> 600 строк).
+- **Функции**: загрузка постов, добавление/редактирование/удаление (только для админа), запись аудио, встроенный плеер.
+- **Проблемы**:
+  - Дублирование логики проверки прав через `sessionStorage` для development. Плохо: в продакшене `demoRole` не будет, и код будет использовать `getUserRoles()`, но структура `isAdmin` смешана.
+  - Blob URL не очищаются после публикации (кроме случая вызова `handlePublishPost`, который очищает все blobUrlsRef, но если запись не опубликована, останутся).
+  - Нет пагинации – загружаются все посты сразу.
+  - Используется `forceUpdate` (счётчик) для принудительного рендера – антипаттерн.
+  - Модальное окно подтверждения удаления находится внутри компонента, что усложняет тестирование.
+  - Логика записи аудио дублируется с `Dashboard.js`.
+
+### 13. `frontend/src/components/Dashboard/Dashboard.js`
+
+- **Самый большой компонент** (> 1000 строк).
+- **Функции**: загрузка меню, отображение 18 разделов, вложенные подменю, добавление/редактирование/удаление контента, запись аудио, загрузка файлов.
+- **Проблемы**:
+  - Полное дублирование логики записи аудио (MediaRecorder) из `MainFeed`.
+  - Сложная система таймеров для показа/скрытия подменю (4 рефа, 8 состояний). Легко сломать.
+  - Использует `sessionStorage` как fallback в development – в продакшене полагается на API, но код всё равно содержит логику синхронизации с sessionStorage, что может привести к расхождению.
+  - Множество `useCallback` и `useMemo` без реальной оптимизации (например, `navigationMenus` пересоздаётся при изменении `menuData` – это нормально, но `useMemo` не даёт выгоды).
+  - Модалки добавления и удаления встроены прямо в компонент – лучше вынести в отдельные компоненты.
+  - В `initialData` много статических заглушек (50 эфиров и т.д.), они занимают огромную часть файла.
+  - Код почти нечитаем – всё в одном монолите.
+
+### 14. `frontend/src/components/live/LiveBroadcastView.js`
+
+- **Функции**: список активных трансляций, старт/стоп (админ), WebSocket для количества зрителей.
+- **Проблемы**:
+  - Использует `useWebSocket`, который удалён. При сборке возникнет ошибка импорта. **Требуется срочное исправление**.
+  - Логика проверки прав через `sessionStorage` дублируется с `MainFeed`.
+  - WebSocket подключается к каналу `broadcast-stats`, но серверный канал может быть другим.
+  - Нет обработки ошибок WebSocket на клиенте (только в хуке, но хук удалён).
+  - Интервал опроса `loadBroadcasts` каждые 10 секунд – слишком часто (можно увеличить до 30 с).
+
+### 15. `frontend/src/components/Chat/GeneralChat.js`
+
+- **Функции**: загрузка истории, отправка сообщений, WebSocket для получения новых.
+- **Проблемы**:
+  - Импортирует `useWebSocket` (удалён) – ошибка компиляции.
+  - `loadMessages` использует `page` как число, но сервер не возвращает пагинацию – `hasMore` всегда `false`.
+  - При получении нового сообщения через WebSocket не проверяется дубликат (может появиться дважды).
+  - Нет обработки `wsError` – поле `error` из `useWebSocket` не используется.
+  - `handleSend` отправляет сообщение сначала через REST, а затем через WebSocket – это нормально для синхронизации, но если WebSocket ещё не подключён, сообщение не дойдёт до других клиентов (только через REST). Лучше отправлять через REST, а WebSocket использовать только для получения.
+
+### 16. `frontend/src/components/UserProfile/UserProfile.js`
+
+- **Функции**: отображение и редактирование профиля, история платежей, создание подписки, QR-код.
+- **Проблемы**:
+  - `alert` вместо модальных окон (плохой UX).
+  - QR-код и реквизиты жёстко зашиты в коде – должны приходить с сервера.
+  - При создании подписки вызывается `loadPayments()`, но `setCurrentPayment` устанавливается после `alert`, а `loadPayments` – асинхронно, порядок может сбиться.
+  - Нет валидации полей при редактировании (email, phone).
+  - Код не обрабатывает ошибки от `paymentApi.getPaymentQR` (например, если сервер вернул ошибку, QR не загрузится, но ошибка не отобразится).
+
+### 17. `.env`
+
+- Содержит настройки для локальной разработки (БД, Keycloak, шифрование медиа).
+- **Проблемы**: `MEDIA_ENCRYPTION_KEY` пустой (`MEDIA_ENCRYPTION_KEY=`), что может вызвать ошибки на бэкенде.
+
+## Поток данных
+
+1. Пользователь открывает приложение → `App.js` вызывает `initKeycloak()`.
+2. После успешной аутентификации устанавливаются `userRoles` и `username`.
+3. `NavTabs` использует `usePermissions` для отображения доступных вкладок.
+4. Компоненты загружают данные через API (сервисы в `services/api.js`).
+5. При ошибке – fallback на статические данные (`MainFeed`, `Dashboard`) или `sessionStorage` (`Dashboard`).
+6. WebSocket используется для чата и трансляций (сейчас сломан из-за удаления хука).
+
+## Безопасность
+
+- CSP с `'unsafe-inline'` – уязвимость для XSS.
+- Токен Keycloak обновляется каждые 60 секунд, но нет обработки ошибок обновления.
+- Логика прав доступа дублируется на клиенте и может расходиться с серверной.
+- Формы не валидируются, что может привести к отправке некорректных данных.
+- Нет HTTP-Only кук для токена (он хранится в памяти браузера).
+- QR-код содержит статические банковские реквизиты – безопасность не нарушена, но негибко.
+
+## Производительность
+
+- Каждый компонент загружает данные при монтировании – нет единого кэша.
+- Нет виртуализации списков (react-window не используется).
+- Blob URL создаются, но частично не очищаются.
+- Dashboard создаёт множество таймеров, которые могут влиять на утечки памяти.
+- Компоненты перерисовываются при любом изменении состояния, без мемоизации (кроме `Dashboard`, где она избыточна).
+
+## Качество кода
+
+- **Дублирование**: запись аудио (MainFeed, Dashboard), проверка прав (много раз, разные варианты), модальные окна.
+- **Смешение ответственности**: `MainFeed` и `Dashboard` гигантские (600+ и 1000+ строк).
+- **Магические строки**: сравнение ролей через `=== 'MODERATOR_ADMIN'` вместо `ROLES.MODERATOR_ADMIN`.
+- **Нет TypeScript** – все ошибки типов выявляются только в runtime.
+- **Нет тестов** – ни одного тестового файла.
+- **Нет разделения на слои** – бизнес-логика, API-вызовы, UI-логика перемешаны.
+- **Неиспользуемая функциональность**: react-router, react-window.
+- **Удалённый хук useWebSocket** – сломал LiveBroadcastView и GeneralChat.
+
+## Рекомендации (без предложений по исправлению – только заметки)
+
+- Создать единый хук для записи аудио.
+- Вынести модальные окна в отдельные компоненты.
+- Разделить `Dashboard` на 3-4 компонента (меню, модалка, подменю).
+- Заменить ручную навигацию на React Router.
+- Перейти на TypeScript.
+- Написать unit-тесты для хуков и сервисов.
+- Добавить обработку ошибок через контекст уведомлений.
+- Убрать `sessionStorage` из продакшен-кода.
+- Удалить мёртвый код (`forceUpdate`, `jest-worker`).
+- Починить импорты `useWebSocket` после удаления файла.
+- Увеличить интервал опроса трансляций до 30 секунд.
+- Реализовать пагинацию на списках (MainFeed, Chat, Dashboard).
+
+## Примечания по коммиту 47046df
+
+- Удалён неиспользуемый хук `useWebSocket.js`. Однако он всё ещё импортируется в `LiveBroadcastView.js` и `GeneralChat.js`, что приведёт к ошибкам сборки. Требуется заменить вызовы удалённого хука на альтернативную реализацию или интегрировать WebSocket напрямую.
+
+## Заключение
+
+Проект находится в активной разработке, имеет много функциональных возможностей, но страдает от:
+
+- дублирования кода,
+- смешения ответственности,
+- отсутствия тестов,
+- незавершённого рефакторинга (удаление хука без обновления зависимостей).
+
+Для перехода к стабильной production-версии требуется глубокий рефакторинг крупных компонентов, внедрение единого подхода к состоянию, TypeScript и тестирование.
