@@ -19,7 +19,7 @@
 | `react-dom` | ^18.2.0 | Рендеринг в DOM |
 | `react-router-dom` | ^6.20.0 | Маршрутизация (не используется активно) |
 | `keycloak-js` | ^24.0.3 | Аутентификация |
-| `axios` | ^1.7.2 | HTTP-клиент |
+| `axios` | ^1.7.2 | HTTP-к��иент |
 | `lodash` | ^4.17.21 | Утилиты (не используется в предоставленном коде) |
 | `react-window` | ^1.8.10 | Виртуализация списков (не внедрена) |
 | `react-scripts` | ^5.0.1 | Сборщик |
@@ -40,25 +40,31 @@ frontend/src/
 │   └── roles.js                  # Роли, уровни, метки, иконки
 ├── hooks/
 │   ├── usePermissions.js         # Хук проверки прав доступа
-│   └── useWebSocket.js           # [УДАЛЁН] — см. замечание
+│   └── useWebSocket.js           # [УДАЛЁН] — пустой файл, импорты сломаны
 ├── context/
 │   └── AudioPlayerContext.js     # Глобальный плеер (аудио/видео)
 ├── components/
 │   ├── Navigation/
-│   │   └── NavTabs.js            # Панель вкладок
+│   │   ├── NavTabs.js            # Панель вкладок
+│   │   └── NavTabs.css           # Стили вкладок (разделенные кнопки, тройные меню)
 │   ├── Feed/
-│   │   └── MainFeed.js           # Лента постов
+│   │   ├── MainFeed.js           # Лента постов
+│   │   └── MainFeed.css          # Стили ленты, встроенный плеер, модалка удаления
 │   ├── Dashboard/
-│   │   └── Dashboard.js          # Дашборд с меню
+│   │   ├── Dashboard.js          # Дашборд с меню
+│   │   ├── Dashboard.css         # Стили меню, подменю, модалок, запись аудио
+│   │   └── initialData.js        # Начальные данные для 18 категорий (по 50 записей)
 │   ├── live/
-│   │   └── LiveBroadcastView.js  # Прямые трансляции
+│   │   ├── LiveBroadcastView.js  # Прямые трансляции
+│   │   └── LiveBroadcastView.css # Стили карточек трансляций, тёмная тема
 │   ├── Chat/
-│   │   └── GeneralChat.js        # Общий чат
+│   │   ├── GeneralChat.js        # Общий чат
+│   │   └── GeneralChat.css       # Стили чата (сообщения, ввод)
 │   └── UserProfile/
-│       └── UserProfile.js        # Профиль и подписки
-└── services/                     # (не показаны, но используются):
-    ├── api.js                    # feedApi, broadcastApi, chatApi, dashboardApi, paymentApi, userApi
-    └── useWebSocket.js           # (ранее был здесь, удалён)
+│       ├── UserProfile.js        # Профиль и подписки
+│       └── UserProfile.css       # Стили профиля, платежей, QR
+└── services/
+    └── api.js                    # API-клиент, все endpoint'ы (feed, broadcast, chat, payment, user, media, admin, dashboard, demo, events, feedback, notification)
 ```
 
 Также в корне проекта находятся:
@@ -66,7 +72,9 @@ frontend/src/
 - `.env` — переменные окружения (БД, Keycloak, Media Encryption).
 - `package-lock.json` — пустой файл (без зависимостей).
 - `frontend/public/index.html` — HTML-шаблон с CSP и скриптом темы.
+- `frontend/public/silent-check-sso.html` — страница для silent check SSO Keycloak.
 - `frontend/node_modules/.bin/react-scripts` — исполняемый файл (не анализируется).
+- `PROJECT_INFO.md` — этот файл.
 
 ## Подробный анализ каждого файла
 
@@ -82,19 +90,24 @@ frontend/src/
 - Скрипт темы из `localStorage` загружается до React, что хорошо.
 - Нет PWA / Service Worker.
 
-### 3. `frontend/src/index.css`
+### 3. `frontend/public/silent-check-sso.html`
+
+- Простая страница, отправляющая `parent.postMessage(location.href, location.origin)`.
+- Используется для бесшовной проверки SSO в Keycloak.
+
+### 4. `frontend/src/index.css`
 
 - Определяет только тёмную тему через `:root`. Светлая тема не реализована, хотя в `index.html` есть проверка на `light`.
 - Содержит стили для глобального плеера, скроллбары, анимации.
 - Дублирование с `App.css` (например, сброс `*` и стили `body`).
 
-### 4. `frontend/src/App.css`
+### 5. `frontend/src/App.css`
 
 - Анимация `accessDeniedAnim` определена.
 - Стили хедера и логина.
 - Дублирует часть глобальных стилей `index.css`.
 
-### 5. `frontend/src/keycloak.js`
+### 6. `frontend/src/keycloak.js`
 
 - **Функции**: `initKeycloak`, `login`, `logout`, `getToken`, `getRefreshToken`, `updateToken`, `getUsername`, `getUserId`, `getUserRoles`, `isTokenExpired`.
 - **Проблемы**:
@@ -103,12 +116,12 @@ frontend/src/
   - `initKeycloak` вызывает `setInterval` каждый раз при повторном вызове (если вызвать несколько раз, будет несколько интервалов).
   - Внутренние переменные `userRoles` и `username` живут в модульной области видимости, что может приводить к состояниям гонки при параллельной инициализации.
 
-### 6. `frontend/src/constants/roles.js`
+### 7. `frontend/src/constants/roles.js`
 
 - Хорошо определённые константы. Порядок уровней от 1 (USER_0) до 8 (SUPER_ADMIN).
 - Нет `ROLE_LEVELS` для роли `DEVELOPER`? Она есть (5). Всё в порядке.
 
-### 7. `frontend/src/hooks/usePermissions.js`
+### 8. `frontend/src/hooks/usePermissions.js`
 
 - Использует `getUserRoles()` из модуля `keycloak.js`.
 - Возвращает набор методов проверки прав.
@@ -117,11 +130,11 @@ frontend/src/
   - Методы `canViewAdmin`, `canUploadMedia` и т.д. используют `hasLevel`, который сравнивает с числом – это надёжно.
   - Нет кэширования: каждый вызов хука заново получает роли (но это нормально, так как роли не меняются).
 
-### 8. `frontend/src/hooks/useWebSocket.js`
+### 9. `frontend/src/hooks/useWebSocket.js`
 
-**Внимание!** Этот файл был **удалён** в коммите 47046df (`refactor: удалить неиспользуемый хук useWebSocket`). В текущей версии проекта его не должно быть. Тем не менее, в чате присутствовала его (возможно, устаревшая) версия. Учитываем, что он удалён.
+**Внимание!** Этот файл был **удалён** в коммите 47046df (`refactor: удалить неиспользуемый хук useWebSocket`). В текущей версии проекта его не должно быть. В предоставленных файлах он присутствует как пустой файл (без содержимого). Импорты из него сломаны.
 
-### 9. `frontend/src/context/AudioPlayerContext.js`
+### 10. `frontend/src/context/AudioPlayerContext.js`
 
 - **Ответственность**: глобальный плеер для аудио и видео.
 - **Проблемы**:
@@ -132,7 +145,7 @@ frontend/src/
   - В `GlobalMediaPlayer` есть вложенный компонент с собственным контекстом, что усложняет отладку.
   - При `stopTrack` не очищаются таймеры `hideTimeoutRef`.
 
-### 10. `frontend/src/App.js`
+### 11. `frontend/src/App.js`
 
 - **Инициализация Keycloak**: до 3 попыток с задержкой 2 секунды.
 - **Навигация**: ручное переключение вкладок через `activeTab`.
@@ -144,15 +157,21 @@ frontend/src/
   - `accessDeniedTimerRef` не очищается при размонтировании (хотя App не размонтируется).
   - Нет обработки истечения сессии или перенаправления на логин.
 
-### 11. `frontend/src/components/Navigation/NavTabs.js`
+### 12. `frontend/src/components/Navigation/NavTabs.js`
 
 - Использует `usePermissions`. Базовые вкладки: `main`, `scheduled`, `chat`, `help`, `profile`.
 - Дополнительные: `broadcast-live` (если `canStartBroadcast` или `hasLevel(4)`), `admin` (если `canViewAdmin`).
 - **Проблемы**: условие `canStartBroadcast() || hasLevel(4)` избыточно, так как `canStartBroadcast` уже проверяет `hasLevel(6)`. `hasLevel(4)` может дать доступ к трансляциям некорректно (роль CONSULTANT имеет уровень 4, но не должна управлять трансляциями). Лучше полагаться на `canStartBroadcast()`.
 
-### 12. `frontend/src/components/Feed/MainFeed.js`
+### 13. `frontend/src/components/Navigation/NavTabs.css`
 
-- **Большой компонент** (> 600 строк).
+- Стили для навигационных вкладок, разделённых кнопок (например, чат с тремя частями), анимации.
+- Использует CSS-переменные.
+- Содержит много специфичных селекторов для разных режимов (`.nav-tab-half.nutrition`, `.nav-tab-third.chat-user1` и т.д.).
+
+### 14. `frontend/src/components/Feed/MainFeed.js`
+
+- **Большой компонент** (> 700 строк).
 - **Функции**: загрузка постов, добавление/редактирование/удаление (только для админа), запись аудио, встроенный плеер.
 - **Проблемы**:
   - Дублирование логики проверки прав через `sessionStorage` для development. Плохо: в продакшене `demoRole` не будет, и код будет использовать `getUserRoles()`, но структура `isAdmin` смешана.
@@ -162,10 +181,16 @@ frontend/src/
   - Модальное окно подтверждения удаления находится внутри компонента, что усложняет тестирование.
   - Логика записи аудио дублируется с `Dashboard.js`.
 
-### 13. `frontend/src/components/Dashboard/Dashboard.js`
+### 15. `frontend/src/components/Feed/MainFeed.css`
 
-- **Самый большой компонент** (> 1000 строк).
-- **Функции**: загрузка меню, отображение 18 разделов, вложенные подменю, добавление/редактирование/удаление контента, запись аудио, загрузка файлов.
+- Стили для ленты, встроенного аудиоплеера, админ-панели, модального окна удаления.
+- Использует CSS-переменные, анимации fadeIn, slideInRight.
+- Частично дублирует стили `Dashboard.css` (например, `.inline-audio-player`).
+
+### 16. `frontend/src/components/Dashboard/Dashboard.js`
+
+- **Самый большой компонент** (> 1300 строк).
+- **Функции**: загрузка меню, отображение 18 разделов, вложенные подменю, добавление/редактирование/удаление контента, запись аудио, загрузка файлов, отображение ошибок.
 - **Проблемы**:
   - Полное дублирование логики записи аудио (MediaRecorder) из `MainFeed`.
   - Сложная система таймеров для показа/скрытия подменю (4 рефа, 8 состояний). Легко сломать.
@@ -175,27 +200,51 @@ frontend/src/
   - В `initialData` много статических заглушек (50 эфиров и т.д.), они занимают огромную часть файла.
   - Код почти нечитаем – всё в одном монолите.
 
-### 14. `frontend/src/components/live/LiveBroadcastView.js`
+### 17. `frontend/src/components/Dashboard/Dashboard.css`
+
+- Стили для меню, подменю, модальных окон, медиа-контролов, ошибок.
+- Содержит сложные селекторы для позиционирования выпадающих меню, анимации slideDown.
+- Использует CSS-переменные, адаптивную вёрстку.
+
+### 18. `frontend/src/components/Dashboard/initialData.js`
+
+- Экспортирует начальные данные для 18 категорий (каждая по 50 записей).
+- Использует функцию `generateItems` для генерации массива объектов.
+- **Проблемы**: Огромный размер (> 500 строк статических текстов). Хранит данные на клиенте, что негибко и усложняет поддержку.
+
+### 19. `frontend/src/components/live/LiveBroadcastView.js`
 
 - **Функции**: список активных трансляций, старт/стоп (админ), WebSocket для количества зрителей.
 - **Проблемы**:
-  - Использует `useWebSocket`, который удалён. При сборке возникнет ошибка импорта. **Требуется срочное исправление**.
+  - Использует `useWebSocket`, который удалён или пуст. При сборке возникнет ошибка импорта. **Требуется срочное исправление**.
   - Логика проверки прав через `sessionStorage` дублируется с `MainFeed`.
   - WebSocket подключается к каналу `broadcast-stats`, но серверный канал может быть другим.
   - Нет обработки ошибок WebSocket на клиенте (только в хуке, но хук удалён).
   - Интервал опроса `loadBroadcasts` каждые 10 секунд – слишком часто (можно увеличить до 30 с).
 
-### 15. `frontend/src/components/Chat/GeneralChat.js`
+### 20. `frontend/src/components/live/LiveBroadcastView.css`
+
+- Стили для страницы трансляций: карточки, превью, мета-информация, кнопки.
+- Поддерживает тёмную тему через `@media (prefers-color-scheme: dark)`.
+- Адаптивная вёрстка.
+
+### 21. `frontend/src/components/Chat/GeneralChat.js`
 
 - **Функции**: загрузка истории, отправка сообщений, WebSocket для получения новых.
 - **Проблемы**:
-  - Импортирует `useWebSocket` (удалён) – ошибка компиляции.
+  - Импортирует `useWebSocket` (пустой файл или удалён) – ошибка компиляции.
   - `loadMessages` использует `page` как число, но сервер не возвращает пагинацию – `hasMore` всегда `false`.
   - При получении нового сообщения через WebSocket не проверяется дубликат (может появиться дважды).
   - Нет обработки `wsError` – поле `error` из `useWebSocket` не используется.
   - `handleSend` отправляет сообщение сначала через REST, а затем через WebSocket – это нормально для синхронизации, но если WebSocket ещё не подключён, сообщение не дойдёт до других клиентов (только через REST). Лучше отправлять через REST, а WebSocket использовать только для получения.
 
-### 16. `frontend/src/components/UserProfile/UserProfile.js`
+### 22. `frontend/src/components/Chat/GeneralChat.css`
+
+- Стили для чата: сообщения (свои/чужие), индикатор подключения, поле ввода.
+- Использует CSS-переменные, анимацию fadeIn.
+- Содержит селекторы `.chat-message.own` для стилизации своих сообщений.
+
+### 23. `frontend/src/components/UserProfile/UserProfile.js`
 
 - **Функции**: отображение и редактирование профиля, история платежей, создание подписки, QR-код.
 - **Проблемы**:
@@ -205,7 +254,25 @@ frontend/src/
   - Нет валидации полей при редактировании (email, phone).
   - Код не обрабатывает ошибки от `paymentApi.getPaymentQR` (например, если сервер вернул ошибку, QR не загрузится, но ошибка не отобразится).
 
-### 17. `.env`
+### 24. `frontend/src/components/UserProfile/UserProfile.css`
+
+- Стили для профиля: карточки, подпи��ки, QR, банковские детали, аватар.
+- Содержит множество специфичных классов (`.profile-avatar-container`, `.period-card`, `.bank-details-grid`).
+- Адаптивная вёрстка, анимация fadeIn.
+
+### 25. `frontend/src/services/api.js`
+
+- **ApiClient**: обёртка над axios с JWT-перехватчиком.
+- **Проблемы**:
+  - `interceptors.request.use` вызывает `updateToken()` для каждого запроса, что может снизить производительность (лучше проверять истечение токена через `isTokenExpired()`).
+  - При 401 очищает `sessionStorage` и перенаправляет на `/`, но не вызывает `logout()` Keycloak.
+  - Использует `USE_MOCK` для пропуска токена – но в коде нет проверки `USE_MOCK` в response interceptor.
+  - В конце файла экспорты `eventsApi`, `feedbackApi`, `notificationApi` смешаны с переменными, объявленными через `export const` – стилистически не единообразно.
+- **Endpoints**:
+  - `broadcastApi`, `chatApi`, `paymentApi`, `userApi`, `mediaApi`, `adminApi`, `dashboardApi`, `feedApi`, `demoApi`, `eventsApi`, `feedbackApi`, `notificationApi`.
+  - В `demoApi` много методов, дублирующих функциональность основных API (например, `getDashboardMenuData` дублирует `dashboardApi.getMenuData`).
+
+### 26. `.env`
 
 - Содержит настройки для локальной разработки (БД, Keycloak, шифрование медиа).
 - **Проблемы**: `MEDIA_ENCRYPTION_KEY` пустой (`MEDIA_ENCRYPTION_KEY=`), что может вызвать ошибки на бэкенде.
@@ -239,13 +306,15 @@ frontend/src/
 ## Качество кода
 
 - **Дублирование**: запись аудио (MainFeed, Dashboard), проверка прав (много раз, разные варианты), модальные окна.
-- **Смешение ответственности**: `MainFeed` и `Dashboard` гигантские (600+ и 1000+ строк).
+- **Смешение ответственности**: `MainFeed` и `Dashboard` гигантские (700+ и 1300+ строк).
 - **Магические строки**: сравнение ролей через `=== 'MODERATOR_ADMIN'` вместо `ROLES.MODERATOR_ADMIN`.
 - **Нет TypeScript** – все ошибки типов выявляются только в runtime.
 - **Нет тестов** – ни одного тестового файла.
-- **Нет разделения на слои** – бизнес-логика, API-вызовы, UI-логика перемешаны.
+- **Нет разделения на слои** – бизнес-логика, API-вызовы, UI-логика пер��мешаны.
 - **Неиспользуемая функциональность**: react-router, react-window.
 - **Удалённый хук useWebSocket** – сломал LiveBroadcastView и GeneralChat.
+- **Пустой хук useWebSocket.js** – занимает место, импорты сломаны.
+- **Огромный initialData.js** – статические данные на клиенте, увеличивают размер бандла.
 
 ## Рекомендации (без предложений по исправлению – только заметки)
 
@@ -261,6 +330,8 @@ frontend/src/
 - Починить импорты `useWebSocket` после удаления файла.
 - Увеличить интервал опроса трансляций до 30 секунд.
 - Реализовать пагинацию на списках (MainFeed, Chat, Dashboard).
+- Оптимизировать `initialData.js` – загружать с сервера.
+- Вынести банковские реквизиты в конфигурацию.
 
 ## Примечания по коммиту 47046df
 
