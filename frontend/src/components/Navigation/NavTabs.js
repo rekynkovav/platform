@@ -17,6 +17,11 @@ const NavTabs = ({ activeTab, onTabChange }) => {
     // Дополнительные вкладки по правам
     const extraTabs = [];
 
+    // Вкладка Dashboard — для пользователей с уровнем >= 4 (CONSULTANT и выше)
+    if (hasLevel(4)) {
+        extraTabs.push({ id: 'dashboard', label: 'Дашборд' });
+    }
+
     if (canStartBroadcast() || hasLevel(4)) {
         extraTabs.push({ id: 'broadcast-live', label: 'Трансляции' });
     }

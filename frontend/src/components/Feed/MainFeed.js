@@ -16,7 +16,6 @@ const MainFeed = () => {
     const feedEndRef = useRef(null);
     const addFormRef = useRef(null);
     const [activeAudioPostId, setActiveAudioPostId] = useState(null);
-    const [, forceUpdate] = useState(0);
     const blobUrlsRef = useRef([]);
 
     // Состояния для модального окна подтверждения удаления
@@ -331,7 +330,6 @@ const MainFeed = () => {
 
             setShowDeleteConfirm(false);
             setPostToDelete(null);
-            forceUpdate(prev => prev + 1);
         } catch (error) {
             console.error('Ошибка при удалении поста:', error);
             alert('Не удалось удалить пост. Попробуйте снова.');
