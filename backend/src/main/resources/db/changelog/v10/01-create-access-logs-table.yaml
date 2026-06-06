@@ -4,6 +4,11 @@ databaseChangeLog:
       author: platform
       labels: schema
       comment: Создание таблицы access_logs (требуется JPA-сущностью AccessLog.java)
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: access_logs
       changes:
         - createTable:
             tableName: access_logs

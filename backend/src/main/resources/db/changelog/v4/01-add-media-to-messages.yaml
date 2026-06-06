@@ -2,6 +2,12 @@ databaseChangeLog:
   - changeSet:
       id: add-media-fields-to-messages
       author: kiro
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            columnExists:
+              tableName: messages
+              columnName: media_id
       changes:
         - addColumn:
             tableName: messages

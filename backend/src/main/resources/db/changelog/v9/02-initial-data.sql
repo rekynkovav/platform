@@ -1,11 +1,6 @@
 -- Миграция v9: Начальные данные для первого релиза
--- ИСПРАВЛЕНО:
--- 1. Убраны несуществующие колонки first_name, last_name, is_active в users
--- 2. Исправлены имена колонок в chat_room_permissions: room_id (не chat_room_id), id BIGSERIAL (не UUID)
--- 3. Добавлена колонка updated_at в INSERT для messages (согласовано с v7 и Message.java)
--- 4. Фиксированные UUID для комнат чата вместо gen_random_uuid() для идемпотентности
--- 5. Удалён INSERT INTO access_logs (таблица не существует, есть только media_access_logs из v3)
--- 6. Заменён ON CONFLICT (room_id, role) на DELETE+INSERT, т.к. idx_room_permissions_room_role — обычный индекс, не UNIQUE
+-- ИСПРАВЛЕНО: gen_random_uuid() заменён на фиксированные UUID для сообщений,
+-- чтобы избежать дублирования при повторном запуске.
 
 -- 1. Создаем тестового пользователя (для Keycloak интеграции)
 INSERT INTO users (id, username, email, role, created_at, updated_at)
@@ -37,8 +32,7 @@ ON CONFLICT (id) DO UPDATE SET
     updated_at = NOW();
 
 -- 3. Настраиваем права доступа для комнат
--- ВНИМАНИЕ: idx_room_permissions_room_role — обычный индекс (не UNIQUE), поэтому ON CONFLICT невозможен.
--- Используем DELETE + INSERT для идемпотентности.
+-- Используем DELETE + INSERT для идемпотентности (индекс не UNIQUE)
 DO $$
 DECLARE
     room_user1 UUID := 'a0000000-0000-0000-0000-000000000009';
@@ -49,13 +43,11 @@ DECLARE
     room_q_nutrition UUID := 'a0000000-0000-0000-0000-000000000007';
     room_q_vyacheslav UUID := 'a0000000-0000-0000-0000-000000000008';
 BEGIN
-    -- Удаляем старые права для этих комнат (идемпотентность)
     DELETE FROM chat_room_permissions WHERE room_id IN (
         room_user1, room_user2, room_nutrition, room_admins,
         room_q_general, room_q_nutrition, room_q_vyacheslav
     );
 
-    -- Вставляем новые права
     INSERT INTO chat_room_permissions (room_id, role, permission_level, created_at)
     VALUES
         (room_user1, 'ROLE_USER_0', 'read_write', NOW()),
@@ -65,7 +57,6 @@ BEGIN
         (room_user1, 'ROLE_MODERATOR_ADMIN', 'admin', NOW()),
         (room_user1, 'ROLE_VYACHESLAV', 'admin', NOW()),
         (room_user1, 'ROLE_SUPER_ADMIN', 'admin', NOW()),
-
         (room_user2, 'ROLE_USER_0', 'read_write', NOW()),
         (room_user2, 'ROLE_USER_1', 'read_write', NOW()),
         (room_user2, 'ROLE_USER_2', 'read_write', NOW()),
@@ -73,7 +64,6 @@ BEGIN
         (room_user2, 'ROLE_MODERATOR_ADMIN', 'admin', NOW()),
         (room_user2, 'ROLE_VYACHESLAV', 'admin', NOW()),
         (room_user2, 'ROLE_SUPER_ADMIN', 'admin', NOW()),
-
         (room_nutrition, 'ROLE_USER_0', 'read_write', NOW()),
         (room_nutrition, 'ROLE_USER_1', 'read_write', NOW()),
         (room_nutrition, 'ROLE_USER_2', 'read_write', NOW()),
@@ -81,11 +71,9 @@ BEGIN
         (room_nutrition, 'ROLE_MODERATOR_ADMIN', 'admin', NOW()),
         (room_nutrition, 'ROLE_VYACHESLAV', 'admin', NOW()),
         (room_nutrition, 'ROLE_SUPER_ADMIN', 'admin', NOW()),
-
         (room_admins, 'ROLE_MODERATOR_ADMIN', 'read_write', NOW()),
         (room_admins, 'ROLE_VYACHESLAV', 'read_write', NOW()),
         (room_admins, 'ROLE_SUPER_ADMIN', 'read_write', NOW()),
-
         (room_q_general, 'ROLE_USER_0', 'read_write', NOW()),
         (room_q_general, 'ROLE_USER_1', 'read_write', NOW()),
         (room_q_general, 'ROLE_USER_2', 'read_write', NOW()),
@@ -93,7 +81,6 @@ BEGIN
         (room_q_general, 'ROLE_MODERATOR_ADMIN', 'admin', NOW()),
         (room_q_general, 'ROLE_VYACHESLAV', 'admin', NOW()),
         (room_q_general, 'ROLE_SUPER_ADMIN', 'admin', NOW()),
-
         (room_q_nutrition, 'ROLE_USER_0', 'read_write', NOW()),
         (room_q_nutrition, 'ROLE_USER_1', 'read_write', NOW()),
         (room_q_nutrition, 'ROLE_USER_2', 'read_write', NOW()),
@@ -101,7 +88,6 @@ BEGIN
         (room_q_nutrition, 'ROLE_MODERATOR_ADMIN', 'admin', NOW()),
         (room_q_nutrition, 'ROLE_VYACHESLAV', 'admin', NOW()),
         (room_q_nutrition, 'ROLE_SUPER_ADMIN', 'admin', NOW()),
-
         (room_q_vyacheslav, 'ROLE_USER_0', 'read_write', NOW()),
         (room_q_vyacheslav, 'ROLE_USER_1', 'read_write', NOW()),
         (room_q_vyacheslav, 'ROLE_USER_2', 'read_write', NOW()),
@@ -110,27 +96,14 @@ BEGIN
         (room_q_vyacheslav, 'ROLE_SUPER_ADMIN', 'admin', NOW());
 END $$;
 
--- 4. Создаем тестовые сообщения
--- ВНИМАНИЕ: таблица messages партиционирована по created_at (v7), PK = (id, created_at)
+-- 4. Создаем тестовые сообщения с ФИКСИРОВАННЫМИ UUID
 INSERT INTO messages (id, user_id, user_name, content, chat_type, room_id, room_slug, is_read, created_at, updated_at)
-SELECT
-    gen_random_uuid(),
-    '550e8400-e29b-41d4-a716-446655440000',
-    'Test User',
-    CASE
-        WHEN i = 1 THEN 'Добро пожаловать в платформу!'
-        WHEN i = 2 THEN 'Это тестовое сообщение в общем чате.'
-        WHEN i = 3 THEN 'Здесь можно обсуждать различные темы.'
-        WHEN i = 4 THEN 'Система ролей позволяет гибко управлять доступом.'
-        WHEN i = 5 THEN 'Попробуйте отправить свое первое сообщение!'
-    END,
-    'general',
-    'a0000000-0000-0000-0000-000000000009',
-    'user1',
-    false,
-    NOW() - (i * interval '1 minute'),
-    NOW() - (i * interval '1 minute')
-FROM generate_series(1, 5) i
+VALUES
+    ('b0000000-0000-0000-0000-000000000001', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Добро пожаловать в платформу!', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '5 minutes', NOW() - interval '5 minutes'),
+    ('b0000000-0000-0000-0000-000000000002', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Это тестовое сообщение в общем чате.', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '4 minutes', NOW() - interval '4 minutes'),
+    ('b0000000-0000-0000-0000-000000000003', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Здесь можно обсуждать различные темы.', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '3 minutes', NOW() - interval '3 minutes'),
+    ('b0000000-0000-0000-0000-000000000004', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Система ролей позволяет гибко управлять доступом.', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '2 minutes', NOW() - interval '2 minutes'),
+    ('b0000000-0000-0000-0000-000000000005', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Попробуйте отправить свое первое сообщение!', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '1 minute', NOW() - interval '1 minute')
 ON CONFLICT (id, created_at) DO NOTHING;
 
 COMMENT ON TABLE chat_rooms IS 'Комнаты чата платформы - инициализированы для первого релиза';

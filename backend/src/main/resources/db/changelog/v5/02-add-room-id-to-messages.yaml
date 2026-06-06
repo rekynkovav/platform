@@ -4,6 +4,12 @@ databaseChangeLog:
       author: grok-xirurg
       labels: schema
       comment: room_id UUID to chat_rooms.id
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            columnExists:
+              tableName: messages
+              columnName: room_id
       changes:
         - addColumn:
             tableName: messages

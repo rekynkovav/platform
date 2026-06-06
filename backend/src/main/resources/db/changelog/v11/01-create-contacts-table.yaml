@@ -4,6 +4,11 @@ databaseChangeLog:
       author: platform
       labels: schema
       comment: Создание таблицы contacts (сущность Contact.java)
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: contacts
       changes:
         - createTable:
             tableName: contacts

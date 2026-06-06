@@ -4,22 +4,21 @@ databaseChangeLog:
       author: platform
       labels: performance
       comment: Добавление индексов для ускорения запросов
-      failOnError: false
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            indexExists:
+              indexName: idx_messages_created_at
       changes:
         - sql:
             sql: CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)
-
         - sql:
             sql: CREATE INDEX IF NOT EXISTS idx_messages_room_id ON messages(room_id)
-
         - sql:
             sql: CREATE INDEX IF NOT EXISTS idx_live_broadcasts_status ON live_broadcasts(status, started_at)
-
         - sql:
             sql: CREATE INDEX IF NOT EXISTS idx_payments_user_status ON payments(user_id, status)
-
         - sql:
             sql: CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read, created_at)
-
         - sql:
             sql: CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id, created_at)

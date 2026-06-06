@@ -4,6 +4,11 @@ databaseChangeLog:
       author: platform
       labels: schema
       comment: Создание таблицы event_materials (сущность EventMaterial.java)
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: event_materials
       changes:
         - createTable:
             tableName: event_materials
