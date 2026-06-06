@@ -199,7 +199,7 @@ const MainFeed = () => {
         return 'text';
     };
 
-    const handleAddPost = async () => {
+    const handleAddPost = () => {
         const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
             ? sessionStorage.getItem('demoRole')
             : null;
@@ -290,9 +290,9 @@ const MainFeed = () => {
 
             setTimeout(() => {
                 if (feedEndRef.current) {
-                feedEndRef.current.scrollIntoView({ behavior: 'smooth' });
-            }
-        }, 100);
+                    feedEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 100);
         } catch (error) {
             console.error('Ошибка при создании поста:', error);
             alert('Не удалось создать пост. Попробуйте снова.');
@@ -324,13 +324,13 @@ const MainFeed = () => {
             await feedApi.deletePost(postToDelete.id);
             setPosts(prev => prev.filter(post => post.id !== postToDelete.id));
 
-        if (currentTrack?.id === postToDelete.id) {
-            stopTrack();
-        }
+            if (currentTrack?.id === postToDelete.id) {
+                stopTrack();
+            }
 
-        setShowDeleteConfirm(false);
-        setPostToDelete(null);
-        forceUpdate(prev => prev + 1);
+            setShowDeleteConfirm(false);
+            setPostToDelete(null);
+            forceUpdate(prev => prev + 1);
         } catch (error) {
             console.error('Ошибка при удалении поста:', error);
             alert('Не удалось удалить пост. Попробуйте снова.');
@@ -665,3 +665,122 @@ const MainFeed = () => {
                                     </video>
                                 </div>
                             )}
+                        </div>
+                    ))}
+                </div>
+
+                {isAdmin && (
+                    <div className="admin-panel" ref={addFormRef}>
+                        <button className="add-post-btn" onClick={handleAddPost}>
+                            ➕ Добавить запись
+                        </button>
+                    </div>
+                )}
+
+                {showAddForm && (
+                    <div className="add-post-form">
+                        <h3>Новая запись</h3>
+                        <input
+                            type="text"
+                            placeholder="Заголовок"
+                            value={newPost.title}
+                            onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                        />
+                        <textarea
+                            placeholder="Текст (для аудио/видео описание)"
+                            value={newPost.content}
+                            onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                        />
+                        <div className="media-upload-section">
+                            <label className="file-upload-label">
+                                📁 Загрузить файл
+                                <input
+                                    type="file"
+                                    accept="audio/*,video/*,image/*"
+                                    onChange={handleFileUpload}
+                                    style={{ display: 'none' }}
+                                />
+                            </label>
+                            <button
+                                className={`mic-btn ${isRecording ? 'recording' : ''}`}
+                                onClick={isRecording ? handleStopRecording : handleStartRecording}
+                            >
+                                {isRecording ? '⏹️ Остановить запись' : '🎤 Записать аудио'}
+                            </button>
+                        </div>
+                        {isRecording && (
+                            <div className="recording-indicator">
+                                <span className="recording-dot">🔴</span>
+                                <span className="recording-time">{formatRecordingTime(recordingTime)}</span>
+                            </div>
+                        )}
+                        {newPost.url && (
+                            <div className="attached-file">
+                                <span className="file-info">
+                                    {newPost.type === 'audio' ? '🎵 Аудио' : newPost.type === 'video' ? '🎬 Видео' : '📷 Фото'} прикреплено
+                                </span>
+                            </div>
+                        )}
+                        <div className="form-buttons">
+                            <button className="publish-btn" onClick={handlePublishPost}>Опубликовать</button>
+                            <button className="cancel-btn" onClick={() => {
+                                setShowAddForm(false);
+                                setNewPost({ type: 'text', title: '', content: '', url: '' });
+                                resetRecording();
+                            }}>Отмена</button>
+                        </div>
+                    </div>
+                )}
+
+                {showEditForm && (
+                    <div className="edit-post-form">
+                        <h3>Редактировать запись</h3>
+                        <input
+                            type="text"
+                            placeholder="Заголовок"
+                            value={newPost.title}
+                            onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                        />
+                        <textarea
+                            placeholder="Текст"
+                            value={newPost.content}
+                            onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                        />
+                        <div className="media-upload-section">
+                            <label className="file-upload-label">
+                                📁 Заменить файл
+                                <input
+                                    type="file"
+                                    accept="audio/*,video/*,image/*"
+                                    onChange={handleFileUpload}
+                                    style={{ display: 'none' }}
+                                />
+                            </label>
+                            <button
+                                className={`mic-btn ${isRecording ? 'recording' : ''}`}
+                                onClick={isRecording ? handleStopRecording : handleStartRecording}
+                            >
+                                {isRecording ? '⏹️ Остановить запись' : '🎤 Записать аудио'}
+                            </button>
+                        </div>
+                        {newPost.url && (
+                            <div className="attached-file">
+                                <span className="file-info">
+                                    {newPost.type === 'audio' ? '🎵 Аудио' : newPost.type === 'video' ? '🎬 Видео' : '📷 Фото'} прикреплено
+                                </span>
+                            </div>
+                        )}
+                        <div className="form-buttons">
+                            <button className="save-btn" onClick={handleSaveEditedPost}>Сохранить</button>
+                            <button className="cancel-btn" onClick={handleCancelEdit}>Отмена</button>
+                        </div>
+                    </div>
+                )}
+
+                <div ref={feedEndRef} />
+            </div>
+        </div>
+    );
+};
+
+export default MainFeed;
