@@ -15,8 +15,18 @@ const GeneralChat = () => {
     const username = getUsername();
     const roomSlug = 'general';
 
+    // Множество идентификаторов уже полученных сообщений для исключения дубликатов
+    const messageIdsRef = useRef(new Set());
+
     const { isConnected, send } = useWebSocket(roomSlug, (wsMessage) => {
-        setMessages(prev => [...prev, wsMessage]);
+        // Проверяем, не было ли уже такое сообщение
+        if (wsMessage.id && !messageIdsRef.current.has(wsMessage.id)) {
+            messageIdsRef.current.add(wsMessage.id);
+            setMessages(prev => [...prev, wsMessage]);
+        } else if (!wsMessage.id) {
+            // Если id отсутствует, добавляем без проверки (риск дублирования)
+            setMessages(prev => [...prev, wsMessage]);
+        }
     });
 
     const clearError = () => {
@@ -31,10 +41,18 @@ const GeneralChat = () => {
             const response = await chatApi.getMessages(roomSlug, currentPage, 50);
 
             if (reset) {
+                // Очищаем множество id перед новой загрузкой
+                messageIdsRef.current = new Set(
+                    (response.data || []).map(msg => msg.id).filter(Boolean)
+                );
                 setMessages(response.data || []);
                 setPage(1);
             } else {
-                setMessages(prev => [...response.data || [], ...prev]);
+                const newMsgs = response.data || [];
+                // Фильтруем только те, которых ещё нет
+                const filtered = newMsgs.filter(msg => msg.id && !messageIdsRef.current.has(msg.id));
+                filtered.forEach(msg => messageIdsRef.current.add(msg.id));
+                setMessages(prev => [...filtered, ...prev]);
                 setPage(currentPage + 1);
             }
             // Backend возвращает простой список, без пагинации
@@ -69,6 +87,12 @@ const GeneralChat = () => {
                 content: newMessage,
                 userId: username
             });
+
+            // Добавляем id в множество для предотвращения дублирования,
+            // если сервер пришлёт это же сообщение через WebSocket.
+            if (response.id) {
+                messageIdsRef.current.add(response.id);
+            }
 
             send({
                 id: response.id,
@@ -109,7 +133,7 @@ const GeneralChat = () => {
                     </button>
                 )}
                 {messages.map(msg => (
-                    <div key={msg.id} className={`message ${msg.author === username ? 'own' : 'other'}`}>
+                    <div key={msg.id || Math.random()} className={`message ${msg.author === username ? 'own' : 'other'}`}>
                         <div className="message-author">{msg.author}</div>
                         <div className="message-content">{msg.content}</div>
                         <div className="message-time">

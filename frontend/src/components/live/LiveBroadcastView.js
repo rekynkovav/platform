@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { broadcastApi } from '../../services/api';
 import useWebSocket from '../../hooks/useWebSocket';
 import { usePermissions } from '../../hooks/usePermissions';
+import ConfirmModal from '../common/ConfirmModal';
 import './LiveBroadcastView.css';
 
 const LiveBroadcastView = () => {
@@ -9,6 +10,10 @@ const LiveBroadcastView = () => {
     const [loading, setLoading] = useState(true);
     const [isStarting, setIsStarting] = useState(false);
     const [error, setError] = useState(null);
+
+    // Состояние для модального окна подтверждения завершения
+    const [showEndConfirm, setShowEndConfirm] = useState(false);
+    const [broadcastToEnd, setBroadcastToEnd] = useState(null);
 
     const { hasLevel } = usePermissions();
     const isAdmin = hasLevel(6);
@@ -41,7 +46,6 @@ const LiveBroadcastView = () => {
 
     useEffect(() => {
         loadBroadcasts();
-        // Увеличиваем интервал до 30 секунд (было 10)
         const interval = setInterval(loadBroadcasts, 30000);
         return () => clearInterval(interval);
     }, [loadBroadcasts]);
@@ -74,20 +78,31 @@ const LiveBroadcastView = () => {
         }
     };
 
-    // Завершение трансляции
-    const endBroadcast = async (id) => {
-        if (!isAdmin) return;
+    // Открыть модальное окно подтверждения завершения
+    const confirmEndBroadcast = (id) => {
+        setBroadcastToEnd(id);
+        setShowEndConfirm(true);
+    };
 
-        if (confirm('End this broadcast?')) {
-            try {
-                await broadcastApi.end(id);
-                setBroadcasts(prev => prev.filter(b => b.id !== id));
-                send({ type: 'broadcast_ended', broadcastId: id });
-            } catch (error) {
-                console.error('Failed to end broadcast:', error);
-                setError('Не удалось завершить трансляцию. Проверьте подключение к серверу.');
-            }
+    // Завершение трансляции
+    const executeEndBroadcast = async () => {
+        if (!broadcastToEnd) return;
+
+        try {
+            await broadcastApi.end(broadcastToEnd);
+            setBroadcasts(prev => prev.filter(b => b.id !== broadcastToEnd));
+            send({ type: 'broadcast_ended', broadcastId: broadcastToEnd });
+            setShowEndConfirm(false);
+            setBroadcastToEnd(null);
+        } catch (error) {
+            console.error('Failed to end broadcast:', error);
+            setError('Не удалось завершить трансляцию. Проверьте подключение к серверу.');
         }
+    };
+
+    const cancelEndBroadcast = () => {
+        setShowEndConfirm(false);
+        setBroadcastToEnd(null);
     };
 
     return (
@@ -109,6 +124,17 @@ const LiveBroadcastView = () => {
                     <button className="error-close" onClick={clearError}>×</button>
                 </div>
             )}
+
+            {/* Модальное окно подтверждения завершения трансляции */}
+            <ConfirmModal
+                isOpen={showEndConfirm}
+                title="Завершить трансляцию"
+                message="Вы действительно хотите завершить эту трансляцию?"
+                confirmText="✅ Завершить"
+                cancelText="❌ Отмена"
+                onConfirm={executeEndBroadcast}
+                onCancel={cancelEndBroadcast}
+            />
 
             {loading ? (
                 <div className="loading">Loading...</div>
@@ -133,7 +159,7 @@ const LiveBroadcastView = () => {
                                     <span>🎬 Started: {new Date(b.startedAt).toLocaleTimeString()}</span>
                                 </div>
                                 {isAdmin && (
-                                    <button onClick={() => endBroadcast(b.id)} className="end-btn">
+                                    <button onClick={() => confirmEndBroadcast(b.id)} className="end-btn">
                                         End Broadcast
                                     </button>
                                 )}
