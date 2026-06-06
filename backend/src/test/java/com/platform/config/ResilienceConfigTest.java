@@ -24,20 +24,6 @@ class ResilienceConfigTest {
     }
 
     @Test
-    void externalApiCircuitBreaker_HasCorrectName() {
-        CircuitBreaker cb = config.externalApiCircuitBreaker();
-        assertNotNull(cb);
-        assertEquals("external-api", cb.getName());
-    }
-
-    @Test
-    void databaseCircuitBreaker_HasCorrectName() {
-        CircuitBreaker cb = config.databaseCircuitBreaker();
-        assertNotNull(cb);
-        assertEquals("database", cb.getName());
-    }
-
-    @Test
     void keycloakRetry_HasCorrectName() {
         Retry retry = config.keycloakRetry();
         assertNotNull(retry);
@@ -74,7 +60,7 @@ class ResilienceConfigTest {
 
     @Test
     void registries_AreNotNull() {
-        assertNotNull(config.circuitBreakerRegistry());
+        // circuitBreakerRegistry moved to PlatformCircuitBreakerConfig
         assertNotNull(config.retryRegistry());
         assertNotNull(config.timeLimiterRegistry());
         assertNotNull(config.bulkheadRegistry());

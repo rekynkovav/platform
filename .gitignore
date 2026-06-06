@@ -67,3 +67,7 @@ node_modules/
 frontend/node_modules/.cache/
 # AI Free module (independent repo)
 ai-free/
+.aider*
+.env
+.env
+.env

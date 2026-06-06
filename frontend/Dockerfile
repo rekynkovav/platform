@@ -2,9 +2,9 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --production=false
+RUN npm install
 COPY . .
-RUN npm run build:prod
+RUN chmod +x node_modules/.bin/react-scripts && node_modules/.bin/react-scripts build
 
 # Stage 2: Production with nginx
 FROM nginx:alpine

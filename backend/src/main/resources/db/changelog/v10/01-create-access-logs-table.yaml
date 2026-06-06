@@ -1,0 +1,49 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01-create-access-logs-table
+      author: platform
+      labels: schema
+      comment: Создание таблицы access_logs (требуется JPA-сущностью AccessLog.java)
+      changes:
+        - createTable:
+            tableName: access_logs
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: file_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: action
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ip_address
+                  type: VARCHAR(100)
+              - column:
+                  name: user_agent
+                  type: VARCHAR(500)
+              - column:
+                  name: success
+                  type: BOOLEAN
+                  defaultValue: true
+              - column:
+                  name: error_message
+                  type: VARCHAR(1000)
+              - column:
+                  name: timestamp
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP

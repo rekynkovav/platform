@@ -1,0 +1,41 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01-create-contacts-table
+      author: platform
+      labels: schema
+      comment: Создание таблицы contacts (сущность Contact.java)
+      changes:
+        - createTable:
+            tableName: contacts
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: contact_user_id
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: contact_name
+                  type: VARCHAR(255)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addUniqueConstraint:
+            constraintName: uq_contacts_user_contact
+            tableName: contacts
+            columnNames: user_id, contact_user_id

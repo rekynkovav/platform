@@ -10,19 +10,19 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ObjectMapperCircuitBreakerConfigTest {
 
-    // ==================== ObjectMapperConfig ====================
+    // ==================== JacksonConfig (replaces deleted ObjectMapperConfig) ====================
 
     @Test
-    void objectMapperConfig_ObjectMapper_IsNotNull() {
-        ObjectMapperConfig config = new ObjectMapperConfig();
+    void jacksonConfig_ObjectMapper_IsNotNull() {
+        JacksonConfig config = new JacksonConfig();
         ObjectMapper mapper = config.objectMapper();
 
         assertNotNull(mapper);
     }
 
     @Test
-    void objectMapperConfig_ObjectMapper_HasJavaTimeModule() {
-        ObjectMapperConfig config = new ObjectMapperConfig();
+    void jacksonConfig_ObjectMapper_HasJavaTimeModule() {
+        JacksonConfig config = new JacksonConfig();
         ObjectMapper mapper = config.objectMapper();
 
         assertTrue(mapper.getRegisteredModuleIds().stream()

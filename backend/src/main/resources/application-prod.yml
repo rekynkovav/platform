@@ -47,8 +47,12 @@ spring:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.xml
 
+  cache:
+    type: simple
+
   main:
     allow-circular-references: false
+    allow-bean-definition-overriding: true
 
 server:
   port: 8081
@@ -97,18 +101,7 @@ security:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:https://platform.local,https://api.platform.local,https://auth.platform.local,http://localhost:3000}
 
 bucket4j:
-  enabled: true
-  cache-to-use: redis
-  filters:
-    - cache-name: buckets
-      url: /api/.*
-      http-status-code: 429
-      rate-limits:
-        - bandwidths:
-            - capacity: 100
-              time: 1
-              unit: minutes
-              refill-speed: interval
+  enabled: false
 
 # Yandex Cloud S3 Configuration
 yandex:

@@ -1,0 +1,77 @@
+databaseChangeLog:
+  - changeSet:
+      id: 01-create-event-materials-table
+      author: platform
+      labels: schema
+      comment: Создание таблицы event_materials (сущность EventMaterial.java)
+      changes:
+        - createTable:
+            tableName: event_materials
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: section_id
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content
+                  type: TEXT
+              - column:
+                  name: url
+                  type: VARCHAR(1000)
+              - column:
+                  name: media_id
+                  type: VARCHAR(255)
+              - column:
+                  name: created_by
+                  type: VARCHAR(255)
+              - column:
+                  name: author_name
+                  type: VARCHAR(255)
+              - column:
+                  name: sort_order
+                  type: INTEGER
+                  defaultValueNumeric: 0
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - createIndex:
+            indexName: idx_materials_section
+            tableName: event_materials
+            columns:
+              - column:
+                  name: section_id
+        - createIndex:
+            indexName: idx_materials_type
+            tableName: event_materials
+            columns:
+              - column:
+                  name: type

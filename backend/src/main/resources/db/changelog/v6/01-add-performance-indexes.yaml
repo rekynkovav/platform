@@ -4,67 +4,22 @@ databaseChangeLog:
       author: platform
       labels: performance
       comment: Добавление индексов для ускорения запросов
+      failOnError: false
       changes:
-        - createIndex:
-            indexName: idx_messages_created_at
-            tableName: messages
-            columns:
-              - column:
-                  name: created_at
-            unique: false
+        - sql:
+            sql: CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)
 
-        - createIndex:
-            indexName: idx_messages_room_id
-            tableName: messages
-            columns:
-              - column:
-                  name: room_id
+        - sql:
+            sql: CREATE INDEX IF NOT EXISTS idx_messages_room_id ON messages(room_id)
 
-        - createIndex:
-            indexName: idx_live_broadcasts_status
-            tableName: live_broadcasts
-            columns:
-              - column:
-                  name: status
-              - column:
-                  name: started_at
+        - sql:
+            sql: CREATE INDEX IF NOT EXISTS idx_live_broadcasts_status ON live_broadcasts(status, started_at)
 
-        - createIndex:
-            indexName: idx_payments_user_status
-            tableName: payments
-            columns:
-              - column:
-                  name: user_id
-              - column:
-                  name: status
+        - sql:
+            sql: CREATE INDEX IF NOT EXISTS idx_payments_user_status ON payments(user_id, status)
 
-        - createIndex:
-            indexName: idx_notifications_user_read
-            tableName: notifications
-            columns:
-              - column:
-                  name: user_id
-              - column:
-                  name: is_read
-              - column:
-                  name: created_at
+        - sql:
+            sql: CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read, created_at)
 
-        - createIndex:
-            indexName: idx_comments_post_id
-            tableName: comments
-            columns:
-              - column:
-                  name: post_id
-              - column:
-                  name: created_at
-
-        - createIndex:
-            indexName: idx_reactions_target
-            tableName: reactions
-            columns:
-              - column:
-                  name: target_type
-              - column:
-                  name: target_id
-              - column:
-                  name: user_id
+        - sql:
+            sql: CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id, created_at)

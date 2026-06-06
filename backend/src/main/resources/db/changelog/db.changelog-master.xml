@@ -14,6 +14,8 @@
     <include file="db/changelog/v1/06-create-messages-table.yaml"/>
     <include file="db/changelog/v1/07-create-archives-table.yaml"/>
     <include file="db/changelog/v1/08-create-indexes.yaml"/>
+    <include file="db/changelog/v1/09-create-live-broadcasts-table.yaml"/>
+    <include file="db/changelog/v1/10-create-notifications-table.yaml"/>
 
     <!-- V2 -->
     <include file="db/changelog/v2/01-add-user-roles.yaml"/>
@@ -47,8 +49,20 @@
     <include file="db/changelog/v9/01-cleanup-data.sql"/>
     <include file="db/changelog/v9/02-initial-data.sql"/>
 
-    <!-- Модули -->
-    <include file="db/changelog/db.changelog-media.yaml"/>
-    <include file="db/changelog/db.changelog-payments.yaml"/>
+    <!-- V10: Создание таблицы access_logs (сущность AccessLog.java) -->
+    <include file="db/changelog/v10/01-create-access-logs-table.yaml"/>
+
+    <!-- V11: Создание таблицы contacts (сущность Contact.java) -->
+    <include file="db/changelog/v11/01-create-contacts-table.yaml"/>
+
+    <!-- V12: Создание таблицы event_materials (сущность EventMaterial.java) -->
+    <include file="db/changelog/v12/01-create-event-materials-table.yaml"/>
+
+    <!-- V13: Исправление таблицы notifications под JPA модель -->
+    <include file="db/changelog/v13/01-fix-notifications-schema.sql"/>
+
+    <!-- Модули (ЗАКОММЕНТИРОВАНО: дублируют v3, раскомментировать только если v3 удален) -->
+    <!-- <include file="db/changelog/db.changelog-media.yaml"/> -->
+    <!-- <include file="db/changelog/db.changelog-payments.yaml"/> -->
 
 </databaseChangeLog>
