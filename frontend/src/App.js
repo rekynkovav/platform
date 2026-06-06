@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { initKeycloak, getUsername, getUserRoles, logout } from './keycloak';
 import NavTabs from './components/Navigation/NavTabs';
 import MainFeed from './components/Feed/MainFeed';
@@ -7,21 +8,15 @@ import LiveBroadcastView from './components/live/LiveBroadcastView';
 import GeneralChat from './components/Chat/GeneralChat';
 import UserProfile from './components/UserProfile/UserProfile';
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
-import { usePermissions } from './hooks/usePermissions';
 import { ROLES, ROLE_LEVELS } from './constants/roles';
+import ProtectedRoute from './components/common/ProtectedRoute';
 import './App.css';
 
 function App() {
     const [authenticated, setAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('main');
     const [userRoles, setUserRoles] = useState([]);
     const [username, setUsername] = useState('User');
-    const [showAccessDenied, setShowAccessDenied] = useState(false);
-    const [accessDeniedPosition, setAccessDeniedPosition] = useState({ x: 0, y: 0 });
-    const accessDeniedTimerRef = useRef(null);
-
-    const { hasLevel } = usePermissions();
 
     useEffect(() => {
         const initAuth = async (retryCount = 0) => {
@@ -61,41 +56,6 @@ function App() {
         window.location.href = loginUrl;
     };
 
-    const showAccessDeniedMessage = (x, y) => {
-        setShowAccessDenied(false);
-
-        if (accessDeniedTimerRef.current) {
-            clearTimeout(accessDeniedTimerRef.current);
-            accessDeniedTimerRef.current = null;
-        }
-
-        setTimeout(() => {
-            setAccessDeniedPosition({ x, y });
-            setShowAccessDenied(true);
-
-            accessDeniedTimerRef.current = setTimeout(() => {
-                setShowAccessDenied(false);
-                accessDeniedTimerRef.current = null;
-            }, 2000);
-        }, 10);
-    };
-
-    const handleTabChange = (tabId, event) => {
-        const userRole = userRoles.length > 0 ? userRoles[0] : ROLES.USER_0;
-        const userLevel = ROLE_LEVELS[userRole] || 1;
-
-        // USER_0 доступны только help и profile
-        if (userLevel === 1 && tabId !== 'help' && tabId !== 'profile') {
-            if (event) {
-                const rect = event.currentTarget.getBoundingClientRect();
-                showAccessDeniedMessage(rect.left + rect.width / 2, rect.bottom + 10);
-            }
-            return;
-        }
-
-        setActiveTab(tabId);
-    };
-
     if (loading) {
         return <div className="loading-screen">Loading...</div>;
     }
@@ -114,63 +74,66 @@ function App() {
         );
     }
 
-    const renderContent = () => {
-        switch (activeTab) {
-            case 'main':
-                return <MainFeed />;
-            case 'dashboard':
-                return <Dashboard />;
-            case 'broadcast-live':
-                return <LiveBroadcastView />;
-            case 'chat':
-                return <GeneralChat />;
-            case 'help':
-                return <div className="help-section">Вопросы и помощь</div>;
-            case 'profile':
-                return <UserProfile />;
-            case 'scheduled':
-                return <div className="scheduled-events">События</div>;
-            case 'admin':
-                return <div className="admin-panel">Админка</div>;
-            default:
-                return <MainFeed />;
-        }
-    };
-
     return (
-        <AudioPlayerProvider>
-            <div className="app">
-                <header className="header">
-                    <div className="header-left">
-                        <h1 className="header-logo">Platform</h1>
-                    </div>
-                    <div className="header-right">
-                        <span className="username">{username}</span>
-                        <button onClick={handleLogout} className="logout-btn">Logout</button>
-                    </div>
-                </header>
-
-                <NavTabs activeTab={activeTab} onTabChange={handleTabChange} />
-
-                <main className="main-content">
-                    {showAccessDenied && (
-                        <div
-                            className="access-denied-message"
-                            style={{
-                                position: 'fixed',
-                                left: `${accessDeniedPosition.x}px`,
-                                top: `${accessDeniedPosition.y}px`,
-                                transform: 'translateX(-50%)',
-                                zIndex: 10000
-                            }}
-                        >
-                            Доступ ограничен
+        <BrowserRouter>
+            <AudioPlayerProvider>
+                <div className="app">
+                    <header className="header">
+                        <div className="header-left">
+                            <h1 className="header-logo">Platform</h1>
                         </div>
-                    )}
-                    {renderContent()}
-                </main>
-            </div>
-        </AudioPlayerProvider>
+                        <div className="header-right">
+                            <span className="username">{username}</span>
+                            <button onClick={handleLogout} className="logout-btn">Logout</button>
+                        </div>
+                    </header>
+
+                    <NavTabs />
+
+                    <main className="main-content">
+                        <Routes>
+                            <Route path="/" element={<MainFeed />} />
+                            <Route
+                                path="/dashboard"
+                                element={
+                                    <ProtectedRoute requiredLevel={4}>
+                                        <Dashboard />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/broadcast-live"
+                                element={
+                                    <ProtectedRoute requiredLevel={4}>
+                                        <LiveBroadcastView />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="/chat" element={<GeneralChat />} />
+                            <Route path="/help" element={<div className="help-section">Вопросы и помощь</div>} />
+                            <Route path="/profile" element={<UserProfile />} />
+                            <Route
+                                path="/scheduled"
+                                element={
+                                    <ProtectedRoute requiredLevel={4}>
+                                        <div className="scheduled-events">События</div>
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/admin"
+                                element={
+                                    <ProtectedRoute requiredLevel={6}>
+                                        <div className="admin-panel">Админка</div>
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                    </main>
+                </div>
+            </AudioPlayerProvider>
+        </BrowserRouter>
     );
 }
 

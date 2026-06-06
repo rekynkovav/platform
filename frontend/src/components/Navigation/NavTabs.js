@@ -1,17 +1,20 @@
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
 import './NavTabs.css';
 
-const NavTabs = ({ activeTab, onTabChange }) => {
+const NavTabs = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
     const { canViewAdmin, canStartBroadcast, hasLevel, level } = usePermissions();
 
     // Базовые вкладки для всех
     const baseTabs = [
-        { id: 'main', label: 'Главная' },
-        { id: 'scheduled', label: 'События' },
-        { id: 'chat', label: 'Чат' },
-        { id: 'help', label: 'Вопросы' },
-        { id: 'profile', label: 'Профиль' }
+        { id: '', label: 'Главная', route: '/' },
+        { id: 'scheduled', label: 'События', route: '/scheduled' },
+        { id: 'chat', label: 'Чат', route: '/chat' },
+        { id: 'help', label: 'Вопросы', route: '/help' },
+        { id: 'profile', label: 'Профиль', route: '/profile' }
     ];
 
     // Дополнительные вкладки по правам
@@ -19,26 +22,31 @@ const NavTabs = ({ activeTab, onTabChange }) => {
 
     // Вкладка Dashboard — для пользователей с уровнем >= 4 (CONSULTANT и выше)
     if (hasLevel(4)) {
-        extraTabs.push({ id: 'dashboard', label: 'Дашборд' });
+        extraTabs.push({ id: 'dashboard', label: 'Дашборд', route: '/dashboard' });
     }
 
     if (canStartBroadcast() || hasLevel(4)) {
-        extraTabs.push({ id: 'broadcast-live', label: 'Трансляции' });
+        extraTabs.push({ id: 'broadcast-live', label: 'Трансляции', route: '/broadcast-live' });
     }
 
     if (canViewAdmin()) {
-        extraTabs.push({ id: 'admin', label: 'Админка' });
+        extraTabs.push({ id: 'admin', label: 'Админка', route: '/admin' });
     }
 
     const tabs = [...baseTabs, ...extraTabs];
+
+    const isActive = (route) => {
+        if (route === '/') return location.pathname === '/';
+        return location.pathname.startsWith(route);
+    };
 
     return (
         <nav className="nav-tabs">
             {tabs.map(tab => (
                 <button
                     key={tab.id}
-                    className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
-                    onClick={(e) => onTabChange(tab.id, e)}
+                    className={`nav-tab ${isActive(tab.route) ? 'active' : ''}`}
+                    onClick={() => navigate(tab.route)}
                 >
                     {tab.label}
                 </button>
