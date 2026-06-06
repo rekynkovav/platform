@@ -42,6 +42,12 @@ export const initKeycloak = async () => {
                     console.error('Failed to refresh token', err);
                 });
             }, 60000);
+
+            // Обработчик истечения токена — перенаправляем на логин
+            keycloakInstance.onTokenExpired = () => {
+                console.warn('Token expired, redirecting to login');
+                logout();
+            };
         }
 
         isInitialized = true;
