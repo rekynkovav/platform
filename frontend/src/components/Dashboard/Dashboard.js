@@ -1321,4 +1321,67 @@ const Dashboard = () => {
                                                     e.stopPropagation();
                                                     handleEditItem('broadcasts-guests', item);
                                                 }}
-                                                title="Ре
+                                                title="Редактировать"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button
+                                                className="delete-item-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteItem('broadcasts-guests', item.id, item.title);
+                                                }}
+                                                title="Удалить"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                        {(!menuData['broadcasts-guests'] || menuData['broadcasts-guests'].length === 0) && !isAdmin && (
+                            <div className="empty-submenu">Пока нет эфиров</div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Модальное окно подтверждения удаления (переиспользуемое) */}
+            <ConfirmModal
+                isOpen={showDeleteConfirm}
+                title="Подтверждение удаления"
+                message="Вы действительно хотите удалить эту запись?"
+                itemLabel={itemToDelete?.itemTitle || ''}
+                onConfirm={executeDeleteItem}
+                onCancel={cancelDeleteItem}
+            />
+
+            {/* Встроенная модалка добавления контента с записью аудио */}
+            <AddContentModal
+                isOpen={showAddModal}
+                onClose={handleCloseAddModal}
+                editingItem={editingItem}
+                selectedMenuId={selectedMenuId}
+                newItemTitle={newItemTitle}
+                setNewItemTitle={setNewItemTitle}
+                newItemDescription={newItemDescription}
+                setNewItemDescription={setNewItemDescription}
+                newItemMediaUrl={newItemMediaUrl}
+                setNewItemMediaUrl={setNewItemMediaUrl}
+                newItemMediaType={newItemMediaType}
+                setNewItemMediaType={setNewItemMediaType}
+                isRecording={isRecording}
+                recordingTime={recordingTime}
+                handleStartRecording={handleStartRecording}
+                handleStopRecording={handleStopRecording}
+                handleFileUpload={handleFileUpload}
+                handleSaveContent={handleSaveContent}
+                formatRecordingTime={formatRecordingTime}
+                resetRecording={resetRecording}
+            />
+        </div>
+    );
+};
+
+export default Dashboard;
