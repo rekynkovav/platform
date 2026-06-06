@@ -3,6 +3,7 @@ import { getUserRoles } from '../../keycloak';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import { feedApi } from '../../services/api';
 import useAudioRecorder from '../../hooks/useAudioRecorder';
+import ConfirmModal from '../common/ConfirmModal';
 import './MainFeed.css';
 
 const MainFeed = () => {
@@ -523,33 +524,15 @@ const MainFeed = () => {
                 </div>
             )}
 
-            {/* Модальное окно подтверждения удаления */}
-            {showDeleteConfirm && postToDelete && (
-                <div className="modal-overlay" onClick={cancelDeletePost}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <span className="modal-icon">🗑️</span>
-                            <h3>Подтверждение удаления</h3>
-                        </div>
-                        <div className="modal-body">
-                            <p>Вы действительно хотите удалить публикацию?</p>
-                            <div className="post-preview">
-                                <strong>{postToDelete.title}</strong>
-                                <small>{postToDelete.date}</small>
-                            </div>
-                            <p className="warning-text">Это действие невозможно отменить!</p>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="modal-btn cancel" onClick={cancelDeletePost}>
-                                ❌ Отмена
-                            </button>
-                            <button className="modal-btn confirm" onClick={executeDeletePost}>
-                                ✅ Да, удалить
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Модальное окно подтверждения удаления (переиспользуемое) */}
+            <ConfirmModal
+                isOpen={showDeleteConfirm}
+                title="Подтверждение удаления"
+                message="Вы действительно хотите удалить публикацию?"
+                itemLabel={postToDelete?.title || ''}
+                onConfirm={executeDeletePost}
+                onCancel={cancelDeletePost}
+            />
 
             {notification && (
                 <div className={`event-notification ${notification.includes('удалена') ? 'delete-notification' : ''}`}>

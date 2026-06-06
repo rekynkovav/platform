@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import './Dashboard.css';
 import { dashboardApi, demoApi } from '../../services/api';
 import useAudioRecorder from '../../hooks/useAudioRecorder';
+import ConfirmModal from '../common/ConfirmModal';
 import {
     initialBroadcastsGuests,
     initialExercises,
@@ -1331,32 +1332,15 @@ const Dashboard = () => {
                 )}
             </div>
 
-            {/* Модальное окно подтверждения удаления */}
-            {showDeleteConfirm && itemToDelete && (
-                <div className="modal-overlay" onClick={cancelDeleteItem}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <span className="modal-icon">🗑️</span>
-                            <h3>Подтверждение удаления</h3>
-                        </div>
-                        <div className="modal-body">
-                            <p>Вы действительно хотите удалить эту запись?</p>
-                            <div className="item-preview">
-                                <strong>{itemToDelete.itemTitle}</strong>
-                            </div>
-                            <p className="warning-text">Это действие невозможно отменить!</p>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="modal-btn cancel" onClick={cancelDeleteItem}>
-                                ❌ Отмена
-                            </button>
-                            <button className="modal-btn confirm" onClick={executeDeleteItem}>
-                                ✅ Да, удалить
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Модальное окно подтверждения удаления (переиспользуемое) */}
+            <ConfirmModal
+                isOpen={showDeleteConfirm}
+                title="Подтверждение удаления"
+                message="Вы действительно хотите удалить эту запись?"
+                itemLabel={itemToDelete?.itemTitle || ''}
+                onConfirm={executeDeleteItem}
+                onCancel={cancelDeleteItem}
+            />
 
             {/* Встроенная модалка добавления контента с записью аудио */}
             {showAddModal && (
