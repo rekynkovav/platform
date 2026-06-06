@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { userApi, paymentApi } from '../../services/api';
 import { getUsername, getUserRoles } from '../../keycloak';
-import { usePermissions } from '../../hooks/usePermissions';
 import './UserProfile.css';
 
 const UserProfile = () => {
@@ -15,8 +14,6 @@ const UserProfile = () => {
     const [error, setError] = useState(null);
     const username = getUsername();
     const userRoles = getUserRoles();
-
-    const { hasLevel } = usePermissions();
 
     const clearError = () => {
         setError(null);

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import './Dashboard.css';
-import { dashboardApi, demoApi } from '../../services/api';
+import { dashboardApi } from '../../services/api';
 import useAudioRecorder from '../../hooks/useAudioRecorder';
 import { usePermissions } from '../../hooks/usePermissions';
 import ConfirmModal from '../common/ConfirmModal';
