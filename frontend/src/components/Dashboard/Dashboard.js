@@ -3,6 +3,7 @@ import './Dashboard.css';
 import { dashboardApi, demoApi } from '../../services/api';
 import useAudioRecorder from '../../hooks/useAudioRecorder';
 import ConfirmModal from '../common/ConfirmModal';
+import AddContentModal from '../common/AddContentModal';
 import {
     initialBroadcastsGuests,
     initialExercises,
@@ -1128,6 +1129,20 @@ const Dashboard = () => {
         setError(null);
     }, []);
 
+    const handleCloseAddModal = useCallback(() => {
+        if (newItemMediaUrl && newItemMediaUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(newItemMediaUrl);
+        }
+        setShowAddModal(false);
+        setSelectedMenuId(null);
+        setEditingItem(null);
+        setNewItemTitle('');
+        setNewItemDescription('');
+        setNewItemMediaUrl('');
+        setNewItemMediaType('');
+        resetRecording();
+    }, [newItemMediaUrl, resetRecording]);
+
     return (
         <div className="dashboard">
             {/* Компонент для отображения ошибок */}
@@ -1306,220 +1321,4 @@ const Dashboard = () => {
                                                     e.stopPropagation();
                                                     handleEditItem('broadcasts-guests', item);
                                                 }}
-                                                title="Редактировать"
-                                            >
-                                                ✏️
-                                            </button>
-                                            <button
-                                                className="delete-item-btn"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDeleteItem('broadcasts-guests', item.id, item.title);
-                                                }}
-                                                title="Удалить"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                        {(!menuData['broadcasts-guests'] || menuData['broadcasts-guests'].length === 0) && !isAdmin && (
-                            <div className="empty-submenu">Пока нет эфиров</div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* Модальное окно подтверждения удаления (переиспользуемое) */}
-            <ConfirmModal
-                isOpen={showDeleteConfirm}
-                title="Подтверждение удаления"
-                message="Вы действительно хотите удалить эту запись?"
-                itemLabel={itemToDelete?.itemTitle || ''}
-                onConfirm={executeDeleteItem}
-                onCancel={cancelDeleteItem}
-            />
-
-            {/* Встроенная модалка добавления контента с записью аудио */}
-            {showAddModal && (
-                <div className="modal-overlay" onClick={() => {
-                    if (newItemMediaUrl && newItemMediaUrl.startsWith('blob:')) URL.revokeObjectURL(newItemMediaUrl);
-                    setShowAddModal(false);
-                    setSelectedMenuId(null);
-                    setEditingItem(null);
-                    setNewItemTitle('');
-                    setNewItemDescription('');
-                    setNewItemMediaUrl('');
-                    setNewItemMediaType('');
-                    resetRecording();
-                }}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <h3>{editingItem ? 'Редактировать контент' : 'Добавить контент'}</h3>
-                        <input
-                            type="text"
-                            placeholder="Как будет отображаться"
-                            value={newItemTitle}
-                            onChange={(e) => setNewItemTitle(e.target.value)}
-                            className="modal-input"
-                        />
-                        <textarea
-                            placeholder="Сюда вставить ссылку"
-                            value={newItemDescription}
-                            onChange={(e) => setNewItemDescription(e.target.value)}
-                            className="modal-textarea"
-                        />
-
-                        <div className="media-controls-dashboard">
-                            <div className="media-buttons-dashboard">
-                                {/* Для раздела Эфиры показываем только Аудио и Видео */}
-                                {selectedMenuId === 'broadcasts' || selectedMenuId === 'broadcasts-guests' ? (
-                                    <>
-                                        <label className="attach-button-dashboard">
-                                            Видео
-                                            <input
-                                                type="file"
-                                                accept="video/*"
-                                                onChange={(e) => handleFileUpload(e, 'video')}
-                                                style={{ display: 'none' }}
-                                            />
-                                        </label>
-                                        <label className="attach-button-dashboard">
-                                            Аудио
-                                            <input
-                                                type="file"
-                                                accept="audio/*"
-                                                onChange={(e) => handleFileUpload(e, 'audio')}
-                                                style={{ display: 'none' }}
-                                            />
-                                        </label>
-                                        <button
-                                            className={`mic-button-dashboard ${isRecording ? 'recording' : ''}`}
-                                            onClick={isRecording ? handleStopRecording : handleStartRecording}
-                                        >
-                                            {isRecording ? '⏹️ Остановить' : '🎤 Записать голос'}
-                                        </button>
-                                    </>
-                                ) : selectedMenuId === 'music' ? (
-                                    /* Для раздела Музыка только Аудио */
-                                    <>
-                                        <label className="attach-button-dashboard">
-                                            Аудио
-                                            <input
-                                                type="file"
-                                                accept="audio/*"
-                                                onChange={(e) => handleFileUpload(e, 'audio')}
-                                                style={{ display: 'none' }}
-                                            />
-                                        </label>
-                                        <button
-                                            className={`mic-button-dashboard ${isRecording ? 'recording' : ''}`}
-                                            onClick={isRecording ? handleStopRecording : handleStartRecording}
-                                        >
-                                            {isRecording ? '⏹️ Остановить' : '🎤 Записать голос'}
-                                        </button>
-                                    </>
-                                ) : selectedMenuId === 'movies' ? (
-                                    /* Для раздела Фильмы только Видео */
-                                    <label className="attach-button-dashboard">
-                                        Видео
-                                        <input
-                                            type="file"
-                                            accept="video/*"
-                                            onChange={(e) => handleFileUpload(e, 'video')}
-                                            style={{ display: 'none' }}
-                                        />
-                                    </label>
-                                ) : (
-                                    <>
-                                        <label className="attach-button-dashboard">
-                                            Фото
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={(e) => handleFileUpload(e, 'image')}
-                                                style={{ display: 'none' }}
-                                            />
-                                        </label>
-                                        <label className="attach-button-dashboard">
-                                            Видео
-                                            <input
-                                                type="file"
-                                                accept="video/*"
-                                                onChange={(e) => handleFileUpload(e, 'video')}
-                                                style={{ display: 'none' }}
-                                            />
-                                        </label>
-                                        <label className="attach-button-dashboard">
-                                            Аудио
-                                            <input
-                                                type="file"
-                                                accept="audio/*"
-                                                onChange={(e) => handleFileUpload(e, 'audio')}
-                                                style={{ display: 'none' }}
-                                            />
-                                        </label>
-                                        <button
-                                            className={`mic-button-dashboard ${isRecording ? 'recording' : ''}`}
-                                            onClick={isRecording ? handleStopRecording : handleStartRecording}
-                                        >
-                                            {isRecording ? '⏹️ Остановить' : '🎤 Записать голос'}
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-
-                            {isRecording && (
-                                <div className="recording-indicator-dashboard">
-                                    <span className="recording-dot">🔴</span>
-                                    <span className="recording-time">{formatRecordingTime(recordingTime)}</span>
-                                </div>
-                            )}
-
-                            {newItemMediaUrl && (
-                                <div className="attached-file-dashboard">
-                                    <span className="file-info">
-                                        {newItemMediaType === 'image' && '📷 Фото прикреплено'}
-                                        {newItemMediaType === 'video' && '🎬 Видео прикреплено'}
-                                        {newItemMediaType === 'audio' && '🎵 Аудио прикреплено'}
-                                    </span>
-                                    <button
-                                        className="remove-file-dashboard"
-                                        onClick={() => {
-                                            if (newItemMediaUrl && newItemMediaUrl.startsWith('blob:')) URL.revokeObjectURL(newItemMediaUrl);
-                                            setNewItemMediaUrl('');
-                                            setNewItemMediaType('');
-                                        }}
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="modal-buttons">
-                            <button className="modal-btn save" onClick={handleSaveContent}>
-                                Сохранить
-                            </button>
-                            <button className="modal-btn cancel" onClick={() => {
-                                if (newItemMediaUrl && newItemMediaUrl.startsWith('blob:')) URL.revokeObjectURL(newItemMediaUrl);
-                                setShowAddModal(false);
-                                setSelectedMenuId(null);
-                                setNewItemTitle('');
-                                setNewItemDescription('');
-                                setNewItemMediaUrl('');
-                                setNewItemMediaType('');
-                                resetRecording();
-                            }}>
-                                Отмена
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-export default Dashboard;
+                                                title="Ре
