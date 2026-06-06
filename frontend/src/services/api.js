@@ -35,7 +35,6 @@ class ApiClient {
             (response) => response.data,
             (error) => {
                 if (error.response?.status === 401) {
-                    // Token expired — перенаправление без очистки sessionStorage (логин сделает Keycloak)
                     window.location.href = '/';
                 }
                 if (error.response?.status === 429) {
@@ -144,20 +143,8 @@ export const feedApi = {
     deletePost: (id) => api.delete(`/feed/posts/${id}`)
 };
 
-export const demoApi = {
-    getDemoRole: () => api.get('/demo/role'),
-    setDemoRole: (role) => api.post('/demo/role', { role }),
-    getWillAttendCounts: () => api.get('/demo/will-attend-counts'),
-    saveWillAttendCounts: (counts) => api.post('/demo/will-attend-counts', counts),
-    hasUserAttended: (broadcastId, userId) => api.get(`/demo/attended/${broadcastId}/${userId}`),
-    markUserAttended: (broadcastId, userId) => api.post(`/demo/attended/${broadcastId}/${userId}`),
-    getDashboardMenuData: () => api.get('/demo/dashboard-menu'),
-    saveDashboardMenuData: (data) => api.post('/demo/dashboard-menu', data),
-    getBroadcasts: () => api.get('/demo/broadcasts'),
-    saveBroadcasts: (broadcasts) => api.post('/demo/broadcasts', broadcasts),
-    getScheduledEvents: () => api.get('/demo/scheduled-events'),
-    saveScheduledEvents: (events) => api.post('/demo/scheduled-events', events)
-};
+// Удалены неиспользуемые demoApi (ранее дублировали функциональность)
+// Все необходимые эндпоинты доступны через основные API.
 
 // Events & Materials API (EventsHub)
 export const eventsApi = {
