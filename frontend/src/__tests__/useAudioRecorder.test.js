@@ -30,4 +30,63 @@ global.MediaRecorder = MockMediaRecorder;
 
 // Мок для getUserMedia
 global.navigator.mediaDevices = {
-    getUser
+    getUserMedia: jest.fn().mockResolvedValue(new MediaStream())
+};
+
+describe('useAudioRecorder', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('should start recording', async () => {
+        const { result } = renderHook(() => useAudioRecorder());
+
+        expect(result.current.isRecording).toBe(false);
+        expect(result.current.recordingTime).toBe(0);
+        expect(result.current.audioBlobUrl).toBeNull();
+
+        await act(async () => {
+            await result.current.startRecording();
+        });
+
+        expect(result.current.isRecording).toBe(true);
+    });
+
+    it('should stop recording and produce audio blob', async () => {
+        const { result } = renderHook(() => useAudioRecorder());
+
+        await act(async () => {
+            await result.current.startRecording();
+        });
+
+        // Wait for the mock to fire ondataavailable
+        await act(async () => {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            result.current.stopRecording();
+        });
+
+        expect(result.current.isRecording).toBe(false);
+        expect(result.current.audioBlobUrl).toBeNull();
+    });
+
+    it('should reset recording', async () => {
+        const { result } = renderHook(() => useAudioRecorder());
+
+        await act(async () => {
+            await result.current.startRecording();
+        });
+
+        await act(async () => {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            result.current.stopRecording();
+        });
+
+        await act(async () => {
+            result.current.resetRecording();
+        });
+
+        expect(result.current.isRecording).toBe(false);
+        expect(result.current.recordingTime).toBe(0);
+        expect(result.current.audioBlobUrl).toBeNull();
+    });
+});
