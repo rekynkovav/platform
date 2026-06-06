@@ -24,6 +24,7 @@ export const AudioPlayerProvider = ({ children }) => {
     const videoRef = useRef(null);
     const hideTimeoutRef = useRef(null);
     const animationFrameRef = useRef(null);
+    const isPlayingRef = useRef(false);
 
     const getMediaRef = useCallback(() => {
         return currentTrack?.type === 'video' ? videoRef : audioRef;
@@ -41,6 +42,11 @@ export const AudioPlayerProvider = ({ children }) => {
         if (!mediaEl) return () => {};
 
         const handleTimeUpdate = () => {
+            // Не запускаем animation frame, если плеер на паузе
+            if (!isPlayingRef.current) {
+                setCurrentTime(mediaEl.currentTime);
+                return;
+            }
             if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
             const loop = () => {
                 setCurrentTime(mediaEl.currentTime);
@@ -55,6 +61,7 @@ export const AudioPlayerProvider = ({ children }) => {
 
         const handleEnded = () => {
             setIsPlaying(false);
+            isPlayingRef.current = false;
             setCurrentTrack(null);
             setCurrentTime(0);
             setDuration(0);
@@ -65,11 +72,24 @@ export const AudioPlayerProvider = ({ children }) => {
             }
         };
 
-        const handlePlay = () => setIsPlaying(true);
-        const handlePause = () => setIsPlaying(false);
+        const handlePlay = () => {
+            setIsPlaying(true);
+            isPlayingRef.current = true;
+        };
+
+        const handlePause = () => {
+            setIsPlaying(false);
+            isPlayingRef.current = false;
+            // Отменяем animation frame при паузе
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+                animationFrameRef.current = null;
+            }
+        };
+
         const handleError = () => {
             setError('Ошибка воспроизведения медиа');
-            stopTrack();
+            stopTrackRef.current();
         };
 
         mediaEl.addEventListener('timeupdate', handleTimeUpdate);
@@ -92,6 +112,35 @@ export const AudioPlayerProvider = ({ children }) => {
             }
         };
     }, []);
+
+    const stopTrackRef = useRef();
+
+    const stopTrack = useCallback(() => {
+        const mediaRef = getMediaRef();
+        if (mediaRef.current) {
+            mediaRef.current.pause();
+            mediaRef.current.removeAttribute('src');
+            mediaRef.current.load();
+        }
+        setCurrentTrack(null);
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+        setCurrentTime(0);
+        setDuration(0);
+        setError(null);
+        if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+            animationFrameRef.current = null;
+        }
+        if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
+        }
+        setIsHovered(false);
+        setIsMinimized(false);
+    }, [getMediaRef]);
+
+    stopTrackRef.current = stopTrack;
 
     useEffect(() => {
         const mediaRef = getMediaRef();
@@ -141,30 +190,6 @@ export const AudioPlayerProvider = ({ children }) => {
         if (mediaRef.current) {
             mediaRef.current.pause();
         }
-    }, [getMediaRef]);
-
-    const stopTrack = useCallback(() => {
-        const mediaRef = getMediaRef();
-        if (mediaRef.current) {
-            mediaRef.current.pause();
-            mediaRef.current.removeAttribute('src');
-            mediaRef.current.load();
-        }
-        setCurrentTrack(null);
-        setIsPlaying(false);
-        setCurrentTime(0);
-        setDuration(0);
-        setError(null);
-        if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-            animationFrameRef.current = null;
-        }
-        if (hideTimeoutRef.current) {
-            clearTimeout(hideTimeoutRef.current);
-            hideTimeoutRef.current = null;
-        }
-        setIsHovered(false);
-        setIsMinimized(false);
     }, [getMediaRef]);
 
     const togglePlayPause = useCallback(() => {
