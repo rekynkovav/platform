@@ -164,9 +164,7 @@ const Dashboard = () => {
             console.error('Ошибка сохранения данных дашборда:', err);
             if (process.env.NODE_ENV === 'development') {
                 try {
-                    if (process.env.NODE_ENV === 'development') {
-                        sessionStorage.setItem('dashboardMenuData', JSON.stringify(data));
-                    }
+                    sessionStorage.setItem('dashboardMenuData', JSON.stringify(data));
                 } catch (localError) {
                     console.error('Error saving to sessionStorage:', localError);
                     setError('Не удалось сохранить данные дашборда');

@@ -8,7 +8,6 @@ const GeneralChat = () => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [error, setError] = useState(null);
     const messagesEndRef = useRef(null);
@@ -17,6 +16,9 @@ const GeneralChat = () => {
 
     // Множество идентификаторов уже полученных сообщений для исключения дубликатов
     const messageIdsRef = useRef(new Set());
+
+    // Страница пагинации хранится в useRef, чтобы избежать устаревшего замыкания
+    const pageRef = useRef(0);
 
     const { isConnected, send, error: wsError } = useWebSocket(roomSlug, (wsMessage) => {
         // Проверяем, не было ли уже такое сообщение
@@ -37,7 +39,7 @@ const GeneralChat = () => {
     const loadMessages = useCallback(async (reset = false) => {
         try {
             setLoading(true);
-            const currentPage = reset ? 0 : page;
+            const currentPage = reset ? 0 : pageRef.current;
             const response = await chatApi.getMessages(roomSlug, currentPage, 50);
 
             if (reset) {
@@ -46,14 +48,14 @@ const GeneralChat = () => {
                     (response.data || []).map(msg => msg.id).filter(Boolean)
                 );
                 setMessages(response.data || []);
-                setPage(1);
+                pageRef.current = 1;
             } else {
                 const newMsgs = response.data || [];
                 // Фильтруем только те, которых ещё нет
                 const filtered = newMsgs.filter(msg => msg.id && !messageIdsRef.current.has(msg.id));
                 filtered.forEach(msg => messageIdsRef.current.add(msg.id));
                 setMessages(prev => [...filtered, ...prev]);
-                setPage(currentPage + 1);
+                pageRef.current = currentPage + 1;
             }
             // Backend возвращает простой список, без пагинации
             setHasMore(false);
@@ -63,7 +65,7 @@ const GeneralChat = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, roomSlug]);
+    }, [roomSlug]);
 
     useEffect(() => {
         loadMessages(true);
