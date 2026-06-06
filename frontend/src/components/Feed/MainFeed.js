@@ -4,6 +4,7 @@ import { feedApi } from '../../services/api';
 import useAudioRecorder from '../../hooks/useAudioRecorder';
 import { usePermissions } from '../../hooks/usePermissions';
 import ConfirmModal from '../common/ConfirmModal';
+import usePostAudioControls from '../../hooks/usePostAudioControls';
 import fallbackPosts from '../../constants/fallbackPosts';
 import './MainFeed.css';
 
@@ -35,27 +36,25 @@ const MainFeed = () => {
         resetRecording
     } = useAudioRecorder();
 
+    const { hasLevel } = usePermissions();
+    const isAdmin = hasLevel(6);
+    const isSuperAdmin = hasLevel(8);
+
+    // Хук управления плеером в посте
     const {
-        playTrack,
-        pauseTrack,
-        currentTrack,
-        isPlaying,
+        handlePlayAudio,
+        handleSeek,
+        handleVolumeChangeLocal,
+        handleSpeedChangeLocal,
+        getCurrentTimeForPost,
+        getDurationForPost,
+        isThisPlaying,
         stopTrack,
         volume,
         playbackRate,
-        setVolume,
-        setPlaybackRate,
-        seek,
-        currentTime,
-        duration,
-        formatTime
-    } = useAudioPlayer();
-
-    const { hasLevel } = usePermissions();
-
-    // Определяем права через usePermissions
-    const isAdmin = hasLevel(6);
-    const isSuperAdmin = hasLevel(8);
+        formatTime,
+        currentTrack
+    } = usePostAudioControls();
 
     // Синхронизируем activeAudioPostId с currentTrack
     useEffect(() => {
@@ -195,7 +194,6 @@ const MainFeed = () => {
             setShowAddForm(false);
             resetRecording();
 
-            // Revoke blob URLs
             blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
             blobUrlsRef.current = [];
 
@@ -210,13 +208,11 @@ const MainFeed = () => {
         }
     };
 
-    // Функция для открытия модального окна подтверждения
     const confirmDeletePost = (post) => {
         setPostToDelete(post);
         setShowDeleteConfirm(true);
     };
 
-    // Функция для фактического удаления
     const executeDeletePost = async () => {
         if (!postToDelete) return;
 
@@ -243,13 +239,11 @@ const MainFeed = () => {
         }
     };
 
-    // Функция для отмены удаления
     const cancelDeletePost = () => {
         setShowDeleteConfirm(false);
         setPostToDelete(null);
     };
 
-    // Функция для начала редактирования поста
     const handleEditPost = (post) => {
         if (!isAdmin) {
             alert('Только администратор может редактировать записи');
@@ -266,7 +260,6 @@ const MainFeed = () => {
         setShowEditForm(true);
     };
 
-    // Функция для сохранения отредактированного поста
     const handleSaveEditedPost = async () => {
         if (!newPost.title || (!newPost.content && newPost.type === 'text')) {
             alert('Заполните заголовок и содержание');
@@ -299,7 +292,6 @@ const MainFeed = () => {
         }
     };
 
-    // Функция для отмены редактирования
     const handleCancelEdit = () => {
         setShowEditForm(false);
         setEditingPost(null);
@@ -309,7 +301,6 @@ const MainFeed = () => {
         blobUrlsRef.current = [];
     };
 
-    // Функция для скачивания материала (только для главного админа)
     const handleDownloadPost = async (post) => {
         if (!isSuperAdmin) {
             alert('Только главный админ может скачивать материалы');
@@ -318,7 +309,6 @@ const MainFeed = () => {
 
         try {
             if (post.type === 'audio' || post.type === 'video') {
-                // Скачивание медиа файлов
                 const response = await fetch(post.url);
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
@@ -330,7 +320,6 @@ const MainFeed = () => {
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
             } else {
-                // Скачивание текстового контента
                 const content = `${post.title}\n\n${post.content}\n\nДата: ${post.date}\nАвтор: ${post.author}`;
                 const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
                 const url = window.URL.createObjectURL(blob);
@@ -352,59 +341,12 @@ const MainFeed = () => {
         setError(null);
     };
 
-    const handlePlayAudio = (post) => {
-        if (activeAudioPostId === post.id && currentTrack?.id === post.id && isPlaying) {
-            pauseTrack();
-        } else if (activeAudioPostId === post.id && currentTrack?.id === post.id && !isPlaying) {
-            playTrack({ id: post.id, title: post.title, url: post.url });
-        } else {
-            setActiveAudioPostId(post.id);
-            playTrack({ id: post.id, title: post.title, url: post.url });
-        }
-    };
-
-    const handleSeek = (e, postId) => {
-        const newTime = parseFloat(e.target.value);
-        if (currentTrack?.id === postId) {
-            seek(newTime);
-        }
-    };
-
-    const handleVolumeChangeLocal = (e, postId) => {
-        const newVolume = parseFloat(e.target.value);
-        if (currentTrack?.id === postId) {
-            setVolume(newVolume);
-        }
-    };
-
-    const handleSpeedChangeLocal = (e, postId) => {
-        const newSpeed = parseFloat(e.target.value);
-        if (currentTrack?.id === postId) {
-            setPlaybackRate(newSpeed);
-        }
-    };
-
-    const getCurrentTimeForPost = (postId) => {
-        if (currentTrack?.id === postId) {
-            return currentTime;
-        }
-        return 0;
-    };
-
-    const getDurationForPost = (postId) => {
-        if (currentTrack?.id === postId) {
-            return duration;
-        }
-        return 0;
-    };
-
-    const isThisPlaying = (postId) => {
-        return currentTrack?.id === postId && isPlaying;
+    const onPlayAudio = (post) => {
+        handlePlayAudio(post, activeAudioPostId, setActiveAudioPostId);
     };
 
     return (
         <div className="main-feed">
-            {/* Отображение ошибок */}
             {error && (
                 <div className="error-message">
                     <span className="error-icon">⚠️</span>
@@ -413,7 +355,6 @@ const MainFeed = () => {
                 </div>
             )}
 
-            {/* Модальное окно подтверждения удаления (переиспользуемое) */}
             <ConfirmModal
                 isOpen={showDeleteConfirm}
                 title="Подтверждение удаления"
@@ -483,7 +424,7 @@ const MainFeed = () => {
                                                 <span>{formatTime(getDurationForPost(post.id))}</span>
                                             </div>
                                             <div className="inline-controls">
-                                                <button className="inline-play" onClick={() => handlePlayAudio(post)}>
+                                                <button className="inline-play" onClick={() => onPlayAudio(post)}>
                                                     {isThisPlaying(post.id) ? '⏸️' : '▶️'}
                                                 </button>
                                                 <div className="inline-volume">
@@ -511,7 +452,7 @@ const MainFeed = () => {
                                             </div>
                                         </div>
                                     ) : (
-                                        <button className="play-audio-btn" onClick={() => handlePlayAudio(post)}>
+                                        <button className="play-audio-btn" onClick={() => onPlayAudio(post)}>
                                             ▶️ Слушать аудио
                                         </button>
                                     )}
