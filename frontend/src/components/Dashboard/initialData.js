@@ -1,259 +1,172 @@
-// Начальные данные для Dashboard - 50 записей для каждой категории
+// Сокращённые начальные данные для 18 разделов (по 5 записей каждый)
 
-const generateItems = (prefix, items) => {
-    return items.map((item, index) => ({
-        id: `${prefix}-${index + 1}-${Date.now()}`,
-        title: item.title,
-        description: item.description,
+export const initialBroadcastsGuests = [
+    {
+        id: 1,
+        title: 'Эфир с гостем #1: Здоровое питание с Ириной',
+        description: 'Обсуждаем основы здорового питания с экспертом-диетологом.',
         mediaUrl: '',
-        mediaType: index % 2 === 0 ? 'audio' : 'video',
+        mediaType: 'audio',
         createdAt: new Date().toISOString()
-    }));
-};
-
-// Эфиры с гостями (50 записей)
-const broadcastsGuestsData = [
-    { title: 'Эфир с врачом-диетологом', description: 'Беседа о правильном питании и метаболизме с ведущим специалистом в области нутрициологии и здорового образа жизни' },
-    { title: 'Эфир с тренером по йоге', description: 'Практические советы по освоению асан и дыхательных техник от мастера с двадцатилетним опытом преподавания йоги' },
-    { title: 'Эфир с психологом', description: 'Разговор о ментальном здоровье и стрессоустойчивости с клиническим психологом и специалистом по когнитивно-поведенческой терапии' },
-    { title: 'Эфир с марафонцем', description: 'История подготовки к марафону и секреты выносливости от спортсмена с опытом участия в международных соревнованиях' },
-    { title: 'Эфир с вегетарианцем', description: 'Личный опыт перехода на растительное питание и его влияние на здоровье организма человека за десять лет' },
-    { title: 'Эфир с мастером цигун', description: 'Древние китайские практики для здоровья и долголетия с демонстрацией базовых упражнений для начинающих практиков' },
-    { title: 'Эфир с нутрициологом', description: 'Научный подход к составлению рациона и роль микроэлементов в функционировании организма человека каждый день' },
-    { title: 'Эфир с фитнес-тренером', description: 'Эффективные программы тренировок для дома и зала с разбором типичных ошибок начинающих спортсменов в зале' },
-    { title: 'Эфир с врачом-терапевтом', description: 'Профилактика заболеваний и укрепление иммунитета естественными методами без использования медикаментозных препаратов для организма' },
-    { title: 'Эфир с мастером медитации', description: 'Техники осознанности и работы с сознанием для достижения внутреннего покоя и гармонии в повседневной жизни' },
-    { title: 'Эфир с диетологом-эндокринологом', description: 'Гормоны и питание: как еда влияет на эндокринную систему и метаболические процессы в организме человека' },
-    { title: 'Эфир с тренером по плаванию', description: 'Правильная техника плавания и польза водных тренировок для позвоночника и суставов всего тела человека' },
-    { title: 'Эфир с врачом-кардиологом', description: 'Здоровье сердца и сосудов: профилактика сердечно-сосудистых заболеваний через образ жизни и правильное питание' },
-    { title: 'Эфир с инструктором пилатеса', description: 'Укрепление глубоких мышц кора и улучшение осанки через систему упражнений пилатес для всех возрастов' },
-    { title: 'Эфир с специалистом по аюрведе', description: 'Древняя индийская система здоровья и баланс дош для гармоничной жизни в современном мире людей' },
-    { title: 'Эфир с тренером по боксу', description: 'Бокс как способ развития координации, выносливости и уверенности в себе для мужчин и женщин' },
-    { title: 'Эфир с врачом-гастроэнтерологом', description: 'Здоровье пищеварительной системы и роль микробиоты кишечника в общем состоянии организма человека каждый день' },
-    { title: 'Эфир с мастером тайцзи', description: 'Плавные движения тайцзи для здоровья суставов и энергетического баланса тела человека в любом возрасте' },
-    { title: 'Эфир с врачом-неврологом', description: 'Здоровье нервной системы и профилактика неврологических заболеваний через правильный образ жизни и питание' },
-    { title: 'Эфир с инструктором по стретчингу', description: 'Растяжка для гибкости и здоровья суставов с практическими упражнениями для ежедневного выполнения дома' },
-    { title: 'Эфир с врачом-ортопедом', description: 'Здоровье опорно-двигательного аппарата и профилактика заболеваний позвоночника и суставов через движение' },
-    { title: 'Эфир с тренером по кроссфиту', description: 'Функциональный тренинг высокой интенсивности для развития силы, выносливости и координации движений тела' },
-    { title: 'Эфир с врачом-дерматологом', description: 'Здоровье кожи изнутри: связь питания, образа жизни и состояния кожных покровов человека' },
-    { title: 'Эфир с инструктором по танцам', description: 'Танцы как способ поддержания физической формы и эмоционального здоровья для людей всех возрастов' },
-    { title: 'Эфир с врачом-офтальмологом', description: 'Здоровье глаз и профилактика нарушений зрения через упражнения и правильный режим работы за компьютером' },
-    { title: 'Эфир с мастером цигун-массажа', description: 'Техники самомассажа для улучшения циркуляции энергии и крови в теле человека каждый день утром' },
-    { title: 'Эфир с врачом-пульмонологом', description: 'Здоровье дыхательной системы и дыхательные практики для укрепления легких и повышения жизненной энергии' },
-    { title: 'Эфир с тренером по велоспорту', description: 'Велосипед как инструмент здоровья: правильная техника езды и программы тренировок для разных уровней подготовки' },
-    { title: 'Эфир с врачом-эндокринологом', description: 'Щитовидная железа и гормональный баланс: как поддерживать здоровье эндокринной системы естественными методами' },
-    { title: 'Эфир с инструктором по калланетике', description: 'Статические упражнения для глубокой проработки мышц и формирования красивого тела без тренажеров' },
-    { title: 'Эфир с врачом-иммунологом', description: 'Укрепление иммунитета естественными методами и роль образа жизни в защитных функциях организма человека' },
-    { title: 'Эфир с мастером рейки', description: 'Энергетическое целительство и техники работы с энергией для гармонизации тела и духа человека' },
-    { title: 'Эфир с врачом-ревматологом', description: 'Здоровье суставов и профилактика ревматических заболеваний через питание и физическую активность каждый день' },
-    { title: 'Эфир с тренером по скандинавской ходьбе', description: 'Польза ходьбы с палками для всего организма и правильная техника для максимального эффекта' },
-    { title: 'Эфир с врачом-урологом', description: 'Мужское здоровье и профилактика урологических заболеваний через правильный образ жизни и питание' },
-    { title: 'Эфир с инструктором по аквааэробике', description: 'Водные тренировки для здоровья суставов и эффективного жиросжигания без нагрузки на позвоночник' },
-    { title: 'Эфир с врачом-гинекологом', description: 'Женское здоровье и гормональный баланс: естественные методы поддержания репродуктивного здоровья женщины' },
-    { title: 'Эфир с мастером дыхательных практик', description: 'Пранаяма и другие техники дыхания для управления энергией и эмоциональным состоянием человека' },
-    { title: 'Эфир с врачом-гепатологом', description: 'Здоровье печени и детоксикация организма естественными методами без агрессивных чисток и голодания' },
-    { title: 'Эфир с тренером по триатлону', description: 'Комплексная подготовка в трех дисциплинах и секреты выносливости от профессионального спортсмена' },
-    { title: 'Эфир с врачом-нефрологом', description: 'Здоровье почек и мочевыделительной системы через правильный питьевой режим и питание каждый день' },
-    { title: 'Эфир с инструктором по бодифлексу', description: 'Дыхательная гимнастика для похудения и оздоровления организма с минимальными временными затратами' },
-    { title: 'Эфир с врачом-сомнологом', description: 'Наука о сне: как улучшить качество сна и восстановление организма естественными методами' },
-    { title: 'Эфир с мастером суставной гимнастики', description: 'Упражнения для здоровья и подвижности суставов в любом возрасте без боли и дискомфорта' },
-    { title: 'Эфир с врачом-онкологом', description: 'Профилактика онкологических заболеваний через образ жизни, питание и регулярные обследования организма' },
-    { title: 'Эфир с тренером по воркауту', description: 'Уличные тренировки с собственным весом для развития силы и выносливости без тренажерного зала' },
-    { title: 'Эфир с врачом-геронтологом', description: 'Секреты долголетия и активного старения: научный подход к продлению здоровой жизни человека' },
-    { title: 'Эфир с инструктором по фитнес-йоге', description: 'Современный подход к йоге с элементами фитнеса для гармоничного развития тела и духа' },
-    { title: 'Эфир с врачом-диабетологом', description: 'Профилактика и контроль диабета через питание, физическую активность и здоровый образ жизни' },
-    { title: 'Эфир с долгожителем', description: 'Личный опыт здоровой жизни в течение девяноста лет: привычки, питание и философия долголетия' }
-];
-
-export const initialBroadcastsGuests = generateItems('guest', broadcastsGuestsData);
-
-// Для остальных категорий создам сокращенные версии (по 50 записей каждая)
-// Из-за ограничений размера, создам базовую структуру
-
-const createCategoryData = (categoryName, baseTopics) => {
-    const items = [];
-    for (let i = 0; i < 50; i++) {
-        const topicIndex = i % baseTopics.length;
-        items.push({
-            title: `${categoryName} #${i + 1}: ${baseTopics[topicIndex].title}`,
-            description: `${baseTopics[topicIndex].description} для достижения максимального результата в практике здорового образа жизни`
-        });
+    },
+    {
+        id: 2,
+        title: 'Эфир с гостем #2: Йога для начинающих с Марией',
+        description: 'Практические советы по йоге для тех, кто только начинает.',
+        mediaUrl: '',
+        mediaType: 'video',
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 3,
+        title: 'Эфир с гостем #3: Медитация осознанности',
+        description: 'Техники медитации от практикующего инструктора.',
+        mediaUrl: '',
+        mediaType: 'audio',
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 4,
+        title: 'Эфир с гостем #4: Бег и выносливость',
+        description: 'Советы по бегу от марафонца.',
+        mediaUrl: '',
+        mediaType: 'video',
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 5,
+        title: 'Эфир с гостем #5: Правильное дыхание',
+        description: 'Дыхательные практики для здоровья.',
+        mediaUrl: '',
+        mediaType: 'audio',
+        createdAt: new Date().toISOString()
     }
-    return generateItems(categoryName.toLowerCase(), items);
-};
-
-// Упражнения
-const exercisesBase = [
-    { title: 'Приседания', description: 'Базовое упражнение для ног и ягодиц с правильной техникой выполнения' },
-    { title: 'Отжимания', description: 'Классическое упражнение для грудных мышц и трицепсов' },
-    { title: 'Планка', description: 'Статическое упражнение для укрепления мышц кора' },
-    { title: 'Выпады', description: 'Упражнение для ног с акцентом на ягодичные мышцы' },
-    { title: 'Подтягивания', description: 'Упражнение для спины и бицепсов на турнике' }
 ];
 
-export const initialExercises = createCategoryData('Упражнение', exercisesBase);
-
-// Рекомендации
-const recommendationsBase = [
-    { title: 'Питьевой режим', description: 'Как правильно пить воду в течение дня' },
-    { title: 'Режим сна', description: 'Оптимальное время для сна и восстановления' },
-    { title: 'Питание', description: 'Принципы здорового сбалансированного питания' },
-    { title: 'Физическая активность', description: 'Минимальная норма движения в день' },
-    { title: 'Стресс-менеджмент', description: 'Техники управления стрессом в повседневной жизни' }
+export const initialExercises = [
+    { id: 1, title: 'Упражнение #1: Приседания', description: 'Техника выполнения приседаний.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Упражнение #2: Отжимания', description: 'Классические отжимания от пола.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Упражнение #3: Планка', description: 'Удержание планки 1 минута.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Упражнение #4: Выпады', description: 'Техника выпадов для ног.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Упражнение #5: Пресс', description: 'Скручивания для пресса.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() }
 ];
 
-export const initialRecommendations = createCategoryData('Рекомендация', recommendationsBase);
-
-// Закаливание
-const hardeningBase = [
-    { title: 'Контрастный душ', description: 'Методика чередования горячей и холодной воды' },
-    { title: 'Обливание холодной водой', description: 'Техника холодных обливаний для иммунитета' },
-    { title: 'Моржевание', description: 'Купание в ледяной воде: подготовка и практика' },
-    { title: 'Босохождение', description: 'Ходьба босиком по разным поверхностям' },
-    { title: 'Воздушные ванны', description: 'Закаливание воздухом на свежем воздухе' }
+export const initialRecommendations = [
+    { id: 1, title: 'Рекомендация #1: Питьевой режим', description: 'Пейте не менее 2л воды в день.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Рекомендация #2: Сон', description: 'Спите 7-8 часов.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Рекомендация #3: Прогулки', description: 'Гуляйте на свежем воздухе.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Рекомендация #4: Контрастный душ', description: 'Закаливание контрастным душем.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Рекомендация #5: Медитация', description: 'Медитируйте 10 минут утром.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() }
 ];
 
-export const initialHardening = createCategoryData('Закаливание', hardeningBase);
-
-// О нас
-const aboutBase = [
-    { title: 'История проекта', description: 'Как начинался наш путь к здоровому образу жизни' },
-    { title: 'Наша миссия', description: 'Помогать людям становиться здоровее и счастливее' },
-    { title: 'Команда', description: 'Люди, которые создают контент для вас' },
-    { title: 'Достижения', description: 'Результаты участников нашего сообщества' },
-    { title: 'Партнеры', description: 'Организации и эксперты, с которыми мы сотрудничаем' }
+export const initialHardening = [
+    { id: 1, title: 'Закаливание #1: Обливание', description: 'Начните с обливания ног прохладной водой.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Закаливание #2: Контрастный душ', description: 'Чередование горячей и холодной воды.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Закаливание #3: Купание в проруби', description: 'Правила безопасности при зимнем купании.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Закаливание #4: Воздушные ванны', description: 'Принимайте воздушные ванны.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Закаливание #5: Босохождение', description: 'Ходьба босиком по траве.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() }
 ];
 
-export const initialAbout = createCategoryData('О нас', aboutBase);
-
-// Для новичков
-const newbiesBase = [
-    { title: 'С чего начать', description: 'Первые шаги на пути к здоровому образу жизни' },
-    { title: 'Базовые упражнения', description: 'Простые упражнения для начинающих без опыта' },
-    { title: 'Основы питания', description: 'Простые принципы здорового питания для новичков' },
-    { title: 'Мотивация', description: 'Как не бросить начатое и двигаться к цели' },
-    { title: 'Частые ошибки', description: 'Типичные ошибки новичков и как их избежать' }
+export const initialAbout = [
+    { id: 1, title: 'О нас #1: Наша миссия', description: 'Помогаем людям стать здоровыми и сильными.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 2, title: 'О нас #2: История создания', description: 'Проект основан в 2023 году.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 3, title: 'О нас #3: Команда', description: 'Профессионалы в области здоровья.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 4, title: 'О нас #4: Партнёры', description: 'Сотрудничаем с ведущими клиниками.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 5, title: 'О нас #5: Контакты', description: 'Свяжитесь с нами через чат.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() }
 ];
 
-export const initialNewbies = createCategoryData('Для новичков', newbiesBase);
-
-// Важные материалы - голос сердца
-const heartVoiceBase = [
-    { title: 'Слушай свое тело', description: 'Как научиться понимать сигналы организма' },
-    { title: 'Внутренняя гармония', description: 'Путь к балансу тела и духа' },
-    { title: 'Истинные ценности', description: 'Что действительно важно в жизни' },
-    { title: 'Любовь к себе', description: 'Принятие себя как основа здоровья' },
-    { title: 'Осознанность', description: 'Жизнь здесь и сейчас в каждом моменте' }
+export const initialNewbies = [
+    { id: 1, title: 'Новичкам #1: Первый шаг', description: 'С чего начать заниматься здоровьем.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Новичкам #2: Питание', description: 'Основы правильного питания для начинающих.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Новичкам #3: Тренировки', description: 'Лёгкие тренировки для новичков.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Новичкам #4: Режим дня', description: 'Как построить день для здоровья.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Новичкам #5: Мотивация', description: 'Как не бросить на полпути.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() }
 ];
 
-export const initialHeartVoice = createCategoryData('Голос сердца', heartVoiceBase);
-
-// Для размышления
-const reflectionBase = [
-    { title: 'Смысл здоровья', description: 'Философский взгляд на здоровый образ жизни' },
-    { title: 'Баланс в жизни', description: 'Как найти гармонию между разными сферами' },
-    { title: 'Путь к себе', description: 'Самопознание через практики здоровья' },
-    { title: 'Ценность времени', description: 'Как правильно распоряжаться своим временем' },
-    { title: 'Простота', description: 'Красота простых решений в здоровом образе жизни' }
+export const initialHeartVoice = [
+    { id: 1, title: 'Голос сердца #1: Благодарность', description: 'Практика благодарности.', mediaUrl: '', mediaType: 'audio', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Голос сердца #2: Прощение', description: 'Как прощать обиды.', mediaUrl: '', mediaType: 'audio', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Голос сердца #3: Любовь к себе', description: 'Принятие себя.', mediaUrl: '', mediaType: 'audio', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Голос сердца #4: Сострадание', description: 'Развитие эмпатии.', mediaUrl: '', mediaType: 'audio', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Голос сердца #5: Вдохновение', description: 'Источники вдохновения.', mediaUrl: '', mediaType: 'audio', createdAt: new Date().toISOString() }
 ];
 
-export const initialReflection = createCategoryData('Размышление', reflectionBase);
-
-// Интервью с интересными личностями
-const interviewsBase = [
-    { title: 'Спортсмен-олимпиец', description: 'История пути к олимпийским медалям' },
-    { title: 'Врач-долгожитель', description: 'Секреты здоровья от 90-летнего доктора' },
-    { title: 'Йог-практик', description: 'Тридцать лет практики йоги: опыт и мудрость' },
-    { title: 'Марафонец-любитель', description: 'От дивана до марафона за год' },
-    { title: 'Веган со стажем', description: 'Двадцать лет растительного питания' }
+export const initialReflection = [
+    { id: 1, title: 'Размышление #1: Смысл жизни', description: 'Философский взгляд.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Размышление #2: Счастье', description: 'Что такое счастье.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Размышление #3: Время', description: 'Ценность времени.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Размышление #4: Отношения', description: 'Гармония в отношениях.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Размышление #5: Развитие', description: 'Личностный рост.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() }
 ];
 
-export const initialInterviews = createCategoryData('Интервью', interviewsBase);
-
-// От участников проекта
-const participantsBase = [
-    { title: 'История трансформации', description: 'Как я изменил свою жизнь за полгода' },
-    { title: 'Мой путь к здоровью', description: 'Личный опыт оздоровления организма' },
-    { title: 'Преодоление', description: 'Как я справился с хроническим заболеванием' },
-    { title: 'Новая жизнь', description: 'Жизнь до и после изменения образа жизни' },
-    { title: 'Благодарность', description: 'Спасибо проекту за изменения в моей жизни' }
+export const initialInterviews = [
+    { id: 1, title: 'Интервью #1: Известный спортсмен', description: 'Интервью с мастером спорта.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Интервью #2: Психолог', description: 'Разговор о ментальном здоровье.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Интервью #3: Нутрициолог', description: 'Секреты питания.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Интервью #4: Йог-инструктор', description: 'Путь к гармонии.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Интервью #5: Врач', description: 'Профилактика заболеваний.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() }
 ];
 
-export const initialParticipants = createCategoryData('Участник', participantsBase);
-
-// Мотивация
-const motivationBase = [
-    { title: 'Начни сегодня', description: 'Почему откладывать нельзя и как начать прямо сейчас' },
-    { title: 'Маленькие шаги', description: 'Как большие цели достигаются малыми действиями' },
-    { title: 'Не сдавайся', description: 'Истории людей, которые не опустили руки' },
-    { title: 'Твоя сила', description: 'Ты сильнее, чем думаешь - поверь в себя' },
-    { title: 'Результаты', description: 'Вдохновляющие истории трансформации тела и духа' }
+export const initialParticipants = [
+    { id: 1, title: 'Участник #1: Анна', description: 'Отзыв участницы проекта.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Участник #2: Иван', description: 'Результаты за месяц.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Участник #3: Ольга', description: 'История похудения.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Участник #4: Дмитрий', description: 'Улучшение выносливости.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Участник #5: Елена', description: 'Мой путь к здоровью.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() }
 ];
 
-export const initialMotivation = createCategoryData('Мотивация', motivationBase);
-
-// Отзывы
-const reviewsBase = [
-    { title: 'Отзыв о программе', description: 'Мой опыт прохождения программы оздоровления' },
-    { title: 'Результаты', description: 'Что изменилось за три месяца занятий' },
-    { title: 'Благодарность тренеру', description: 'Спасибо за профессиональный подход' },
-    { title: 'Рекомендую', description: 'Почему я советую этот проект друзьям' },
-    { title: 'Впечатления', description: 'Мои впечатления от участия в проекте' }
+export const initialMotivation = [
+    { id: 1, title: 'Мотивация #1: Цитата дня', description: 'Единственный путь к успеху — действовать.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Мотивация #2: История успеха', description: 'Как человек изменил свою жизнь.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Мотивация #3: Видео-вдохновение', description: 'Ролик о силе духа.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Мотивация #4: Аффирмации', description: 'Позитивные утверждения.', mediaUrl: '', mediaType: 'audio', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Мотивация #5: Заряд бодрости', description: 'Утренняя зарядка.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() }
 ];
 
-export const initialReviews = createCategoryData('Отзыв', reviewsBase);
-
-// Музыка
-const musicBase = [
-    { title: 'Музыка для медитации', description: 'Спокойные мелодии для практики осознанности' },
-    { title: 'Музыка для тренировок', description: 'Энергичные треки для мотивации на занятиях' },
-    { title: 'Музыка для йоги', description: 'Расслабляющие композиции для практики йоги' },
-    { title: 'Музыка для сна', description: 'Успокаивающие звуки для глубокого сна' },
-    { title: 'Музыка для концентрации', description: 'Фоновая музыка для работы и учебы' }
+export const initialReviews = [
+    { id: 1, title: 'Отзыв #1: Пять звёзд', description: 'Отличный проект, рекомендую.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Отзыв #2: Благодарность', description: 'Спасибо за вашу работу!', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Отзыв #3: Результат', description: 'Похудел на 10 кг за месяц.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Отзыв #4: Рекомендация друзьям', description: 'Советую всем попробовать.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Отзыв #5: Вдохновение', description: 'Вы изменили мою жизнь.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() }
 ];
 
-export const initialMusic = createCategoryData('Музыка', musicBase);
-
-// Фильмы
-const moviesBase = [
-    { title: 'Документальный о здоровье', description: 'Фильм о влиянии образа жизни на здоровье' },
-    { title: 'История спортсмена', description: 'Вдохновляющая история преодоления' },
-    { title: 'О питании', description: 'Документальный фильм о правильном питании' },
-    { title: 'Йога и медитация', description: 'Фильм о древних практиках востока' },
-    { title: 'Сила воли', description: 'История о силе человеческого духа' }
+export const initialMusic = [
+    { id: 1, title: 'Трек #1: Расслабляющая музыка', description: 'Для медитации и отдыха.', mediaUrl: '', mediaType: 'audio', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Трек #2: Энергичная музыка', description: 'Для тренировок.', mediaUrl: '', mediaType: 'audio', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Трек #3: Классика', description: 'Произведения великих композиторов.', mediaUrl: '', mediaType: 'audio', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Трек #4: Природные звуки', description: 'Шум леса, пение птиц.', mediaUrl: '', mediaType: 'audio', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Трек #5: Мантры', description: 'Для духовных практик.', mediaUrl: '', mediaType: 'audio', createdAt: new Date().toISOString() }
 ];
 
-export const initialMovies = createCategoryData('Фильм', moviesBase);
-
-// Литература
-const literatureBase = [
-    { title: 'Книга о здоровье', description: 'Комплексный подход к оздоровлению организма' },
-    { title: 'Книга о питании', description: 'Научный взгляд на правильное питание' },
-    { title: 'Книга о йоге', description: 'Философия и практика йоги для современного человека' },
-    { title: 'Книга о медитации', description: 'Техники осознанности и работы с сознанием' },
-    { title: 'Книга о долголетии', description: 'Секреты здоровой и долгой жизни' }
+export const initialMovies = [
+    { id: 1, title: 'Фильм #1: "Сила воли"', description: 'Документальный фильм о преодолении.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Фильм #2: "Здоровое тело"', description: 'Научно-популярный фильм.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Фильм #3: "Дыхание жизни"', description: 'О важности дыхания.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Фильм #4: "Путь чемпиона"', description: 'История спортсмена.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Фильм #5: "Гармония"', description: 'Фильм о балансе тела и духа.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() }
 ];
 
-export const initialLiterature = createCategoryData('Книга', literatureBase);
-
-// О Тимошенко
-const aboutTimoshenkoBase = [
-    { title: 'Биография', description: 'Жизненный путь и становление как эксперта' },
-    { title: 'Философия', description: 'Взгляды на здоровье и образ жизни' },
-    { title: 'Методика', description: 'Авторский подход к оздоровлению организма' },
-    { title: 'Достижения', description: 'Результаты работы и благодарности учеников' },
-    { title: 'Публикации', description: 'Статьи и книги о здоровом образе жизни' }
+export const initialLiterature = [
+    { id: 1, title: 'Книга #1: "Сила привычек"', description: 'Чарльз Дахигг.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Книга #2: "Атлант расправил плечи"', description: 'Айн Рэнд.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Книга #3: "7 навыков высокоэффективных людей"', description: 'Стивен Кови.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Книга #4: "Думай медленно... решай быстро"', description: 'Даниэль Канеман.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Книга #5: "Бегущий по лезвию"', description: 'Филип Дик.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() }
 ];
 
-export const initialAboutTimoshenko = createCategoryData('О Тимошенко', aboutTimoshenkoBase);
-
-// Годовой челлендж физических нагрузок
-const challengeBase = [
-    { title: 'Январь: Основы', description: 'Начало пути - базовые упражнения и привычки' },
-    { title: 'Февраль: Кардио', description: 'Месяц развития выносливости и сердечно-сосудистой системы' },
-    { title: 'Март: Сила', description: 'Силовые тренировки для укрепления мышц' },
-    { title: 'Апрель: Гибкость', description: 'Растяжка и развитие подвижности суставов' },
-    { title: 'Май: Баланс', description: 'Упражнения на координацию и равновесие' }
+export const initialAboutTimoshenko = [
+    { id: 1, title: 'О Тимошенко #1: Биография', description: 'Краткая биография.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 2, title: 'О Тимошенко #2: Методика', description: 'Описание авторской методики.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 3, title: 'О Тимошенко #3: Достижения', description: 'Результаты и награды.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 4, title: 'О Тимошенко #4: Отзывы', description: 'Отзывы о работе.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 5, title: 'О Тимошенко #5: Контакты', description: 'Связаться с экспертом.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() }
 ];
 
-export const initialChallenge = createCategoryData('Челлендж', challengeBase);
+export const initialChallenge = [
+    { id: 1, title: 'Челлендж #1: 30 дней без сахара', description: 'Отказ от сладкого на месяц.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 2, title: 'Челлендж #2: 10000 шагов', description: 'Ежедневная ходьба.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 3, title: 'Челлендж #3: Планка каждый день', description: 'Удержание планки от 30 секунд.', mediaUrl: '', mediaType: 'video', createdAt: new Date().toISOString() },
+    { id: 4, title: 'Челлендж #4: Отказ от телефона', description: 'Цифровой детокс.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() },
+    { id: 5, title: 'Челлендж #5: Холодный душ', description: 'Закаливание холодной водой.', mediaUrl: '', mediaType: 'text', createdAt: new Date().toISOString() }
+];
