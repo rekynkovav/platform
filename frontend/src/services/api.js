@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getToken, updateToken, isTokenExpired } from '../keycloak';
+import { getToken, updateToken, isTokenExpired, logout } from '../keycloak';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081/api';
 const USE_MOCK = process.env.REACT_APP_USE_MOCK_AUTH === 'true';
@@ -35,7 +35,7 @@ class ApiClient {
             (response) => response.data,
             (error) => {
                 if (error.response?.status === 401) {
-                    window.location.href = '/';
+                    logout(); // Перенаправляет на страницу логина Keycloak
                 }
                 if (error.response?.status === 429) {
                     console.warn('Rate limit exceeded');
