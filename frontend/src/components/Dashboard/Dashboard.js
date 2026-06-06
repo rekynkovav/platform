@@ -5,7 +5,6 @@ import useAudioRecorder from '../../hooks/useAudioRecorder';
 import { usePermissions } from '../../hooks/usePermissions';
 import ConfirmModal from '../common/ConfirmModal';
 import AddContentModal from '../common/AddContentModal';
-import InfoModal from '../common/InfoModal';
 import {
     initialBroadcasts,
     initialBroadcastsGuests,
@@ -77,11 +76,6 @@ const Dashboard = () => {
     const [itemToDelete, setItemToDelete] = useState(null);
     const [editingItem, setEditingItem] = useState(null);
 
-    // Состояния для модального окна информации
-    const [showInfo, setShowInfo] = useState(false);
-    const [infoTitle, setInfoTitle] = useState('');
-    const [infoMessage, setInfoMessage] = useState('');
-
     // Хук записи аудио
     const {
         isRecording,
@@ -97,12 +91,6 @@ const Dashboard = () => {
     const isAdmin = hasLevel(6);
     const canEdit = hasLevel(6);
     const isSuperAdmin = hasLevel(8);
-
-    const showInfoModal = (title, message) => {
-        setInfoTitle(title);
-        setInfoMessage(message);
-        setShowInfo(true);
-    };
 
     const buildInitialData = useCallback(() => {
         const data = {};
@@ -835,13 +823,6 @@ const Dashboard = () => {
                 itemLabel={itemToDelete?.itemTitle || ''}
                 onConfirm={executeDeleteItem}
                 onCancel={cancelDeleteItem}
-            />
-
-            <InfoModal
-                isOpen={showInfo}
-                title={infoTitle}
-                message={infoMessage}
-                onClose={() => setShowInfo(false)}
             />
 
             <AddContentModal
