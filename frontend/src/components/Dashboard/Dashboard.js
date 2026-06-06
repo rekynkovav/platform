@@ -54,8 +54,6 @@ const Dashboard = () => {
     const [itemToDelete, setItemToDelete] = useState(null);
     const [editingItem, setEditingItem] = useState(null);
 
-    const [demoRole, setDemoRole] = useState(nullapsed);
-
     // Хук записи аудио
     const {
         isRecording,
@@ -72,32 +70,6 @@ const Dashboard = () => {
     const isAdmin = hasLevel(6);
     const canEdit = hasLevel(6);
     const isSuperAdmin = hasLevel(8);
-
-    useEffect(() => {
-        const loadDemoRole = async () => {
-            if (process.env.REACT_APP_ENVIRONMENT === 'development') {
-                try {
-                    const role = await demoApi.getDemoRole();
-                    setDemoRole(role || null);
-                } catch (err) {
-                    console.error('Failed to load demo role:', err);
-                    const savedRole = sessionStorage.getItem('demoRole');
-                    setDemoRole(savedRole || null);
-                }
-            } else {
-                setDemoRole(null);
-            }
-        };
-
-        loadDemoRole();
-    }, []);
-
-    // Отладка: выводим роль и статус админа
-    useEffect(() => {
-        console.log('[Dashboard] demoRole:', demoRole);
-        console.log('[Dashboard] isAdmin:', isAdmin);
-        console.log('[Dashboard] isSuperAdmin:', isSuperAdmin);
-    }, [demoRole, isAdmin, isSuperAdmin]);
 
     const initialBroadcasts = [
                 {

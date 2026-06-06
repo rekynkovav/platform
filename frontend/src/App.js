@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { initKeycloak, getUsername, getUserRoles, logout } from './keycloak';
+import { initKeycloak, getUsername, logout } from './keycloak';
 import NavTabs from './components/Navigation/NavTabs';
 import MainFeed from './components/Feed/MainFeed';
 import Dashboard from './components/Dashboard/Dashboard';
@@ -14,7 +14,6 @@ import './App.css';
 function App() {
     const [authenticated, setAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [userRoles, setUserRoles] = useState([]);
     const [username, setUsername] = useState('User');
 
     useEffect(() => {
@@ -26,7 +25,6 @@ function App() {
                 const auth = await initKeycloak();
                 setAuthenticated(auth);
                 if (auth) {
-                    setUserRoles(getUserRoles());
                     setUsername(getUsername());
                 }
             } catch (error) {

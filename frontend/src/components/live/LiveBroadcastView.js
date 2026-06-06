@@ -41,7 +41,8 @@ const LiveBroadcastView = () => {
 
     useEffect(() => {
         loadBroadcasts();
-        const interval = setInterval(loadBroadcasts, 10000);
+        // Увеличиваем интервал до 30 секунд (было 10)
+        const interval = setInterval(loadBroadcasts, 30000);
         return () => clearInterval(interval);
     }, [loadBroadcasts]);
 
