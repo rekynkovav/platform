@@ -3,6 +3,7 @@ import { ROLES, ROLE_LEVELS } from '../constants/roles';
 
 export const usePermissions = () => {
     const roles = getUserRoles();
+    // Если роли ещё не загружены (пустой массив), считаем уровень 1 (USER_0)
     const highestRole = roles.length > 0 ? roles[0] : ROLES.USER_0;
     const level = ROLE_LEVELS[highestRole] || 1;
 
