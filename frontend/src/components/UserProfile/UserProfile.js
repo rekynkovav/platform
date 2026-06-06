@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { userApi, paymentApi } from '../../services/api';
 import { getUsername, getUserRoles } from '../../keycloak';
+import InfoModal from '../common/InfoModal';
 import './UserProfile.css';
 
 const UserProfile = () => {
@@ -12,11 +13,23 @@ const UserProfile = () => {
     const [qrCode, setQrCode] = useState(null);
     const [currentPayment, setCurrentPayment] = useState(null);
     const [error, setError] = useState(null);
+
+    // Состояния для модального окна информации
+    const [infoMessage, setInfoMessage] = useState('');
+    const [infoTitle, setInfoTitle] = useState('');
+    const [showInfo, setShowInfo] = useState(false);
+
     const username = getUsername();
     const userRoles = getUserRoles();
 
     const clearError = () => {
         setError(null);
+    };
+
+    const showInfoModal = (title, message) => {
+        setInfoTitle(title);
+        setInfoMessage(message);
+        setShowInfo(true);
     };
 
     useEffect(() => {
@@ -61,7 +74,7 @@ const UserProfile = () => {
             setUser(updated);
             setIsEditing(false);
             setError(null);
-            alert('Profile updated successfully');
+            showInfoModal('Профиль обновлён', 'Данные успешно сохранены.');
         } catch (error) {
             console.error('Failed to update profile:', error);
             setError('Не удалось обновить профиль');
@@ -74,11 +87,16 @@ const UserProfile = () => {
             setCurrentPayment(payment);
 
             // Загрузить QR-код
-            const qrResponse = await paymentApi.getPaymentQR(payment.id);
-            setQrCode(`data:image/png;base64,${qrResponse.qrCodeBase64}`);
+            try {
+                const qrResponse = await paymentApi.getPaymentQR(payment.id);
+                setQrCode(`data:image/png;base64,${qrResponse.qrCodeBase64}`);
+            } catch (qrError) {
+                console.error('Failed to load QR code:', qrError);
+                setError('Не удалось получить QR-код');
+            }
 
             setError(null);
-            alert(`Payment created: ${payment.amount} RUB`);
+            showInfoModal('Платёж создан', `Счёт на сумму ${payment.amount} RUB сформирован.`);
             loadPayments();
         } catch (error) {
             console.error('Failed to create payment:', error);
@@ -99,6 +117,14 @@ const UserProfile = () => {
                     <button className="error-close" onClick={clearError}>×</button>
                 </div>
             )}
+
+            {/* Модальное окно информации */}
+            <InfoModal
+                isOpen={showInfo}
+                title={infoTitle}
+                message={infoMessage}
+                onClose={() => setShowInfo(false)}
+            />
 
             <div className="profile-header">
                 <h2>Profile: {user.username}</h2>
