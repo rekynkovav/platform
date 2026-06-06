@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getToken, updateToken } from '../keycloak';
+import { getToken, updateToken, isTokenExpired } from '../keycloak';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081/api';
 const USE_MOCK = process.env.REACT_APP_USE_MOCK_AUTH === 'true';
@@ -18,8 +18,8 @@ class ApiClient {
         this.client.interceptors.request.use(async (config) => {
             let token = getToken();
 
-            // Обновляем если истекает
-            if (token && await updateToken()) {
+            // Обновляем только если истекает (избегаем лишних вызовов updateToken)
+            if (token && isTokenExpired() && await updateToken()) {
                 token = getToken();
             }
 
@@ -35,8 +35,7 @@ class ApiClient {
             (response) => response.data,
             (error) => {
                 if (error.response?.status === 401) {
-                    // Token expired — logout
-                    sessionStorage.clear();
+                    // Token expired — перенаправление без очистки sessionStorage (логин сделает Keycloak)
                     window.location.href = '/';
                 }
                 if (error.response?.status === 429) {
@@ -99,7 +98,6 @@ export const chatApi = {
     getUsers: (roomSlug) => api.get(`/chat/${roomSlug}/users`),
     getQuestions: (mode) => api.get(`/chat/questions/${mode}`),
     sendQuestion: (mode, data) => api.post(`/chat/questions/${mode}`, data),
-    // Новые методы для QuestionDto
     getQuestionsDto: (mode) => api.get(`/chat/questions-dto/${mode}`),
     sendQuestionDto: (mode, data) => api.post(`/chat/questions-dto/${mode}`, data),
     answerQuestionDto: (questionId, data) => api.post(`/chat/questions-dto/${questionId}/answer`, data),
@@ -161,7 +159,6 @@ export const demoApi = {
     saveScheduledEvents: (events) => api.post('/demo/scheduled-events', events)
 };
 
-export default api;
 // Events & Materials API (EventsHub)
 export const eventsApi = {
     getUpcoming: () => api.get('/events/upcoming'),
@@ -171,7 +168,6 @@ export const eventsApi = {
     create: (data) => api.post('/events', data),
     update: (id, data) => api.put(`/events/${id}`, data),
     delete: (id) => api.delete(`/events/${id}`),
-    // Materials
     getMaterialsBySection: (sectionId) => api.get(`/events/materials/${sectionId}`),
     getMaterial: (id) => api.get(`/events/materials/item/${id}`),
     createMaterial: (data) => api.post('/events/materials', data),
@@ -192,8 +188,8 @@ export const notificationApi = {
     getUnread: () => api.get('/notifications/unread'),
     markAsRead: (id) => api.put(`/notifications/${id}/read`),
     markAllAsRead: () => api.put('/notifications/read-all'),
-    // Совместимость с фронтендом (сохранение на сервере)
     updateNotifications: (notifications) => api.post('/notifications/sync', notifications),
-    // События для уведомлений
     getUpcomingEvents: () => api.get('/events/upcoming')
 };
+
+export default api;

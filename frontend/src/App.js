@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { initKeycloak, getUsername, logout } from './keycloak';
+import { initKeycloak, getUsername, logout, login } from './keycloak';
 import NavTabs from './components/Navigation/NavTabs';
 import MainFeed from './components/Feed/MainFeed';
 import Dashboard from './components/Dashboard/Dashboard';
@@ -48,9 +48,7 @@ function App() {
     };
 
     const handleLogin = () => {
-        const keycloakUrl = process.env.REACT_APP_KEYCLOAK_URL || 'http://localhost:8080/auth';
-        const loginUrl = `${keycloakUrl}/realms/platform/protocol/openid-connect/auth?client_id=platform-frontend&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=code&scope=openid`;
-        window.location.href = loginUrl;
+        login();
     };
 
     if (loading) {
