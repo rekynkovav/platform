@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { initKeycloak, getUsername, getUserRoles, logout } from './keycloak';
 import NavTabs from './components/Navigation/NavTabs';
@@ -8,7 +8,6 @@ import LiveBroadcastView from './components/live/LiveBroadcastView';
 import GeneralChat from './components/Chat/GeneralChat';
 import UserProfile from './components/UserProfile/UserProfile';
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
-import { ROLES, ROLE_LEVELS } from './constants/roles';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import './App.css';
 
@@ -104,7 +103,7 @@ function App() {
                             <Route
                                 path="/broadcast-live"
                                 element={
-                                    <ProtectedRoute requiredLevel={4}>
+                                    <ProtectedRoute requiredLevel={6}>
                                         <LiveBroadcastView />
                                     </ProtectedRoute>
                                 }

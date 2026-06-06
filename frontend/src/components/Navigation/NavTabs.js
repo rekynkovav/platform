@@ -25,7 +25,8 @@ const NavTabs = () => {
         extraTabs.push({ id: 'dashboard', label: 'Дашборд', route: '/dashboard' });
     }
 
-    if (canStartBroadcast() || hasLevel(4)) {
+    // Трансляции — только если можно их запускать (уровень 6 и выше)
+    if (canStartBroadcast()) {
         extraTabs.push({ id: 'broadcast-live', label: 'Трансляции', route: '/broadcast-live' });
     }
 
