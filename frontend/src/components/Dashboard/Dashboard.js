@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import './Dashboard.css';
 import { dashboardApi, demoApi } from '../../services/api';
 import useAudioRecorder from '../../hooks/useAudioRecorder';
+import { usePermissions } from '../../hooks/usePermissions';
 import ConfirmModal from '../common/ConfirmModal';
 import AddContentModal from '../common/AddContentModal';
 import {
@@ -53,7 +54,7 @@ const Dashboard = () => {
     const [itemToDelete, setItemToDelete] = useState(null);
     const [editingItem, setEditingItem] = useState(null);
 
-    const [demoRole, setDemoRole] = useState(null);
+    const [demoRole, setDemoRole] = useState(nullapsed);
 
     // Хук записи аудио
     const {
@@ -64,6 +65,13 @@ const Dashboard = () => {
         stopRecording,
         resetRecording
     } = useAudioRecorder();
+
+    const { hasLevel } = usePermissions();
+
+    // Определяем права через usePermissions
+    const isAdmin = hasLevel(6);
+    const canEdit = hasLevel(6);
+    const isSuperAdmin = hasLevel(8);
 
     useEffect(() => {
         const loadDemoRole = async () => {
@@ -83,23 +91,6 @@ const Dashboard = () => {
 
         loadDemoRole();
     }, []);
-    const isAdmin = useMemo(() =>
-        demoRole === 'MODERATOR_ADMIN' ||
-        demoRole === 'DEVELOPER' ||
-        demoRole === 'SUPER_ADMIN' ||
-        demoRole === 'VYACHESLAV'
-    , [demoRole]);
-
-    const canEdit = useMemo(() =>
-        demoRole === 'MODERATOR_ADMIN' ||
-        demoRole === 'SUPER_ADMIN' ||
-        demoRole === 'VYACHESLAV'
-    , [demoRole]);
-
-    const isSuperAdmin = useMemo(() =>
-        demoRole === 'SUPER_ADMIN' ||
-        demoRole === 'VYACHESLAV'
-    , [demoRole]);
 
     // Отладка: выводим роль и статус админа
     useEffect(() => {

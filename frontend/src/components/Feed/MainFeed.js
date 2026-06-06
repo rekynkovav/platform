@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getUserRoles } from '../../keycloak';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import { feedApi } from '../../services/api';
 import useAudioRecorder from '../../hooks/useAudioRecorder';
+import { usePermissions } from '../../hooks/usePermissions';
 import ConfirmModal from '../common/ConfirmModal';
 import './MainFeed.css';
 
@@ -10,7 +10,6 @@ const MainFeed = () => {
     const [posts, setPosts] = useState([]);
     const [newPost, setNewPost] = useState({ type: 'text', title: '', content: '', url: '' });
     const [showAddForm, setShowAddForm] = useState(false);
-    const [userRoles, setUserRoles] = useState([]);
     const [notification, setNotification] = useState(null);
     const [error, setError] = useState(null);
     const feedEndRef = useRef(null);
@@ -52,24 +51,11 @@ const MainFeed = () => {
         formatTime
     } = useAudioPlayer();
 
-    // Функция для обновления ролей из sessionStorage (только для development)
-    const updateRoles = () => {
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        let roles = [];
+    const { hasLevel } = usePermissions();
 
-        if (demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') {
-            roles = ['MODERATOR_ADMIN', 'USER_0'];
-        } else if (demoRole === 'USER_0' || demoRole === 'USER_1' || demoRole === 'USER_2') {
-            roles = ['USER_0'];
-        } else {
-            roles = getUserRoles();
-        }
-
-        setUserRoles(roles);
-        return roles;
-    };
+    // Определяем права через usePermissions
+    const isAdmin = hasLevel(6);
+    const isSuperAdmin = hasLevel(8);
 
     // Синхронизируем activeAudioPostId с currentTrack
     useEffect(() => {
@@ -91,7 +77,7 @@ const MainFeed = () => {
         };
     }, []);
 
-    // Загрузка постов и ролей
+    // Загрузка постов
     useEffect(() => {
         const loadPosts = async () => {
             try {
@@ -175,7 +161,6 @@ const MainFeed = () => {
         };
 
         loadPosts();
-        updateRoles();
     }, []);
 
     useEffect(() => {
@@ -200,10 +185,6 @@ const MainFeed = () => {
     };
 
     const handleAddPost = () => {
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
         if (!isAdmin) {
             alert('Только администратор может добавлять записи');
             return;
@@ -309,10 +290,6 @@ const MainFeed = () => {
     const executeDeletePost = async () => {
         if (!postToDelete) return;
 
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
         if (!isAdmin) {
             alert('Только администратор может удалять записи!');
             setShowDeleteConfirm(false);
@@ -344,11 +321,6 @@ const MainFeed = () => {
 
     // Функция для начала редактирования поста
     const handleEditPost = (post) => {
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
-
         if (!isAdmin) {
             alert('Только администратор может редактировать записи');
             return;
@@ -409,11 +381,6 @@ const MainFeed = () => {
 
     // Функция для скачивания материала (только для главного админа)
     const handleDownloadPost = async (post) => {
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        const isSuperAdmin = demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
-
         if (!isSuperAdmin) {
             alert('Только главный админ может скачивать материалы');
             return;
@@ -504,12 +471,6 @@ const MainFeed = () => {
     const isThisPlaying = (postId) => {
         return currentTrack?.id === postId && isPlaying;
     };
-
-    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-        ? sessionStorage.getItem('demoRole')
-        : null;
-    const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
-    const isSuperAdmin = demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
 
     return (
         <div className="main-feed">
