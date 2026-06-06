@@ -10,7 +10,6 @@ const MainFeed = () => {
     const [posts, setPosts] = useState([]);
     const [newPost, setNewPost] = useState({ type: 'text', title: '', content: '', url: '' });
     const [showAddForm, setShowAddForm] = useState(false);
-    const [notification, setNotification] = useState(null);
     const [error, setError] = useState(null);
     const feedEndRef = useRef(null);
     const addFormRef = useRef(null);
@@ -492,18 +491,6 @@ const MainFeed = () => {
                 onConfirm={executeDeletePost}
                 onCancel={cancelDeletePost}
             />
-
-            {notification && (
-                <div className={`event-notification ${notification.includes('удалена') ? 'delete-notification' : ''}`}>
-                    <div className="notification-content">
-                        <div className="notification-text">
-                            <strong>{notification.includes('удалена') ? 'Запись удалена' : 'Новая запись!'}</strong>
-                            <span>{notification}</span>
-                        </div>
-                        <div className="notification-close" onClick={() => setNotification(null)}>✕</div>
-                    </div>
-                </div>
-            )}
 
             <div className="feed-container">
                 <div className="feed-list">
