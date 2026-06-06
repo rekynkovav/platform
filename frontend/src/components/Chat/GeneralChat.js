@@ -108,6 +108,13 @@ const GeneralChat = () => {
         }
     };
 
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    };
+
     return (
         <div className="general-chat">
             <div className="chat-header">
@@ -148,7 +155,7 @@ const GeneralChat = () => {
                 <textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                    onKeyDown={handleKeyDown}
                     placeholder="Type a message..."
                     rows="3"
                 />
