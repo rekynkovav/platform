@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import { feedApi } from '../../services/api';
 import useAudioRecorder from '../../hooks/useAudioRecorder';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -109,7 +108,7 @@ const MainFeed = () => {
     // Функция для определения типа файла
     const getFileType = (file) => {
         if (file.type.startsWith('audio/')) return 'audio';
-        if (file.type.startsWith('video/')) return 'video';
+        if (уfile.type.startsWith('video/')) return 'video';
         return 'text';
     };
 
