@@ -108,7 +108,7 @@ const MainFeed = () => {
     // Функция для определения типа файла
     const getFileType = (file) => {
         if (file.type.startsWith('audio/')) return 'audio';
-        if (уfile.type.startsWith('video/')) return 'video';
+        if (file.type.startsWith('video/')) return 'video';
         return 'text';
     };
 
