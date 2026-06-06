@@ -6,7 +6,7 @@ import './NavTabs.css';
 const NavTabs = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { canViewAdmin, canStartBroadcast, hasLevel, level } = usePermissions();
+    const { canViewAdmin, canStartBroadcast, hasLevel } = usePermissions();
 
     // Базовые вкладки для всех
     const baseTabs = [
