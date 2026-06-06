@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { chatApi } from '../../services/api';
 import useWebSocket from '../../hooks/useWebSocket';
-import { getUserRoles, getUsername } from '../../keycloak';
+import { getUsername } from '../../keycloak';
 import './GeneralChat.css';
 
 const GeneralChat = () => {
@@ -12,11 +12,10 @@ const GeneralChat = () => {
     const [hasMore, setHasMore] = useState(true);
     const [error, setError] = useState(null);
     const messagesEndRef = useRef(null);
-    const userRoles = getUserRoles();
     const username = getUsername();
     const roomSlug = 'general';
 
-    const { isConnected, send, error: wsError } = useWebSocket(roomSlug, (wsMessage) => {
+    const { isConnected, send } = useWebSocket(roomSlug, (wsMessage) => {
         setMessages(prev => [...prev, wsMessage]);
     });
 

@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { broadcastApi } from '../../services/api';
 import useWebSocket from '../../hooks/useWebSocket';
-import { getUserRoles, getUsername } from '../../keycloak';
+import { usePermissions } from '../../hooks/usePermissions';
 import './LiveBroadcastView.css';
 
 const LiveBroadcastView = () => {
     const [broadcasts, setBroadcasts] = useState([]);
-    const [selectedBroadcast, setSelectedBroadcast] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isStarting, setIsStarting] = useState(false);
     const [error, setError] = useState(null);
-    const userRoles = getUserRoles();
-    const username = getUsername();
-    const isAdmin = userRoles.some(r => ['SUPER_ADMIN', 'MODERATOR_ADMIN', 'VYACHESLAV'].includes(r));
+
+    const { hasLevel } = usePermissions();
+    const isAdmin = hasLevel(6);
 
     const { isConnected, send } = useWebSocket('broadcast-stats', (data) => {
         if (data.type === 'viewer_count') {
