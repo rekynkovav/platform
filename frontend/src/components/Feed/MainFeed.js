@@ -344,6 +344,16 @@ const MainFeed = () => {
         handlePlayAudio(post, activeAudioPostId, setActiveAudioPostId);
     };
 
+    // Вспомогательная функция для очистки blob URLs при отмене добавления
+    const cancelAddPost = () => {
+        setShowAddForm(false);
+        setNewPost({ type: 'text', title: '', content: '', url: '' });
+        resetRecording();
+        // Очищаем blob URLs, созданные при предварительном просмотре или записи
+        blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+        blobUrlsRef.current = [];
+    };
+
     return (
         <div className="main-feed">
             {error && (
@@ -523,11 +533,7 @@ const MainFeed = () => {
                         )}
                         <div className="form-buttons">
                             <button className="publish-btn" onClick={handlePublishPost}>Опубликовать</button>
-                            <button className="cancel-btn" onClick={() => {
-                                setShowAddForm(false);
-                                setNewPost({ type: 'text', title: '', content: '', url: '' });
-                                resetRecording();
-                            }}>Отмена</button>
+                            <button className="cancel-btn" onClick={cancelAddPost}>Отмена</button>
                         </div>
                     </div>
                 )}

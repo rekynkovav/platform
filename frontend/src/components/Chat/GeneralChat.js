@@ -18,7 +18,7 @@ const GeneralChat = () => {
     // Множество идентификаторов уже полученных сообщений для исключения дубликатов
     const messageIdsRef = useRef(new Set());
 
-    const { isConnected, send } = useWebSocket(roomSlug, (wsMessage) => {
+    const { isConnected, send, error: wsError } = useWebSocket(roomSlug, (wsMessage) => {
         // Проверяем, не было ли уже такое сообщение
         if (wsMessage.id && !messageIdsRef.current.has(wsMessage.id)) {
             messageIdsRef.current.add(wsMessage.id);
@@ -128,6 +128,14 @@ const GeneralChat = () => {
                 <div className="chat-error">
                     <span className="error-icon">⚠️</span>
                     <span>{error}</span>
+                    <button className="error-close" onClick={() => setError(null)}>×</button>
+                </div>
+            )}
+
+            {wsError && (
+                <div className="chat-error">
+                    <span className="error-icon">⚠️</span>
+                    <span>WebSocket error: {wsError}</span>
                     <button className="error-close" onClick={() => setError(null)}>×</button>
                 </div>
             )}

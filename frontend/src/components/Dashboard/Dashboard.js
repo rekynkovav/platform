@@ -602,9 +602,17 @@ const Dashboard = () => {
     }, []);
 
     const handleCloseAddModal = useCallback(() => {
+        // Очищаем все blob URL, созданные при открытии модалки
         if (newItemMediaUrl && newItemMediaUrl.startsWith('blob:')) {
             URL.revokeObjectURL(newItemMediaUrl);
         }
+        blobUrlsRef.current.forEach(url => {
+            if (url && url.startsWith('blob:')) {
+                URL.revokeObjectURL(url);
+            }
+        });
+        blobUrlsRef.current = [];
+
         setShowAddModal(false);
         setSelectedMenuId(null);
         setEditingItem(null);

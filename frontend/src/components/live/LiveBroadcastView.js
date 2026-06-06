@@ -18,7 +18,7 @@ const LiveBroadcastView = () => {
     const { hasLevel } = usePermissions();
     const isAdmin = hasLevel(6);
 
-    const { isConnected, send } = useWebSocket('broadcast-stats', (data) => {
+    const { isConnected, send, error: wsError } = useWebSocket('broadcast-stats', (data) => {
         if (data.type === 'viewer_count') {
             setBroadcasts(prev => prev.map(b =>
                 b.id === data.broadcastId ? { ...b, viewerCount: data.count } : b
@@ -121,6 +121,14 @@ const LiveBroadcastView = () => {
                 <div className="error-message">
                     <span className="error-icon">⚠️</span>
                     <span>{error}</span>
+                    <button className="error-close" onClick={clearError}>×</button>
+                </div>
+            )}
+
+            {wsError && (
+                <div className="error-message">
+                    <span className="error-icon">⚠️</span>
+                    <span>WebSocket error: {wsError}</span>
                     <button className="error-close" onClick={clearError}>×</button>
                 </div>
             )}
