@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getUserRoles } from '../../keycloak';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import { feedApi } from '../../services/api';
+import useAudioRecorder from '../../hooks/useAudioRecorder';
 import './MainFeed.css';
 
 const MainFeed = () => {
@@ -25,12 +26,15 @@ const MainFeed = () => {
     const [editingPost, setEditingPost] = useState(null);
     const [showEditForm, setShowEditForm] = useState(false);
 
-    // Состояния для записи аудио
-    const [isRecording, setIsRecording] = useState(false);
-    const [mediaRecorder, setMediaRecorder] = useState(null);
-    const [audioChunks, setAudioChunks] = useState([]);
-    const [recordingTime, setRecordingTime] = useState(0);
-    const recordingTimerRef = useRef(null);
+    // Хук записи аудио
+    const {
+        isRecording,
+        recordingTime,
+        audioBlobUrl,
+        startRecording,
+        stopRecording,
+        resetRecording
+    } = useAudioRecorder();
 
     const {
         playTrack,
@@ -79,12 +83,9 @@ const MainFeed = () => {
         }
     }, [currentTrack]);
 
-    // Cleanup blob URLs и recording timer при размонтировании
+    // Cleanup blob URLs при размонтировании
     useEffect(() => {
         return () => {
-            if (recordingTimerRef.current) {
-                clearInterval(recordingTimerRef.current);
-            }
             blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
             blobUrlsRef.current = [];
         };
@@ -211,64 +212,6 @@ const MainFeed = () => {
         setShowAddForm(true);
     };
 
-    // Функции для записи аудио
-    const startRecording = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
-            const chunks = [];
-
-            recorder.ondataavailable = (e) => {
-                chunks.push(e.data);
-            };
-
-            recorder.onstop = async () => {
-                const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-                blobUrlsRef.current.push(audioUrl);
-
-                setNewPost({
-                    ...newPost,
-                    type: 'audio',
-                    url: audioUrl,
-                    title: newPost.title || `Аудиозапись ${new Date().toLocaleString()}`
-                });
-
-                setAudioChunks([]);
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            recorder.start();
-            setMediaRecorder(recorder);
-            setIsRecording(true);
-
-            setRecordingTime(0);
-            recordingTimerRef.current = setInterval(() => {
-                setRecordingTime(prev => prev + 1);
-            }, 1000);
-
-        } catch (err) {
-            console.error('Ошибка доступа к микрофону:', err);
-            setError('Не удалось получить доступ к микрофону. Проверьте разрешения.');
-        }
-    };
-
-    const stopRecording = () => {
-        if (mediaRecorder && isRecording) {
-            mediaRecorder.stop();
-            setIsRecording(false);
-            if (recordingTimerRef.current) {
-                clearInterval(recordingTimerRef.current);
-            }
-        }
-    };
-
-    const formatRecordingTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    };
-
     // Обработка загрузки файла
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
@@ -284,6 +227,38 @@ const MainFeed = () => {
             url: url,
             title: newPost.title || file.name.replace(/\.[^/.]+$/, '')
         });
+    };
+
+    // Обработчик записи аудио через хук
+    const handleStartRecording = async () => {
+        try {
+            await startRecording();
+        } catch (err) {
+            setError('Не удалось получить доступ к микрофону');
+        }
+    };
+
+    const handleStopRecording = () => {
+        stopRecording();
+    };
+
+    // Когда хук создаёт blob URL, используем его
+    useEffect(() => {
+        if (audioBlobUrl) {
+            blobUrlsRef.current.push(audioBlobUrl);
+            setNewPost(prev => ({
+                ...prev,
+                type: 'audio',
+                url: audioBlobUrl,
+                title: prev.title || `Аудиозапись ${new Date().toLocaleString()}`
+            }));
+        }
+    }, [audioBlobUrl]);
+
+    const formatRecordingTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
     const handlePublishPost = async () => {
@@ -307,8 +282,7 @@ const MainFeed = () => {
 
             setNewPost({ type: 'text', title: '', content: '', url: '' });
             setShowAddForm(false);
-            setIsRecording(false);
-            setRecordingTime(0);
+            resetRecording();
 
             // Revoke blob URLs
             blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
@@ -415,8 +389,7 @@ const MainFeed = () => {
             setNewPost({ type: 'text', title: '', content: '', url: '' });
             setShowEditForm(false);
             setEditingPost(null);
-            setIsRecording(false);
-            setRecordingTime(0);
+            resetRecording();
             blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
             blobUrlsRef.current = [];
         } catch (err) {
@@ -430,8 +403,7 @@ const MainFeed = () => {
         setShowEditForm(false);
         setEditingPost(null);
         setNewPost({ type: 'text', title: '', content: '', url: '' });
-        setIsRecording(false);
-        setRecordingTime(0);
+        resetRecording();
         blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
         blobUrlsRef.current = [];
     };
@@ -693,103 +665,3 @@ const MainFeed = () => {
                                     </video>
                                 </div>
                             )}
-                        </div>
-                    ))}
-                    <div ref={feedEndRef} className="feed-end-marker" />
-                </div>
-
-                {isAdmin && (
-                    <div className="admin-section" ref={addFormRef}>
-                        {!showAddForm && !showEditForm && (
-                            <button className="create-post-btn add-event-style" onClick={handleAddPost}>
-                                + Добавить запись
-                            </button>
-                        )}
-
-                        {(showAddForm || showEditForm) && (
-                            <div className="admin-panel-content">
-                                <h3>{showEditForm ? 'Редактирование записи' : 'Новая запись'}</h3>
-                                <input
-                                    type="text"
-                                    className="post-title-input"
-                                    placeholder="Заголовок записи"
-                                    value={newPost.title}
-                                    onChange={(e) => setNewPost({...newPost, title: e.target.value})}
-                                />
-                                <textarea
-                                    className="post-content-input"
-                                    placeholder="Текст записи..."
-                                    value={newPost.content}
-                                    onChange={(e) => setNewPost({...newPost, content: e.target.value})}
-                                    rows="4"
-                                />
-
-                                <div className="media-controls">
-                                    <div className="media-buttons">
-                                        <label className="attach-button">
-                                            📎 Прикрепить файл
-                                            <input
-                                                type="file"
-                                                accept="audio/*,video/*"
-                                                onChange={handleFileUpload}
-                                                style={{ display: 'none' }}
-                                            />
-                                        </label>
-
-                                        <button
-                                            className={`mic-button ${isRecording ? 'recording' : ''}`}
-                                            onClick={isRecording ? stopRecording : startRecording}
-                                            type="button"
-                                        >
-                                            {isRecording ? '⏹️ Остановить запись' : '🎤 Записать аудио'}
-                                        </button>
-                                    </div>
-
-                                    {isRecording && (
-                                        <div className="recording-indicator">
-                                            <span className="recording-dot">🔴</span>
-                                            <span className="recording-time">Запись: {formatRecordingTime(recordingTime)}</span>
-                                        </div>
-                                    )}
-
-                                    {newPost.url && (
-                                        <div className="attached-file">
-                                            <span className="file-info">
-                                                {newPost.type === 'audio' ? '🎵 Аудиофайл' : '🎬 Видеофайл'}:
-                                                {newPost.title !== newPost.url && ` ${newPost.title}`}
-                                            </span>
-                                            <button
-                                                className="remove-file"
-                                                onClick={() => {
-                                                    setNewPost(prev => {
-                                                        if (prev.url && prev.url.startsWith('blob:')) URL.revokeObjectURL(prev.url);
-                                                        return { ...prev, url: '', type: 'text' };
-                                                    });
-                                                }}
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="form-actions">
-                                    {showEditForm ? (
-                                        <>
-                                            <button className="publish-btn" onClick={handleSaveEditedPost}>Сохранить изменения</button>
-                                            <button className="cancel-btn" onClick={handleCancelEdit}>Отмена</button>
-                                        </>
-                                    ) : (
-                                        <button className="publish-btn" onClick={handlePublishPost}>Опубликовать</button>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-export default MainFeed;

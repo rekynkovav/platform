@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import './Dashboard.css';
 import { dashboardApi, demoApi } from '../../services/api';
+import useAudioRecorder from '../../hooks/useAudioRecorder';
 import {
     initialBroadcastsGuests,
     initialExercises,
@@ -41,10 +42,6 @@ const Dashboard = () => {
     const [newItemDescription, setNewItemDescription] = useState('');
     const [newItemMediaUrl, setNewItemMediaUrl] = useState('');
     const [newItemMediaType, setNewItemMediaType] = useState('');
-    const [isRecording, setIsRecording] = useState(false);
-    const [mediaRecorder, setMediaRecorder] = useState(null);
-    const [recordingTime, setRecordingTime] = useState(0);
-    const recordingTimerRef = useRef(null);
     const blobUrlsRef = useRef([]);
     const [menuData, setMenuData] = useState({});
     const [error, setError] = useState(null);
@@ -55,6 +52,16 @@ const Dashboard = () => {
     const [editingItem, setEditingItem] = useState(null);
 
     const [demoRole, setDemoRole] = useState(null);
+
+    // Хук записи аудио
+    const {
+        isRecording,
+        recordingTime,
+        audioBlobUrl,
+        startRecording,
+        stopRecording,
+        resetRecording
+    } = useAudioRecorder();
 
     useEffect(() => {
         const loadDemoRole = async () => {
@@ -638,12 +645,9 @@ const Dashboard = () => {
         loadDashboardData();
     }, []);
 
-    // Очистка blob URLs и таймеров при размонтировании
+    // Очистка blob URLs при размонтировании
     useEffect(() => {
         return () => {
-            if (recordingTimerRef.current) {
-                clearInterval(recordingTimerRef.current);
-            }
             blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
             blobUrlsRef.current = [];
         };
@@ -892,8 +896,7 @@ const Dashboard = () => {
         setNewItemDescription('');
         setNewItemMediaUrl('');
         setNewItemMediaType('');
-        setIsRecording(false);
-        setRecordingTime(0);
+        resetRecording();
         // Мгновенно закрываем всплывающее меню
         setHoveredMenu(null);
         setHoveredSubmenu(null);
@@ -901,7 +904,7 @@ const Dashboard = () => {
             clearTimeout(hideTimeoutRef.current);
             hideTimeoutRef.current = null;
         }
-    }, []);
+    }, [resetRecording]);
 
     const cleanupBlobUrls = useCallback(() => {
         // Очищаем текущий URL
@@ -965,15 +968,14 @@ const Dashboard = () => {
             setNewItemDescription('');
             setNewItemMediaUrl('');
             setNewItemMediaType('');
-            setIsRecording(false);
-            setRecordingTime(0);
+            resetRecording();
             setShowAddModal(false);
             setSelectedMenuId(null);
         } catch (err) {
             console.error('Ошибка сохранения контента:', err);
             setError('Не удалось сохранить контент');
         }
-    }, [newItemTitle, newItemDescription, newItemMediaUrl, newItemMediaType, menuData, selectedMenuId, editingItem, saveMenuData, cleanupBlobUrls]);
+    }, [newItemTitle, newItemDescription, newItemMediaUrl, newItemMediaType, menuData, selectedMenuId, editingItem, saveMenuData, cleanupBlobUrls, resetRecording]);
 
     const handleFileUpload = useCallback((e, type) => {
         try {
@@ -990,55 +992,27 @@ const Dashboard = () => {
         }
     }, []);
 
-    const startRecording = useCallback(async () => {
+    // Обработчик записи аудио через хук
+    const handleStartRecording = useCallback(async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
-            const chunks = [];
-
-            recorder.ondataavailable = (e) => {
-                if (e.data.size > 0) {
-                    chunks.push(e.data);
-                }
-            };
-
-            recorder.onstop = () => {
-                try {
-                    const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    blobUrlsRef.current.push(audioUrl);
-                    setNewItemMediaUrl(audioUrl);
-                    setNewItemMediaType('audio');
-                    stream.getTracks().forEach(track => track.stop());
-                } catch (err) {
-                    console.error('Ошибка обработки записи:', err);
-                    setError('Не удалось обработать запись');
-                }
-            };
-
-            recorder.start();
-            setMediaRecorder(recorder);
-            setIsRecording(true);
-
-            setRecordingTime(0);
-            recordingTimerRef.current = setInterval(() => {
-                setRecordingTime(prev => prev + 1);
-            }, 1000);
+            await startRecording();
         } catch (err) {
-            console.error('Ошибка доступа к микрофону:', err);
             setError('Не удалось получить доступ к микрофону');
         }
-    }, []);
+    }, [startRecording]);
 
-    const stopRecording = useCallback(() => {
-        if (mediaRecorder && isRecording) {
-            mediaRecorder.stop();
-            setIsRecording(false);
-            if (recordingTimerRef.current) {
-                clearInterval(recordingTimerRef.current);
-            }
+    const handleStopRecording = useCallback(() => {
+        stopRecording();
+    }, [stopRecording]);
+
+    // Когда хук создаёт blob URL, используем его
+    useEffect(() => {
+        if (audioBlobUrl) {
+            blobUrlsRef.current.push(audioBlobUrl);
+            setNewItemMediaUrl(audioBlobUrl);
+            setNewItemMediaType('audio');
         }
-    }, [mediaRecorder, isRecording]);
+    }, [audioBlobUrl]);
 
     const formatRecordingTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -1118,7 +1092,7 @@ const Dashboard = () => {
             link.click();
             document.body.removeChild(link);
         } else {
-            alert('У этого эфира нет медиаф��йла для скачивания');
+            alert('У этого эфира нет медиафайла для скачивания');
         }
 
         // Закрываем всплывающее меню
@@ -1395,8 +1369,7 @@ const Dashboard = () => {
                     setNewItemDescription('');
                     setNewItemMediaUrl('');
                     setNewItemMediaType('');
-                    setIsRecording(false);
-                    setRecordingTime(0);
+                    resetRecording();
                 }}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <h3>{editingItem ? 'Редактировать контент' : 'Добавить контент'}</h3>
@@ -1439,7 +1412,7 @@ const Dashboard = () => {
                                         </label>
                                         <button
                                             className={`mic-button-dashboard ${isRecording ? 'recording' : ''}`}
-                                            onClick={isRecording ? stopRecording : startRecording}
+                                            onClick={isRecording ? handleStopRecording : handleStartRecording}
                                         >
                                             {isRecording ? '⏹️ Остановить' : '🎤 Записать голос'}
                                         </button>
@@ -1458,7 +1431,7 @@ const Dashboard = () => {
                                         </label>
                                         <button
                                             className={`mic-button-dashboard ${isRecording ? 'recording' : ''}`}
-                                            onClick={isRecording ? stopRecording : startRecording}
+                                            onClick={isRecording ? handleStopRecording : handleStartRecording}
                                         >
                                             {isRecording ? '⏹️ Остановить' : '🎤 Записать голос'}
                                         </button>
@@ -1505,7 +1478,7 @@ const Dashboard = () => {
                                         </label>
                                         <button
                                             className={`mic-button-dashboard ${isRecording ? 'recording' : ''}`}
-                                            onClick={isRecording ? stopRecording : startRecording}
+                                            onClick={isRecording ? handleStopRecording : handleStartRecording}
                                         >
                                             {isRecording ? '⏹️ Остановить' : '🎤 Записать голос'}
                                         </button>
@@ -1553,8 +1526,7 @@ const Dashboard = () => {
                                 setNewItemDescription('');
                                 setNewItemMediaUrl('');
                                 setNewItemMediaType('');
-                                setIsRecording(false);
-                                setRecordingTime(0);
+                                resetRecording();
                             }}>
                                 Отмена
                             </button>
