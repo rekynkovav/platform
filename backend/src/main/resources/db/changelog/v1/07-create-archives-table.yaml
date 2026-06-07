@@ -5,6 +5,11 @@ databaseChangeLog:
       author: platform
       labels: schema
       comment: Создание таблицы archives (архив записей эфиров)
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: archives
       changes:
         - createTable:
             tableName: archives

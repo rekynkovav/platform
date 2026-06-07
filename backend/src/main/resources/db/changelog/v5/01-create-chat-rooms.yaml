@@ -4,6 +4,11 @@ databaseChangeLog:
       author: grok-xirurg
       labels: schema
       comment: ChatRoom unified model
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: chat_rooms
       changes:
         - createTable:
             tableName: chat_rooms

@@ -5,6 +5,11 @@ databaseChangeLog:
       author: platform
       labels: schema
       comment: Создание таблицы posts (посты в ленте)
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: posts
       changes:
         - createTable:
             tableName: posts

@@ -5,6 +5,11 @@ databaseChangeLog:
       author: platform
       labels: schema
       comment: Создание таблицы messages (сообщения чата)
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: messages
       changes:
         - createTable:
             tableName: messages

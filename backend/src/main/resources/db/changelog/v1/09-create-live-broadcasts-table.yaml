@@ -5,6 +5,11 @@ databaseChangeLog:
       author: platform
       labels: schema
       comment: Создание таблицы live_broadcasts (трансляции)
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: live_broadcasts
       changes:
         - createTable:
             tableName: live_broadcasts

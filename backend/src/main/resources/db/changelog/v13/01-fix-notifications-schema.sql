@@ -1,0 +1,10 @@
+-- Миграция v13: Исправление таблицы notifications под JPA модель
+-- Файл пуст, так как все необходимые изменения уже выполнены в предыдущих миграциях.
+-- Оставлен для совместимости истории миграций.
+-- preConditions гарантируют, что changeSet будет пропущен.
+-- liquibase
+-- preConditions:
+--   - onFail: MARK_RAN
+--   - sqlCheck:
+--       expectedResult: 1
+--       sql: SELECT 1

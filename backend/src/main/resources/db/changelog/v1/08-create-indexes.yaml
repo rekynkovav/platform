@@ -5,6 +5,11 @@ databaseChangeLog:
       author: platform
       labels: indexes
       comment: Создание индексов для оптимизации запросов
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            indexExists:
+              indexName: idx_posts_author_id
       changes:
         - createIndex:
             indexName: idx_posts_author_id
