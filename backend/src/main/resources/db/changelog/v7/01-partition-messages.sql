@@ -25,4 +25,5 @@ BEGIN
             end_date
         );
     END LOOP;
-END $$;
+END;
+$$;
