@@ -51,7 +51,7 @@ spring:
     type: simple
 
   main:
-    allow-circular-references: false
+    allow-circular-references: true
     allow-bean-definition-overriding: true
 
 server:
@@ -107,7 +107,7 @@ bucket4j:
 yandex:
   s3:
     access-key: ${YANDEX_S3_ACCESS_KEY:}
-    secret-key: ${YANDEX_S3_SECRET_KEY:}
+    secret-key: ${Yandex_S3_SECRET_KEY:}
     bucket: ${YANDEX_S3_BUCKET:platform-media}
     endpoint: https://storage.yandexcloud.net
     region: ru-central1
