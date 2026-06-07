@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <property name="LOG_DIR" value="${LOG_DIR:-/app/logs}"/>
     <property name="LOG_PATTERN" value="%d{ISO8601} %-5level [%thread] %logger{36} - %msg%n"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
@@ -8,10 +9,10 @@
 
     <springProfile name="!test">
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-            <file>/app/logs/platform.log</file>
+            <file>${LOG_DIR}/platform.log</file>
             <encoder class="ch.qos.logback.classic.encoder.JsonEncoder"/>
             <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-                <fileNamePattern>/app/logs/platform-%d{yyyy-MM-dd}.log</fileNamePattern>
+                <fileNamePattern>${LOG_DIR}/platform-%d{yyyy-MM-dd}.log</fileNamePattern>
                 <maxHistory>7</maxHistory>
             </rollingPolicy>
         </appender>

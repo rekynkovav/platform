@@ -33,7 +33,7 @@ spring:
       max-request-size: 1GB
 
   cache:
-    type: simple
+    type: caffeine
 
   security:
     oauth2:
