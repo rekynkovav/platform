@@ -3,22 +3,10 @@ spring:
     name: platform-backend
   main:
     allow-circular-references: true
+    allow-bean-definition-overriding: true
   autoconfigure:
     exclude:
       - com.giffing.bucket4j.spring.boot.starter.Bucket4jAutoConfiguration
-
-bucket4j:
-  enabled: true
-  cache-to-use: caffeine
-  methods:
-    - name: "dummy"
-      cache-name: buckets
-      rate-limits:
-        - bandwidths:
-            - capacity: 100
-              time: 1
-              unit: minutes
-              refill-speed: interval
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/platform}
@@ -28,12 +16,16 @@ bucket4j:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     show-sql: false
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
 
   servlet:
     multipart:
@@ -41,20 +33,21 @@ bucket4j:
       max-request-size: 1GB
 
   cache:
-    type: caffeine
-    caffeine:
-      spec: maximumSize=2000,expireAfterWrite=5m
+    type: simple
 
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/platform}
-          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/platform/protocol/openid-connect/certs}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak:8080/auth/realms/platform}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/auth/realms/platform/protocol/openid-connect/certs}
 
   web:
     resources:
       static-locations: classpath:/static/
+
+bucket4j:
+  enabled: false
 
 server:
   port: 8081
@@ -69,7 +62,6 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
-
 app:
   watermark:
     font-path: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
@@ -77,8 +69,6 @@ app:
 
   storage:
     type: s3
-    # Yandex Cloud S3 configuration - see application-prod.yml for production settings
-    # For local development, use LocalStorageService (default)
 
   encryption:
     algorithm: AES/GCM/NoPadding
@@ -95,10 +85,8 @@ app:
       algorithm: "AES/CBC/PKCS5Padding"
 
 keycloak:
-  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8080}
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080/auth}
   realm: ${KEYCLOAK_REALM:platform}
   resource: ${KEYCLOAK_RESOURCE:platform-backend}
   credentials:
     secret: ${KEYCLOAK_SECRET:}
-
-

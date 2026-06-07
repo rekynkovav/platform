@@ -2,6 +2,11 @@ databaseChangeLog:
   - changeSet:
       id: 1-create-media-files-table
       author: platform
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: media_files
       changes:
         - createTable:
             tableName: media_files
@@ -73,14 +78,12 @@ databaseChangeLog:
                   name: updated_at
                   type: TIMESTAMP
                   defaultValueComputed: CURRENT_TIMESTAMP
-
         - createIndex:
             indexName: idx_media_owner_id
             tableName: media_files
             columns:
               - column:
                   name: owner_id
-
         - createIndex:
             indexName: idx_media_file_type
             tableName: media_files
@@ -91,6 +94,11 @@ databaseChangeLog:
   - changeSet:
       id: 2-create-media-access-logs-table
       author: platform
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: media_access_logs
       changes:
         - createTable:
             tableName: media_access_logs
@@ -134,14 +142,12 @@ databaseChangeLog:
                   name: accessed_at
                   type: TIMESTAMP
                   defaultValueComputed: CURRENT_TIMESTAMP
-
         - createIndex:
             indexName: idx_access_file_id
             tableName: media_access_logs
             columns:
               - column:
                   name: file_id
-
         - createIndex:
             indexName: idx_access_user_id
             tableName: media_access_logs
@@ -152,6 +158,11 @@ databaseChangeLog:
   - changeSet:
       id: 3-create-payments-table
       author: platform
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: payments
       changes:
         - createTable:
             tableName: payments
@@ -218,14 +229,12 @@ databaseChangeLog:
                   name: updated_at
                   type: TIMESTAMP
                   defaultValueComputed: CURRENT_TIMESTAMP
-
         - createIndex:
             indexName: idx_payments_user_id
             tableName: payments
             columns:
               - column:
                   name: user_id
-
         - createIndex:
             indexName: idx_payments_status
             tableName: payments

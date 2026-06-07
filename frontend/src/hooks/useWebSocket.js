@@ -1,113 +1,74 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { getToken, updateToken } from '../keycloak';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
-const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8081/ws';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081/api';
 
-export const useWebSocket = (roomSlug, onMessage, options = {}) => {
+const useWebSocket = (channel, onMessage) => {
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState(null);
     const wsRef = useRef(null);
-    const reconnectAttemptsRef = useRef(0);
-    const reconnectTimeoutRef = useRef(null);
-    const maxReconnectAttempts = options.maxReconnectAttempts || 10;
-    const reconnectDelay = options.reconnectDelay || 1000;
+    const onMessageRef = useRef(onMessage);
+    onMessageRef.current = onMessage;
 
-    const connect = useCallback(async () => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    const send = useCallback((data) => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify(data));
+        }
+    }, []);
 
-        try {
-            let token = getToken();
-            if (token && await updateToken()) {
-                token = getToken();
+    useEffect(() => {
+        const wsBase = API_URL.replace(/^http/, 'ws').replace(/\/api$/, '');
+        const url = `${wsBase}/ws/${channel}`;
+
+        const connect = () => {
+            if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
+                wsRef.current.close();
             }
 
-            // WebSocket не поддерживает заголовки напрямую, используем query param
-            // для production рекомендуется использовать wss и передавать токен в URL
-            // с защитой через TLS (параметр не виден в plain text)
-            const wsUrl = `${WS_URL}/chat?room=${roomSlug}&token=${encodeURIComponent(token)}`;
-            const ws = new WebSocket(wsUrl);
+            const ws = new WebSocket(url);
             wsRef.current = ws;
 
             ws.onopen = () => {
-                console.log(`WebSocket connected to room: ${roomSlug}`);
                 setIsConnected(true);
                 setError(null);
-                reconnectAttemptsRef.current = 0;
             };
 
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    onMessage?.(data);
-                } catch (err) {
-                    console.error('Failed to parse WebSocket message:', err);
+                    if (onMessageRef.current) {
+                        onMessageRef.current(data);
+                    }
+                } catch (e) {
+                    console.error('Failed to parse WS message:', e);
                 }
             };
 
-            ws.onerror = (event) => {
-                console.error('WebSocket error:', event);
-                setError('Connection error');
+            ws.onerror = (err) => {
+                console.error('WebSocket error:', err);
+                setError('WebSocket connection error');
             };
 
-            ws.onclose = (event) => {
-                console.log(`WebSocket disconnected: ${event.code} - ${event.reason}`);
+            ws.onclose = () => {
                 setIsConnected(false);
-
-                if (event.code !== 1000) { // Normal closure
-                    scheduleReconnect();
-                }
+                // Attempt reconnection after 3 seconds
+                setTimeout(() => {
+                    connect();
+                }, 3000);
             };
-        } catch (err) {
-            console.error('Failed to create WebSocket:', err);
-            setError(err.message);
-            scheduleReconnect();
-        }
-    }, [roomSlug, onMessage]);
+        };
 
-    const scheduleReconnect = useCallback(() => {
-        if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-            console.error('Max reconnect attempts reached');
-            setError('Unable to reconnect after multiple attempts');
-            return;
-        }
-
-        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-
-        const delay = Math.min(reconnectDelay * Math.pow(2, reconnectAttemptsRef.current), 30000);
-        console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1})`);
-
-        reconnectTimeoutRef.current = setTimeout(() => {
-            reconnectAttemptsRef.current++;
-            connect();
-        }, delay);
-    }, [connect, maxReconnectAttempts, reconnectDelay]);
-
-    const disconnect = useCallback(() => {
-        if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-        }
-        if (wsRef.current) {
-            wsRef.current.close(1000, 'Normal closure');
-            wsRef.current = null;
-        }
-        setIsConnected(false);
-    }, []);
-
-    const send = useCallback((data) => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify(data));
-            return true;
-        }
-        console.warn('WebSocket is not connected');
-        return false;
-    }, []);
-
-    useEffect(() => {
         connect();
-        return () => disconnect();
-    }, [connect, disconnect]);
 
-    return { isConnected, error, send, disconnect, reconnect: connect };
+        return () => {
+            if (wsRef.current) {
+                wsRef.current.onclose = null; // prevent reconnect on unmount
+                wsRef.current.close();
+                wsRef.current = null;
+            }
+        };
+    }, [channel]);
+
+    return { isConnected, send, error };
 };
 
 export default useWebSocket;

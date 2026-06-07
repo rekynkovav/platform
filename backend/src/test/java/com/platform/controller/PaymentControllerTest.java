@@ -1,8 +1,10 @@
 package com.platform.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.platform.exception.GlobalExceptionHandler;
+import com.platform.model.Payment;
 import com.platform.model.dto.PaymentDto;
-import com.platform.model.enums.PaymentStatus;
 import com.platform.service.PaymentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,352 +12,223 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.time.Instant;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import static com.platform.controller.TestSecurityHelper.securityContextFilter;
+import static com.platform.controller.TestSecurityHelper.withAuth;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PaymentControllerTest {
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
 
-    @Mock
-    private PaymentService paymentService;
-
-    @InjectMocks
-    private PaymentController paymentController;
+    @Mock private PaymentService paymentService;
+    @InjectMocks private PaymentController paymentController;
 
     private String userId;
-    private UUID userIdUuid;
     private String paymentId;
-    private UUID paymentIdUuid;
+    private Jwt userJwt;
+    private Jwt adminJwt;
+    private JwtAuthenticationToken userAuth;
+    private JwtAuthenticationToken adminAuth;
+    private Payment payment;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(paymentController).build();
-        objectMapper = new ObjectMapper();
+        mockMvc = MockMvcBuilders.standaloneSetup(paymentController)
+                .addFilters(securityContextFilter())
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
+        objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
-        userId = "user-123";
-        userIdUuid = UUID.fromString(userId);
-        paymentId = "payment-456";
-        paymentIdUuid = UUID.fromString(paymentId);
-    }
+        userId = UUID.randomUUID().toString();
+        paymentId = UUID.randomUUID().toString();
 
-    @Test
-    void createPayment_ValidRequest_ReturnsPaymentDto() throws Exception {
-        // Arrange
-        int months = 3;
-        PaymentDto expectedResponse = PaymentDto.builder()
-                .id(paymentIdUuid)
-                .userId(userIdUuid)
-                .subscriptionMonths(months)
-                .amount(27000)  // 3 * 10000 * 0.9 = 27000 (10% discount)
-                .status(PaymentStatus.PENDING)
-                .qrCodeData("qr-code-base64-data")
-                .createdAt(Instant.now())
+        userJwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .claim("sub", userId)
+                .claim("preferred_username", "user")
+                .claim("realm_access.roles", "USER_0")
                 .build();
 
-        when(paymentService.createPayment(eq(userId), eq(months)))
-                .thenReturn(expectedResponse);
+        adminJwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .claim("sub", UUID.randomUUID().toString())
+                .claim("preferred_username", "admin")
+                .claim("realm_access.roles", "SUPER_ADMIN")
+                .build();
 
-        // Act & Assert
-        mockMvc.perform(post("/api/payments")
-                        .header("X-User-Id", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"months\": " + months + "}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(paymentId))
-                .andExpect(jsonPath("$.subscriptionMonths").value(months))
-                .andExpect(jsonPath("$.amount").value(27000))
-                .andExpect(jsonPath("$.status").value("PENDING"))
-                .andExpect(jsonPath("$.qrCodeData").value("qr-code-base64-data"));
-    }
+        userAuth = new JwtAuthenticationToken(userJwt, List.of(new SimpleGrantedAuthority("ROLE_USER_0")));
+        adminAuth = new JwtAuthenticationToken(adminJwt, List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
 
-    @Test
-    void createPayment_InvalidMonths_ReturnsBadRequest() throws Exception {
-        // Arrange
-        int invalidMonths = 0;
-
-        when(paymentService.createPayment(eq(userId), eq(invalidMonths)))
-                .thenThrow(new IllegalArgumentException("Invalid subscription months"));
-
-        // Act & Assert
-        mockMvc.perform(post("/api/payments")
-                        .header("X-User-Id", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"months\": " + invalidMonths + "}"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void createPayment_ExistingPendingPayment_ReturnsConflict() throws Exception {
-        // Arrange
-        int months = 1;
-
-        when(paymentService.createPayment(eq(userId), eq(months)))
-                .thenThrow(new com.platform.exception.BusinessException("User already has a pending payment"));
-
-        // Act & Assert
-        mockMvc.perform(post("/api/payments")
-                        .header("X-User-Id", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"months\": " + months + "}"))
-                .andExpect(status().isConflict());
-    }
-
-    @Test
-    void confirmPayment_ValidRequest_ReturnsOk() throws Exception {
-        // Arrange
-        when(paymentService.confirmPayment(eq(paymentId))).thenReturn(true);
-
-        // Act & Assert
-        mockMvc.perform(post("/api/payments/{id}/confirm", paymentId))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void confirmPayment_AlreadyProcessed_ReturnsBadRequest() throws Exception {
-        // Arrange
-        when(paymentService.confirmPayment(eq(paymentId)))
-                .thenThrow(new IllegalStateException("Payment already processed"));
-
-        // Act & Assert
-        mockMvc.perform(post("/api/payments/{id}/confirm", paymentId))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void confirmPayment_NotFound_ReturnsNotFound() throws Exception {
-        // Arrange
-        String nonExistentPaymentId = "non-existent-payment";
-        when(paymentService.confirmPayment(eq(nonExistentPaymentId)))
-                .thenThrow(new com.platform.exception.ResourceNotFoundException("Payment not found"));
-
-        // Act & Assert
-        mockMvc.perform(post("/api/payments/{id}/confirm", nonExistentPaymentId))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void getPayment_ValidRequest_ReturnsPaymentDto() throws Exception {
-        // Arrange
-        PaymentDto expectedResponse = PaymentDto.builder()
-                .id(paymentIdUuid)
-                .userId(userIdUuid)
+        payment = Payment.builder()
+                .id(UUID.fromString(paymentId))
+                .userId(UUID.fromString(userId))
+                .amount(new BigDecimal("999.00"))
+                .currency("RUB")
                 .subscriptionMonths(1)
-                .amount(10000)
-                .status(PaymentStatus.PENDING)
-                .qrCodeData("qr-code-base64-data")
-                .createdAt(Instant.now().minusMinutes(30))
+                .status(Payment.PaymentStatus.PENDING)
+                .paymentMethod("SBP")
+                .qrCodeData("https://qr.nspk.ru/abc123")
+                .createdAt(LocalDateTime.now())
                 .build();
-
-        when(paymentService.getPayment(eq(paymentId), eq(userId)))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/payments/{id}", paymentId)
-                        .header("X-User-Id", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(paymentId))
-                .andExpect(jsonPath("$.userId").value(userId))
-                .andExpect(jsonPath("$.amount").value(10000));
     }
 
-    @Test
-    void getPayment_WrongUser_ReturnsForbidden() throws Exception {
-        // Arrange
-        String wrongUserId = "wrong-user-789";
-        when(paymentService.getPayment(eq(paymentId), eq(wrongUserId)))
-                .thenThrow(new com.platform.exception.AccessDeniedException("Access denied"));
-
-        // Act & Assert
-        mockMvc.perform(get("/api/payments/{id}", paymentId)
-                        .header("X-User-Id", wrongUserId))
-                .andExpect(status().isForbidden());
-    }
+    // ==================== POST /api/payments/create ====================
 
     @Test
-    void getUserPayments_ValidRequest_ReturnsPayments() throws Exception {
-        // Arrange
-        PaymentDto payment1 = PaymentDto.builder()
-                .id(UUID.randomUUID())
-                .userId(userIdUuid)
-                .subscriptionMonths(1)
-                .amount(10000)
-                .status(PaymentStatus.CONFIRMED)
-                .confirmedAt(Instant.now().minusDays(5))
-                .createdAt(Instant.now().minusDays(6))
-                .build();
+    void createPayment_UserCanCreate_ReturnsCreated() throws Exception {
+        PaymentDto.CreateRequest request = new PaymentDto.CreateRequest();
+        request.setSubscriptionMonths(1);
 
-        PaymentDto payment2 = PaymentDto.builder()
-                .id(UUID.randomUUID())
-                .userId(userIdUuid)
-                .subscriptionMonths(3)
-                .amount(27000)
-                .status(PaymentStatus.PENDING)
-                .createdAt(Instant.now().minusHours(2))
-                .build();
+        when(paymentService.createPayment(eq(1), any(Jwt.class))).thenReturn(payment);
 
-        List<PaymentDto> expectedResponse = List.of(payment1, payment2);
-
-        when(paymentService.findByUserIdAndStatus(eq(userId), isNull()))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/payments/user/{userId}", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].userId").value(userId))
-                .andExpect(jsonPath("$[1].userId").value(userId));
-    }
-
-    @Test
-    void getUserPayments_WithStatusFilter_ReturnsFilteredPayments() throws Exception {
-        // Arrange
-        PaymentStatus status = PaymentStatus.CONFIRMED;
-        PaymentDto payment = PaymentDto.builder()
-                .id(UUID.randomUUID())
-                .userId(userIdUuid)
-                .subscriptionMonths(1)
-                .amount(10000)
-                .status(status)
-                .confirmedAt(Instant.now().minusDays(3))
-                .createdAt(Instant.now().minusDays(4))
-                .build();
-
-        List<PaymentDto> expectedResponse = List.of(payment);
-
-        when(paymentService.findByUserIdAndStatus(eq(userId), eq(status)))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/payments/user/{userId}", userId)
-                        .param("status", status.name()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].status").value("CONFIRMED"));
-    }
-
-    @Test
-    void getUserPayments_NoPayments_ReturnsEmptyList() throws Exception {
-        // Arrange
-        when(paymentService.findByUserIdAndStatus(eq(userId), isNull()))
-                .thenReturn(List.of());
-
-        // Act & Assert
-        mockMvc.perform(get("/api/payments/user/{userId}", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
-    }
-
-    @Test
-    void getPaymentStatus_ValidRequest_ReturnsStatus() throws Exception {
-        // Arrange
-        PaymentDto expectedResponse = PaymentDto.builder()
-                .id(paymentIdUuid)
-                .userId(userIdUuid)
-                .status(PaymentStatus.PENDING)
-                .createdAt(Instant.now().minusMinutes(30))
-                .build();
-
-        when(paymentService.getPayment(eq(paymentId), eq(userId)))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/payments/{id}/status", paymentId)
-                        .header("X-User-Id", userId))
-                .andExpect(status().isOk())
+        mockMvc.perform(post("/api/payments/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(withAuth(userAuth)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.amount").value(999.00))
                 .andExpect(jsonPath("$.status").value("PENDING"));
     }
 
-    @Test
-    void getPaymentStatus_WrongUser_ReturnsForbidden() throws Exception {
-        // Arrange
-        String wrongUserId = "wrong-user-789";
-        when(paymentService.getPayment(eq(paymentId), eq(wrongUserId)))
-                .thenThrow(new com.platform.exception.AccessDeniedException("Access denied"));
+    // ==================== POST /api/payments (alias) ====================
 
-        // Act & Assert
-        mockMvc.perform(get("/api/payments/{id}/status", paymentId)
-                        .header("X-User-Id", wrongUserId))
-                .andExpect(status().isForbidden());
+    @Test
+    void createPaymentAlias_DelegatesToCreate() throws Exception {
+        PaymentDto.CreateRequest request = new PaymentDto.CreateRequest();
+        request.setSubscriptionMonths(3);
+
+        when(paymentService.createPayment(eq(3), any(Jwt.class))).thenReturn(payment);
+
+        mockMvc.perform(post("/api/payments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(withAuth(userAuth)))
+                .andExpect(status().isCreated());
     }
 
+    // ==================== GET /api/payments/{paymentId} ====================
+
     @Test
-    void getPaymentQRCode_ValidRequest_ReturnsQRCode() throws Exception {
-        // Arrange
-        PaymentDto expectedResponse = PaymentDto.builder()
-                .id(paymentIdUuid)
-                .userId(userIdUuid)
-                .status(PaymentStatus.PENDING)
-                .qrCodeData("qr-code-base64-data")
-                .createdAt(Instant.now().minusMinutes(30))
-                .build();
+    void getPayment_OwnerCanView() throws Exception {
+        when(paymentService.getPayment(eq(paymentId), any(Jwt.class))).thenReturn(payment);
 
-        when(paymentService.getPayment(eq(paymentId), eq(userId)))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/payments/{id}/qrcode", paymentId)
-                        .header("X-User-Id", userId))
+        mockMvc.perform(get("/api/payments/{paymentId}", paymentId)
+                        .with(withAuth(userAuth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.qrCodeData").value("qr-code-base64-data"));
+                .andExpect(jsonPath("$.id").value(paymentId))
+                .andExpect(jsonPath("$.currency").value("RUB"));
     }
 
+    // ==================== GET /api/payments/{paymentId}/qr ====================
+
     @Test
-    void getPaymentQRCode_ConfirmedPayment_ReturnsNoQRCode() throws Exception {
-        // Arrange
-        PaymentDto expectedResponse = PaymentDto.builder()
-                .id(paymentIdUuid)
-                .userId(userIdUuid)
-                .status(PaymentStatus.CONFIRMED)
-                .qrCodeData(null)  // No QR code for confirmed payments
-                .confirmedAt(Instant.now().minusMinutes(10))
-                .createdAt(Instant.now().minusHours(1))
-                .build();
+    void getPaymentQR_ReturnsQrData() throws Exception {
+        when(paymentService.getPayment(eq(paymentId), any(Jwt.class))).thenReturn(payment);
 
-        when(paymentService.getPayment(eq(paymentId), eq(userId)))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/payments/{id}/qrcode", paymentId)
-                        .header("X-User-Id", userId))
+        mockMvc.perform(get("/api/payments/{paymentId}/qr", paymentId)
+                        .with(withAuth(userAuth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.qrCodeData").doesNotExist());
+                .andExpect(jsonPath("$.qrCodeData").exists());
     }
 
-    @Test
-    void expireOldPayments_AdminRequest_ReturnsOk() throws Exception {
-        // Arrange
-        String adminUserId = "admin-001";
-        when(paymentService.expireOldPayments()).thenReturn(5);
+    // ==================== GET /api/payments/my ====================
 
-        // Act & Assert
-        mockMvc.perform(post("/api/payments/expire-old")
-                        .header("X-User-Id", adminUserId))
+    @Test
+    void getMyPayments_ReturnsList() throws Exception {
+        when(paymentService.getUserPayments(any(Jwt.class))).thenReturn(List.of(payment));
+
+        mockMvc.perform(get("/api/payments/my")
+                        .with(withAuth(userAuth)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("5"));
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].paymentMethod").value("SBP"));
     }
 
-    @Test
-    void expireOldPayments_RegularUser_ReturnsForbidden() throws Exception {
-        // Arrange
-        // This endpoint should check for admin role
-        // For simplicity, we'll assume it returns 403 for non-admins
+    // ==================== GET /api/payments/user (alias) ====================
 
-        // Act & Assert
-        mockMvc.perform(post("/api/payments/expire-old")
-                        .header("X-User-Id", userId))
-                .andExpect(status().isForbidden());
+    @Test
+    void getUserPaymentsAlias_DelegatesToMyPayments() throws Exception {
+        when(paymentService.getUserPayments(any(Jwt.class))).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/payments/user")
+                        .with(withAuth(userAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    // ==================== GET /api/payments/{paymentId}/status ====================
+
+    @Test
+    void checkPaymentStatus_ReturnsUpdatedStatus() throws Exception {
+        Payment confirmed = Payment.builder()
+                .id(UUID.fromString(paymentId)).userId(UUID.fromString(userId))
+                .amount(new BigDecimal("999.00")).currency("RUB")
+                .status(Payment.PaymentStatus.CONFIRMED)
+                .paidAt(LocalDateTime.now()).createdAt(LocalDateTime.now()).build();
+
+        when(paymentService.checkPaymentStatus(eq(paymentId), any(Jwt.class))).thenReturn(confirmed);
+
+        mockMvc.perform(get("/api/payments/{paymentId}/status", paymentId)
+                        .with(withAuth(userAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CONFIRMED"));
+    }
+
+    // ==================== POST /api/payments/{paymentId}/confirm ====================
+
+    @Test
+    void confirmPayment_AdminCanConfirm() throws Exception {
+        PaymentDto.ConfirmRequest request = new PaymentDto.ConfirmRequest();
+        request.setNotes("Verified via bank statement");
+
+        Payment confirmed = Payment.builder()
+                .id(UUID.fromString(paymentId)).userId(UUID.fromString(userId))
+                .amount(new BigDecimal("999.00")).status(Payment.PaymentStatus.CONFIRMED)
+                .paidAt(LocalDateTime.now()).createdAt(LocalDateTime.now()).build();
+
+        when(paymentService.confirmPayment(eq(paymentId), eq("Verified via bank statement"), any(Jwt.class)))
+                .thenReturn(confirmed);
+
+        mockMvc.perform(post("/api/payments/{paymentId}/confirm", paymentId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(withAuth(adminAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CONFIRMED"));
+    }
+
+    // ==================== GET /api/payments/pending ====================
+
+    @Test
+    void getPendingPayments_AdminCanView() throws Exception {
+        when(paymentService.getPendingPayments()).thenReturn(List.of(payment));
+
+        mockMvc.perform(get("/api/payments/pending")
+                        .with(withAuth(adminAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].status").value("PENDING"));
     }
 }

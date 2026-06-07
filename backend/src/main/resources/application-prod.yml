@@ -45,10 +45,14 @@ spring:
 
   liquibase:
     enabled: true
-    change-log: classpath:db/changelog/db.changelog-master.yaml
+    change-log: classpath:db/changelog/db.changelog-master.xml
+
+  cache:
+    type: simple
 
   main:
     allow-circular-references: false
+    allow-bean-definition-overriding: true
 
 server:
   port: 8081
@@ -94,21 +98,10 @@ app:
 
 security:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://platform.example.com,https://admin.platform.example.com,https://api.platform.example.com}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://platform.local,https://api.platform.local,https://auth.platform.local,http://localhost:3000}
 
 bucket4j:
-  enabled: true
-  cache-to-use: redis
-  filters:
-    - cache-name: buckets
-      url: /api/.*
-      http-status-code: 429
-      rate-limits:
-        - bandwidths:
-            - capacity: 100
-              time: 1
-              unit: minutes
-              refill-speed: interval
+  enabled: false
 
 # Yandex Cloud S3 Configuration
 yandex:
@@ -118,5 +111,3 @@ yandex:
     bucket: ${YANDEX_S3_BUCKET:platform-media}
     endpoint: https://storage.yandexcloud.net
     region: ru-central1
-
-

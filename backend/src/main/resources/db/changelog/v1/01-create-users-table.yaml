@@ -5,6 +5,11 @@ databaseChangeLog:
       author: platform
       labels: schema
       comment: Создание таблицы users
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: users
       changes:
         - createTable:
             tableName: users

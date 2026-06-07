@@ -4,6 +4,11 @@ databaseChangeLog:
       author: grok-xirurg
       labels: schema
       comment: Room-level permissions
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: chat_room_permissions
       changes:
         - createTable:
             tableName: chat_room_permissions

@@ -32,6 +32,18 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(toDto(payment));
     }
 
+    /**
+     * Алиас для фронтенда: создание платежа через POST /api/payments
+     * Frontend: api.post('/payments', data)
+     */
+    @PostMapping
+    @PreAuthorize("hasRole('USER_0')")
+    public ResponseEntity<PaymentDto> createPaymentAlias(
+            @Valid @RequestBody PaymentDto.CreateRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        return createPayment(request, jwt);
+    }
+
     @GetMapping("/{paymentId}")
     @PreAuthorize("hasRole('USER_0')")
     public ResponseEntity<PaymentDto> getPayment(
@@ -59,6 +71,17 @@ public class PaymentController {
 
         List<Payment> payments = paymentService.getUserPayments(jwt);
         return ResponseEntity.ok(payments.stream().map(this::toDto).collect(Collectors.toList()));
+    }
+
+    /**
+     * Алиас для фронтенда: получение платежей пользователя через /user
+     * Frontend: api.get('/payments/user')
+     */
+    @GetMapping("/user")
+    @PreAuthorize("hasRole('USER_0')")
+    public ResponseEntity<List<PaymentDto>> getUserPaymentsAlias(
+            @AuthenticationPrincipal Jwt jwt) {
+        return getMyPayments(jwt);
     }
 
     @GetMapping("/{paymentId}/status")

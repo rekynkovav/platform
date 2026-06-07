@@ -1,23 +1,34 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { chatApi } from '../../services/api';
 import useWebSocket from '../../hooks/useWebSocket';
-import { getUserRoles, getUsername } from '../../keycloak';
+import { getUsername } from '../../keycloak';
 import './GeneralChat.css';
 
 const GeneralChat = () => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [error, setError] = useState(null);
     const messagesEndRef = useRef(null);
-    const userRoles = getUserRoles();
     const username = getUsername();
     const roomSlug = 'general';
 
+    // Множество идентификаторов уже полученных сообщений для исключения дубликатов
+    const messageIdsRef = useRef(new Set());
+
+    // Страница пагинации хранится в useRef, чтобы избежать устаревшего замыкания
+    const pageRef = useRef(0);
+
     const { isConnected, send, error: wsError } = useWebSocket(roomSlug, (wsMessage) => {
-        setMessages(prev => [...prev, wsMessage]);
+        // Проверяем, не было ли уже такое сообщение
+        if (wsMessage.id && !messageIdsRef.current.has(wsMessage.id)) {
+            messageIdsRef.current.add(wsMessage.id);
+            setMessages(prev => [...prev, wsMessage]);
+        } else if (!wsMessage.id) {
+            // Если id отсутствует, добавляем без проверки (риск дублирования)
+            setMessages(prev => [...prev, wsMessage]);
+        }
     });
 
     const clearError = () => {
@@ -28,15 +39,23 @@ const GeneralChat = () => {
     const loadMessages = useCallback(async (reset = false) => {
         try {
             setLoading(true);
-            const currentPage = reset ? 0 : page;
+            const currentPage = reset ? 0 : pageRef.current;
             const response = await chatApi.getMessages(roomSlug, currentPage, 50);
 
             if (reset) {
+                // Очищаем множество id перед новой загрузкой
+                messageIdsRef.current = new Set(
+                    (response.data || []).map(msg => msg.id).filter(Boolean)
+                );
                 setMessages(response.data || []);
-                setPage(1);
+                pageRef.current = 1;
             } else {
-                setMessages(prev => [...response.data || [], ...prev]);
-                setPage(currentPage + 1);
+                const newMsgs = response.data || [];
+                // Фильтруем только те, которых ещё нет
+                const filtered = newMsgs.filter(msg => msg.id && !messageIdsRef.current.has(msg.id));
+                filtered.forEach(msg => messageIdsRef.current.add(msg.id));
+                setMessages(prev => [...filtered, ...prev]);
+                pageRef.current = currentPage + 1;
             }
             // Backend возвращает простой список, без пагинации
             setHasMore(false);
@@ -46,7 +65,7 @@ const GeneralChat = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, roomSlug]);
+    }, [roomSlug]);
 
     useEffect(() => {
         loadMessages(true);
@@ -71,6 +90,12 @@ const GeneralChat = () => {
                 userId: username
             });
 
+            // Добавляем id в множество для предотвращения дублирования,
+            // если сервер пришлёт это же сообщение через WebSocket.
+            if (response.id) {
+                messageIdsRef.current.add(response.id);
+            }
+
             send({
                 id: response.id,
                 content: newMessage,
@@ -82,6 +107,13 @@ const GeneralChat = () => {
         } catch (error) {
             console.error('Failed to send message:', error);
             setError('Не удалось отправить сообщение');
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
         }
     };
 
@@ -102,6 +134,14 @@ const GeneralChat = () => {
                 </div>
             )}
 
+            {wsError && (
+                <div className="chat-error">
+                    <span className="error-icon">⚠️</span>
+                    <span>WebSocket error: {wsError}</span>
+                    <button className="error-close" onClick={() => setError(null)}>×</button>
+                </div>
+            )}
+
             <div className="messages-container">
                 {loading && <div className="loading">Loading...</div>}
                 {hasMore && !loading && (
@@ -110,7 +150,7 @@ const GeneralChat = () => {
                     </button>
                 )}
                 {messages.map(msg => (
-                    <div key={msg.id} className={`message ${msg.author === username ? 'own' : 'other'}`}>
+                    <div key={msg.id || Math.random()} className={`message ${msg.author === username ? 'own' : 'other'}`}>
                         <div className="message-author">{msg.author}</div>
                         <div className="message-content">{msg.content}</div>
                         <div className="message-time">
@@ -125,7 +165,7 @@ const GeneralChat = () => {
                 <textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                    onKeyDown={handleKeyDown}
                     placeholder="Type a message..."
                     rows="3"
                 />

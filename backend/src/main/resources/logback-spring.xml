@@ -6,22 +6,28 @@
         <encoder class="ch.qos.logback.classic.encoder.JsonEncoder"/>
     </appender>
 
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>/app/logs/platform.log</file>
-        <encoder class="ch.qos.logback.classic.encoder.JsonEncoder"/>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>/app/logs/platform-%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>7</maxHistory>
-        </rollingPolicy>
-    </appender>
+    <springProfile name="!test">
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>/app/logs/platform.log</file>
+            <encoder class="ch.qos.logback.classic.encoder.JsonEncoder"/>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>/app/logs/platform-%d{yyyy-MM-dd}.log</fileNamePattern>
+                <maxHistory>7</maxHistory>
+            </rollingPolicy>
+        </appender>
+    </springProfile>
 
     <logger name="com.platform" level="DEBUG" additivity="false">
         <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
+        <springProfile name="!test">
+            <appender-ref ref="FILE"/>
+        </springProfile>
     </logger>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
+        <springProfile name="!test">
+            <appender-ref ref="FILE"/>
+        </springProfile>
     </root>
 </configuration>

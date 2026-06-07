@@ -65,3 +65,13 @@ recordings/
 node_modules/
 .cache/
 frontend/node_modules/.cache/
+# AI Free module (independent repo)
+ai-free/
+.aider*
+.env
+.env
+.env
+.env
+.env
+.env
+.env

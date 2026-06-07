@@ -1,0 +1,89 @@
+# src/main/resources/db/changelog/v1/09-create-live-broadcasts-table.yaml
+databaseChangeLog:
+  - changeSet:
+      id: 09-create-live-broadcasts-table
+      author: platform
+      labels: schema
+      comment: Создание таблицы live_broadcasts (трансляции)
+      changes:
+        - createTable:
+            tableName: live_broadcasts
+            remarks: Активные и завершенные трансляции
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  remarks: UUID трансляции
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  remarks: Название трансляции
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+                  remarks: Описание
+              - column:
+                  name: stream_key
+                  type: VARCHAR(255)
+                  remarks: Ключ потока (RTMP)
+              - column:
+                  name: status
+                  type: VARCHAR(32)
+                  defaultValue: scheduled
+                  remarks: Статус (scheduled, live, ended, cancelled)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: started_at
+                  type: TIMESTAMPTZ
+                  remarks: Фактическое время начала
+              - column:
+                  name: ended_at
+                  type: TIMESTAMPTZ
+                  remarks: Время окончания
+              - column:
+                  name: viewer_count
+                  type: INTEGER
+                  defaultValue: 0
+                  remarks: Текущее количество зрителей
+              - column:
+                  name: cover_image_url
+                  type: VARCHAR(512)
+                  remarks: Обложка
+              - column:
+                  name: owner_id
+                  type: VARCHAR(36)
+                  remarks: ID владельца/создателя (используется в индексах v6)
+              - column:
+                  name: created_by
+                  type: VARCHAR(36)
+                  remarks: ID создателя (для совместимости)
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  remarks: Дата создания
+              - column:
+                  name: updated_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  remarks: Дата обновления
+        - addForeignKeyConstraint:
+            constraintName: fk_live_broadcasts_owner
+            baseTableName: live_broadcasts
+            baseColumnNames: owner_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: SET NULL
+        - addForeignKeyConstraint:
+            constraintName: fk_live_broadcasts_created_by
+            baseTableName: live_broadcasts
+            baseColumnNames: created_by
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: SET NULL

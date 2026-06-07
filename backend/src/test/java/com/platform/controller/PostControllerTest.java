@@ -1,6 +1,8 @@
 package com.platform.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.platform.exception.GlobalExceptionHandler;
 import com.platform.model.dto.PostDto;
 import com.platform.service.PostService;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,360 +11,209 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import static com.platform.controller.TestSecurityHelper.securityContextFilter;
+import static com.platform.controller.TestSecurityHelper.withAuth;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PostControllerTest {
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
 
-    @Mock
-    private PostService postService;
-
-    @Mock
-    private Jwt jwt;
-
-    @InjectMocks
-    private PostController postController;
+    @Mock private PostService postService;
+    @InjectMocks private PostController postController;
 
     private String userId;
-    private UUID userIdUuid;
-    private String postId;
-    private UUID postIdUuid;
+    private Jwt adminJwt;
+    private Jwt userJwt;
+    private JwtAuthenticationToken adminAuth;
+    private JwtAuthenticationToken userAuth;
+    private PostDto postDto;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(postController).build();
-        objectMapper = new ObjectMapper();
+        mockMvc = MockMvcBuilders.standaloneSetup(postController)
+                .addFilters(securityContextFilter())
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
+        objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
-        userId = "user-123";
-        userIdUuid = UUID.fromString(userId);
-        postId = "post-456";
-        postIdUuid = UUID.fromString(postId);
-    }
+        userId = UUID.randomUUID().toString();
 
-    @Test
-    void createPost_ValidRequest_ReturnsPostDto() throws Exception {
-        // Arrange
-        String content = "Test post content";
-        String mediaId = "media-789";
-        PostDto expectedResponse = PostDto.builder()
-                .id(postIdUuid)
-                .content(content)
-                .authorId(userIdUuid)
-                .authorName("TestAuthor")
-                .authorRole("USER_1")
-                .mediaId(UUID.fromString(mediaId))
-                .createdAt(Instant.now())
+        adminJwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .claim("sub", userId)
+                .claim("preferred_username", "admin")
+                .claim("realm_access.roles", "SUPER_ADMIN")
                 .build();
 
-        when(jwt.getSubject()).thenReturn(userId);
-        when(jwt.getClaim("preferred_username")).thenReturn("TestAuthor");
-        when(jwt.getClaim("realm_access")).thenReturn(java.util.Map.of("roles", List.of("USER_1")));
-        when(postService.createPost(eq(content), eq(mediaId), eq(jwt)))
-                .thenReturn(expectedResponse);
+        userJwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .claim("sub", userId)
+                .claim("preferred_username", "user")
+                .claim("realm_access.roles", "USER_0")
+                .build();
 
-        // Act & Assert
-        mockMvc.perform(post("/api/posts")
-                        .with(request -> {
-                            request.setAttribute("jwt", jwt);
-                            return request;
-                        })
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\": \"" + content + "\", \"mediaId\": \"" + mediaId + "\"}"))
+        adminAuth = new JwtAuthenticationToken(adminJwt, List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
+        userAuth = new JwtAuthenticationToken(userJwt, List.of(new SimpleGrantedAuthority("ROLE_USER_0")));
+
+        postDto = PostDto.builder()
+                .id(UUID.randomUUID().toString())
+                .content("Test post content")
+                .authorId(userId)
+                .authorName("admin")
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
+
+    // ==================== GET /api/posts/feed ====================
+
+    @Test
+    void getFeed_ReturnsList() throws Exception {
+        when(postService.getFeed(anyString(), isNull(), any(Pageable.class)))
+                .thenReturn(List.of(postDto));
+
+        mockMvc.perform(get("/api/posts/feed")
+                        .with(withAuth(adminAuth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(postId))
-                .andExpect(jsonPath("$.content").value(content))
-                .andExpect(jsonPath("$.authorId").value(userId))
-                .andExpect(jsonPath("$.authorName").value("TestAuthor"))
-                .andExpect(jsonPath("$.mediaId").value(mediaId));
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].content").value("Test post content"));
     }
 
     @Test
-    void createPost_WithoutMedia_ReturnsPostDto() throws Exception {
-        // Arrange
-        String content = "Test post without media";
-        PostDto expectedResponse = PostDto.builder()
-                .id(postIdUuid)
-                .content(content)
-                .authorId(userIdUuid)
-                .authorName("TestAuthor")
-                .authorRole("USER_1")
-                .createdAt(Instant.now())
-                .build();
+    void getFeed_WithBeforeParam_PassesCursor() throws Exception {
+        String before = UUID.randomUUID().toString();
+        when(postService.getFeed(anyString(), eq(before), any(Pageable.class)))
+                .thenReturn(List.of());
 
-        when(jwt.getSubject()).thenReturn(userId);
-        when(jwt.getClaim("preferred_username")).thenReturn("TestAuthor");
-        when(jwt.getClaim("realm_access")).thenReturn(java.util.Map.of("roles", List.of("USER_1")));
-        when(postService.createPost(eq(content), isNull(), eq(jwt)))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(post("/api/posts")
-                        .with(request -> {
-                            request.setAttribute("jwt", jwt);
-                            return request;
-                        })
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\": \"" + content + "\"}"))
+        mockMvc.perform(get("/api/posts/feed")
+                        .param("before", before)
+                        .with(withAuth(adminAuth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.mediaId").doesNotExist());
+                .andExpect(jsonPath("$").isEmpty());
     }
 
     @Test
-    void createPost_EmptyContent_ReturnsBadRequest() throws Exception {
-        // Arrange
-        String emptyContent = "";
+    void getFeed_CustomLimit_UsesLimit() throws Exception {
+        when(postService.getFeed(anyString(), isNull(), any(Pageable.class)))
+                .thenReturn(List.of(postDto));
 
-        // Act & Assert
+        mockMvc.perform(get("/api/posts/feed")
+                        .param("limit", "10")
+                        .with(withAuth(adminAuth)))
+                .andExpect(status().isOk());
+
+        verify(postService).getFeed(anyString(), isNull(), argThat(p -> p.getPageSize() == 10));
+    }
+
+    // ==================== GET /api/posts/{id} ====================
+
+    @Test
+    void getPost_Exists_ReturnsOk() throws Exception {
+        String postId = postDto.getId();
+        when(postService.getPost(eq(postId), anyString())).thenReturn(postDto);
+
+        mockMvc.perform(get("/api/posts/{id}", postId)
+                        .with(withAuth(adminAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").value("Test post content"));
+    }
+
+    // ==================== POST /api/posts ====================
+
+    @Test
+    void createPost_AdminCanCreate() throws Exception {
+        PostDto.CreateRequest request = new PostDto.CreateRequest();
+        request.setContent("New content");
+
+        when(postService.createPost(any(PostDto.CreateRequest.class), any(Jwt.class)))
+                .thenReturn(postDto);
+
         mockMvc.perform(post("/api/posts")
-                        .with(request -> {
-                            request.setAttribute("jwt", jwt);
-                            return request;
-                        })
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\": \"" + emptyContent + "\"}"))
-                .andExpect(status().isBadRequest());
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(withAuth(adminAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").value("Test post content"));
     }
 
+    // ==================== PUT /api/posts/{id} ====================
+
     @Test
-    void updatePost_ValidRequest_ReturnsUpdatedPost() throws Exception {
-        // Arrange
-        String newContent = "Updated content";
-        String newMediaId = "new-media-123";
-        PostDto expectedResponse = PostDto.builder()
-                .id(postIdUuid)
-                .content(newContent)
-                .authorId(userIdUuid)
-                .authorName("TestAuthor")
-                .mediaId(UUID.fromString(newMediaId))
-                .updatedAt(Instant.now())
-                .build();
+    void updatePost_AdminCanUpdate() throws Exception {
+        String postId = postDto.getId();
+        PostDto.UpdateRequest request = new PostDto.UpdateRequest();
+        request.setContent("Updated content");
 
-        when(postService.updatePost(eq(postId), eq(newContent), eq(newMediaId), eq(userId)))
-                .thenReturn(expectedResponse);
+        PostDto updated = PostDto.builder()
+                .id(postId).content("Updated content")
+                .authorId(userId).authorName("admin").createdAt(LocalDateTime.now()).build();
 
-        // Act & Assert
+        when(postService.updatePost(eq(postId), any(PostDto.UpdateRequest.class), any(Jwt.class)))
+                .thenReturn(updated);
+
         mockMvc.perform(put("/api/posts/{id}", postId)
-                        .header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\": \"" + newContent + "\", \"mediaId\": \"" + newMediaId + "\"}"))
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(withAuth(adminAuth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").value(newContent))
-                .andExpect(jsonPath("$.mediaId").value(newMediaId));
+                .andExpect(jsonPath("$.content").value("Updated content"));
     }
 
-    @Test
-    void updatePost_WithoutMedia_ReturnsUpdatedPost() throws Exception {
-        // Arrange
-        String newContent = "Updated content without media";
-        PostDto expectedResponse = PostDto.builder()
-                .id(postIdUuid)
-                .content(newContent)
-                .authorId(userIdUuid)
-                .authorName("TestAuthor")
-                .updatedAt(Instant.now())
-                .build();
-
-        when(postService.updatePost(eq(postId), eq(newContent), isNull(), eq(userId)))
-                .thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(put("/api/posts/{id}", postId)
-                        .header("X-User-Id", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"content\": \"" + newContent + "\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.mediaId").doesNotExist());
-    }
+    // ==================== DELETE /api/posts/{id} ====================
 
     @Test
-    void deletePost_ValidRequest_ReturnsNoContent() throws Exception {
-        // Arrange
-        when(postService.deletePost(eq(postId), eq(userId))).thenReturn(true);
+    void deletePost_AdminCanDelete_Returns204() throws Exception {
+        String postId = postDto.getId();
+        doNothing().when(postService).deletePost(eq(postId), any(Jwt.class));
 
-        // Act & Assert
         mockMvc.perform(delete("/api/posts/{id}", postId)
-                        .header("X-User-Id", userId))
+                        .with(withAuth(adminAuth)))
                 .andExpect(status().isNoContent());
     }
 
-    @Test
-    void deletePost_PostNotFound_ReturnsNotFound() throws Exception {
-        // Arrange
-        String nonExistentPostId = "non-existent-post";
-        when(postService.deletePost(eq(nonExistentPostId), eq(userId)))
-                .thenThrow(new com.platform.exception.ResourceNotFoundException("Post not found"));
-
-        // Act & Assert
-        mockMvc.perform(delete("/api/posts/{id}", nonExistentPostId)
-                        .header("X-User-Id", userId))
-                .andExpect(status().isNotFound());
-    }
+    // ==================== POST /api/posts/media ====================
 
     @Test
-    void getPost_ValidRequest_ReturnsPostDto() throws Exception {
-        // Arrange
-        PostDto expectedResponse = PostDto.builder()
-                .id(postIdUuid)
-                .content("Test post content")
-                .authorId(userIdUuid)
-                .authorName("TestAuthor")
-                .authorRole("USER_1")
-                .likesCount(15)
-                .userLiked(true)
-                .createdAt(Instant.now().minusHours(2))
+    void uploadMedia_AdminCanUpload() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "media", "photo.jpg", "image/jpeg", "fake-image-content".getBytes());
+
+        PostDto.MediaUploadResponse response = PostDto.MediaUploadResponse.builder()
+                .url("https://storage.example.com/media/abc.jpg")
+                .type("image")
                 .build();
 
-        when(postService.getPost(eq(postId), eq(userId))).thenReturn(expectedResponse);
+        when(postService.uploadSecureMedia(any(), eq("image"))).thenReturn(response);
 
-        // Act & Assert
-        mockMvc.perform(get("/api/posts/{id}", postId)
-                        .header("X-User-Id", userId))
+        mockMvc.perform(multipart("/api/posts/media")
+                        .file(file)
+                        .param("type", "image")
+                        .with(withAuth(adminAuth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(postId))
-                .andExpect(jsonPath("$.likesCount").value(15))
-                .andExpect(jsonPath("$.userLiked").value(true));
-    }
-
-    @Test
-    void getPost_WithoutUserId_ReturnsPostDto() throws Exception {
-        // Arrange
-        PostDto expectedResponse = PostDto.builder()
-                .id(postIdUuid)
-                .content("Test post content")
-                .authorId(userIdUuid)
-                .authorName("TestAuthor")
-                .authorRole("USER_1")
-                .likesCount(15)
-                .userLiked(false) // No userId provided
-                .createdAt(Instant.now().minusHours(2))
-                .build();
-
-        when(postService.getPost(eq(postId), isNull())).thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/posts/{id}", postId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userLiked").value(false));
-    }
-
-    @Test
-    void getFeed_ValidRequest_ReturnsPosts() throws Exception {
-        // Arrange
-        String before = "2024-01-15T10:30:00Z";
-        PostDto post1 = PostDto.builder()
-                .id(UUID.randomUUID())
-                .content("Post 1")
-                .authorId(userIdUuid)
-                .authorName("User1")
-                .likesCount(10)
-                .createdAt(Instant.parse(before).minusSeconds(300))
-                .build();
-
-        PostDto post2 = PostDto.builder()
-                .id(UUID.randomUUID())
-                .content("Post 2")
-                .authorId(UUID.randomUUID())
-                .authorName("User2")
-                .likesCount(5)
-                .createdAt(Instant.parse(before).minusSeconds(150))
-                .build();
-
-        List<PostDto> expectedResponse = List.of(post1, post2);
-
-        when(postService.getFeed(eq(before), eq(userId))).thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/posts/feed")
-                        .header("X-User-Id", userId)
-                        .param("before", before))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].likesCount").value(10))
-                .andExpect(jsonPath("$[1].likesCount").value(5));
-    }
-
-    @Test
-    void getFeed_WithoutBefore_ReturnsLatestPosts() throws Exception {
-        // Arrange
-        PostDto post = PostDto.builder()
-                .id(UUID.randomUUID())
-                .content("Latest post")
-                .authorId(userIdUuid)
-                .authorName("User1")
-                .likesCount(20)
-                .createdAt(Instant.now().minusMinutes(30))
-                .build();
-
-        List<PostDto> expectedResponse = List.of(post);
-
-        when(postService.getFeed(isNull(), eq(userId))).thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/posts/feed")
-                        .header("X-User-Id", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].likesCount").value(20));
-    }
-
-    @Test
-    void getFeed_WithoutUserId_ReturnsPosts() throws Exception {
-        // Arrange
-        PostDto post = PostDto.builder()
-                .id(UUID.randomUUID())
-                .content("Public post")
-                .authorId(userIdUuid)
-                .authorName("User1")
-                .likesCount(25)
-                .userLiked(false) // No userId
-                .createdAt(Instant.now().minusMinutes(30))
-                .build();
-
-        List<PostDto> expectedResponse = List.of(post);
-
-        when(postService.getFeed(isNull(), isNull())).thenReturn(expectedResponse);
-
-        // Act & Assert
-        mockMvc.perform(get("/api/posts/feed"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].userLiked").value(false));
-    }
-
-    @Test
-    void likePost_ValidRequest_ReturnsOk() throws Exception {
-        // Arrange
-        when(postService.likePost(eq(postId), eq(userId))).thenReturn(true);
-
-        // Act & Assert
-        mockMvc.perform(post("/api/posts/{id}/like", postId)
-                        .header("X-User-Id", userId))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void unlikePost_ValidRequest_ReturnsOk() throws Exception {
-        // Arrange
-        when(postService.unlikePost(eq(postId), eq(userId))).thenReturn(true);
-
-        // Act & Assert
-        mockMvc.perform(delete("/api/posts/{id}/like", postId)
-                        .header("X-User-Id", userId))
-                .andExpect(status().isOk());
+                .andExpect(jsonPath("$.url").exists())
+                .andExpect(jsonPath("$.type").value("image"));
     }
 }

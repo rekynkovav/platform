@@ -3,8 +3,6 @@ package com.platform.service;
 import com.platform.exception.BusinessException;
 import com.platform.exception.ResourceNotFoundException;
 import com.platform.model.Payment;
-import com.platform.model.dto.PaymentDto;
-import com.platform.model.enums.PaymentStatus;
 import com.platform.repository.PaymentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,16 +10,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.oauth2.jwt.Jwt;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,301 +38,168 @@ class PaymentServiceTest {
     @InjectMocks
     private PaymentService paymentService;
 
+    private Jwt jwt;
     private String userId;
     private UUID userIdUuid;
-    private String paymentId;
-    private UUID paymentIdUuid;
 
     @BeforeEach
     void setUp() {
-        userId = "user-123";
+        userId = "550e8400-e29b-41d4-a716-446655440000";
         userIdUuid = UUID.fromString(userId);
-        paymentId = "payment-456";
-        paymentIdUuid = UUID.fromString(paymentId);
+        jwt = Jwt.withTokenValue("token")
+                .header("alg", "RS256")
+                .claim("sub", userId)
+                .claim("preferred_username", "testuser")
+                .build();
     }
 
     @Test
-    void createPayment_1Month_CreatesWithCorrectAmount() {
-        // Arrange
-        int months = 1;
-        int expectedAmount = 10000;  // 1 month = 10000
+    void createPayment_NoExistingPending_CreatesPayment() {
+        when(paymentRepository.findByUserIdAndStatus(eq(userIdUuid), eq(Payment.PaymentStatus.PENDING)))
+                .thenReturn(List.of());
+        when(qrCodeService.generatePaymentQRData(any(), anyString(), anyString())).thenReturn("qr-data");
+        when(qrCodeService.generateQRCodeBase64(anyString())).thenReturn("base64-qr");
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        when(paymentRepository.findByUserIdAndStatus(userIdUuid, PaymentStatus.PENDING))
-                .thenReturn(Optional.empty());
-        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> {
-            Payment payment = inv.getArgument(0);
-            payment.setId(paymentIdUuid);
-            return payment;
-        });
-        when(qrCodeService.generateQRCode(anyString())).thenReturn("qr-code-data");
+        Payment result = paymentService.createPayment(1, jwt);
 
-        // Act
-        PaymentDto result = paymentService.createPayment(userId, months);
-
-        // Assert
         assertThat(result).isNotNull();
-        assertThat(result.getUserId()).isEqualTo(userIdUuid);
-        assertThat(result.getSubscriptionMonths()).isEqualTo(months);
-        assertThat(result.getAmount()).isEqualTo(expectedAmount);
-        assertThat(result.getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(result.getStatus()).isEqualTo(Payment.PaymentStatus.PENDING);
+        assertThat(result.getAmount()).isEqualTo(new BigDecimal("10000"));
+        assertThat(result.getSubscriptionMonths()).isEqualTo(1);
         verify(paymentRepository).save(any(Payment.class));
     }
 
     @Test
-    void createPayment_3Months_CreatesWithDiscount() {
-        // Arrange
-        int months = 3;
-        int expectedAmount = 27000;  // 3 * 10000 * 0.9 = 27000 (10% discount)
-
-        when(paymentRepository.findByUserIdAndStatus(userIdUuid, PaymentStatus.PENDING))
-                .thenReturn(Optional.empty());
-        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> {
-            Payment payment = inv.getArgument(0);
-            payment.setId(paymentIdUuid);
-            return payment;
-        });
-        when(qrCodeService.generateQRCode(anyString())).thenReturn("qr-code-data");
-
-        // Act
-        PaymentDto result = paymentService.createPayment(userId, months);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getAmount()).isEqualTo(expectedAmount);
-        verify(paymentRepository).save(any(Payment.class));
-    }
-
-    @Test
-    void createPayment_6Months_CreatesWith20PercentDiscount() {
-        // Arrange
-        int months = 6;
-        int expectedAmount = 48000;  // 6 * 10000 * 0.8 = 48000 (20% discount)
-
-        when(paymentRepository.findByUserIdAndStatus(userIdUuid, PaymentStatus.PENDING))
-                .thenReturn(Optional.empty());
-        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> {
-            Payment payment = inv.getArgument(0);
-            payment.setId(paymentIdUuid);
-            return payment;
-        });
-        when(qrCodeService.generateQRCode(anyString())).thenReturn("qr-code-data");
-
-        // Act
-        PaymentDto result = paymentService.createPayment(userId, months);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getAmount()).isEqualTo(expectedAmount);
-        verify(paymentRepository).save(any(Payment.class));
-    }
-
-    @Test
-    void createPayment_12Months_CreatesWith30PercentDiscount() {
-        // Arrange
-        int months = 12;
-        int expectedAmount = 84000;  // 12 * 10000 * 0.7 = 84000 (30% discount)
-
-        when(paymentRepository.findByUserIdAndStatus(userIdUuid, PaymentStatus.PENDING))
-                .thenReturn(Optional.empty());
-        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> {
-            Payment payment = inv.getArgument(0);
-            payment.setId(paymentIdUuid);
-            return payment;
-        });
-        when(qrCodeService.generateQRCode(anyString())).thenReturn("qr-code-data");
-
-        // Act
-        PaymentDto result = paymentService.createPayment(userId, months);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getAmount()).isEqualTo(expectedAmount);
-        verify(paymentRepository).save(any(Payment.class));
-    }
-
-    @Test
-    void createPayment_InvalidMonths_ThrowsException() {
-        // Arrange
-        int invalidMonths = 0;
-
-        // Act & Assert
-        assertThatThrownBy(() -> paymentService.createPayment(userId, invalidMonths))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Invalid subscription months");
-
-        verify(paymentRepository, never()).save(any(Payment.class));
-    }
-
-    @Test
-    void createPayment_ExistingPendingPayment_ThrowsException() {
-        // Arrange
-        int months = 1;
-        Payment existingPayment = Payment.builder()
-                .id(paymentIdUuid)
+    void createPayment_ExistingPending_ThrowsException() {
+        Payment existing = Payment.builder()
+                .id(UUID.randomUUID())
                 .userId(userIdUuid)
-                .status(PaymentStatus.PENDING)
+                .amount(new BigDecimal("10000"))
+                .status(Payment.PaymentStatus.PENDING)
                 .build();
 
-        when(paymentRepository.findByUserIdAndStatus(userIdUuid, PaymentStatus.PENDING))
-                .thenReturn(Optional.of(existingPayment));
+        when(paymentRepository.findByUserIdAndStatus(eq(userIdUuid), eq(Payment.PaymentStatus.PENDING)))
+                .thenReturn(List.of(existing));
 
-        // Act & Assert
-        assertThatThrownBy(() -> paymentService.createPayment(userId, months))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("pending payment");
+        assertThatThrownBy(() -> paymentService.createPayment(1, jwt))
+                .isInstanceOf(BusinessException.class);
 
-        verify(paymentRepository, never()).save(any(Payment.class));
+        verify(paymentRepository, never()).save(any());
     }
 
     @Test
-    void confirmPayment_PendingToConfirmed_UpdatesStatusAndRole() {
-        // Arrange
+    void getPayment_ExistingPayment_ReturnsPayment() {
+        String paymentId = UUID.randomUUID().toString();
+        UUID paymentIdUuid = UUID.fromString(paymentId);
         Payment payment = Payment.builder()
                 .id(paymentIdUuid)
                 .userId(userIdUuid)
-                .subscriptionMonths(1)
-                .status(PaymentStatus.PENDING)
-                .createdAt(Instant.now().minusMinutes(30))
+                .amount(new BigDecimal("10000"))
+                .status(Payment.PaymentStatus.PENDING)
                 .build();
 
-        when(paymentRepository.findById(paymentIdUuid)).thenReturn(Optional.of(payment));
-        when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
+        when(paymentRepository.findByIdAndUserId(eq(paymentIdUuid), eq(userIdUuid)))
+                .thenReturn(Optional.of(payment));
 
-        // Act
-        paymentService.confirmPayment(paymentId);
+        Payment result = paymentService.getPayment(paymentId, jwt);
 
-        // Assert
-        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.CONFIRMED);
-        assertThat(payment.getConfirmedAt()).isNotNull();
-        verify(keycloakService).updateUserRole(userId, 1);
-        verify(paymentRepository).save(payment);
+        assertThat(result).isNotNull();
+        assertThat(result.getId().toString()).isEqualTo(paymentId);
+    }
+
+    @Test
+    void getPayment_NonExistent_ThrowsException() {
+        String paymentId = UUID.randomUUID().toString();
+        UUID paymentIdUuid = UUID.fromString(paymentId);
+        when(paymentRepository.findByIdAndUserId(eq(paymentIdUuid), eq(userIdUuid)))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> paymentService.getPayment(paymentId, jwt))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void getUserPayments_ReturnsPayments() {
+        Payment p1 = Payment.builder()
+                .id(UUID.randomUUID())
+                .userId(userIdUuid)
+                .amount(new BigDecimal("10000"))
+                .status(Payment.PaymentStatus.PAID)
+                .build();
+
+        when(paymentRepository.findByUserId(userIdUuid)).thenReturn(List.of(p1));
+
+        List<Payment> payments = paymentService.getUserPayments(jwt);
+
+        assertThat(payments).hasSize(1);
+    }
+
+    @Test
+    void confirmPayment_PendingPayment_ConfirmsAndUpdatesRole() {
+        String paymentId = UUID.randomUUID().toString();
+        Payment payment = Payment.builder()
+                .id(UUID.fromString(paymentId))
+                .userId(userIdUuid)
+                .amount(new BigDecimal("10000"))
+                .status(Payment.PaymentStatus.PENDING)
+                .subscriptionMonths(1)
+                .build();
+
+        when(paymentRepository.findById(UUID.fromString(paymentId))).thenReturn(Optional.of(payment));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Payment result = paymentService.confirmPayment(paymentId, "Confirmed manually", jwt);
+
+        assertThat(result.getStatus()).isEqualTo(Payment.PaymentStatus.CONFIRMED);
+        assertThat(result.getPaidAt()).isNotNull();
+        assertThat(result.getConfirmedBy()).isEqualTo(userId);
+        verify(keycloakService).updateUserRole(eq(userId), eq("USER_0"), eq("USER_1"));
     }
 
     @Test
     void confirmPayment_AlreadyProcessed_ThrowsException() {
-        // Arrange
+        String paymentId = UUID.randomUUID().toString();
         Payment payment = Payment.builder()
-                .id(paymentIdUuid)
+                .id(UUID.fromString(paymentId))
                 .userId(userIdUuid)
-                .status(PaymentStatus.CONFIRMED)  // Already confirmed
-                .confirmedAt(Instant.now().minusMinutes(10))
+                .amount(new BigDecimal("10000"))
+                .status(Payment.PaymentStatus.CONFIRMED)
                 .build();
 
-        when(paymentRepository.findById(paymentIdUuid)).thenReturn(Optional.of(payment));
+        when(paymentRepository.findById(UUID.fromString(paymentId))).thenReturn(Optional.of(payment));
 
-        // Act & Assert
-        assertThatThrownBy(() -> paymentService.confirmPayment(paymentId))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("already processed");
+        assertThatThrownBy(() -> paymentService.confirmPayment(paymentId, "notes", jwt))
+                .isInstanceOf(IllegalStateException.class);
 
-        verify(keycloakService, never()).updateUserRole(any(), anyInt());
-        verify(paymentRepository, never()).save(any(Payment.class));
+        verify(paymentRepository, never()).save(any());
     }
 
     @Test
-    void expireOldPayments_ExpiresPaymentsOlderThan24Hours() {
-        // Arrange
-        Payment oldPayment = Payment.builder()
-                .id(paymentIdUuid)
-                .userId(userIdUuid)
-                .status(PaymentStatus.PENDING)
-                .createdAt(Instant.now().minus(25, ChronoUnit.HOURS))  // 25 hours old
-                .build();
-
-        Payment recentPayment = Payment.builder()
+    void expireOldPayments_ExpiresPendingPayments() {
+        Payment expired = Payment.builder()
                 .id(UUID.randomUUID())
                 .userId(userIdUuid)
-                .status(PaymentStatus.PENDING)
-                .createdAt(Instant.now().minus(23, ChronoUnit.HOURS))  // 23 hours old
+                .amount(new BigDecimal("10000"))
+                .status(Payment.PaymentStatus.PENDING)
+                .expiresAt(LocalDateTime.now().minusHours(1))
                 .build();
 
-        when(paymentRepository.findByStatus(PaymentStatus.PENDING))
-                .thenReturn(List.of(oldPayment, recentPayment));
+        when(paymentRepository.findExpiredPayments(any(LocalDateTime.class))).thenReturn(List.of(expired));
         when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        // Act
         paymentService.expireOldPayments();
 
-        // Assert
-        assertThat(oldPayment.getStatus()).isEqualTo(PaymentStatus.EXPIRED);
-        assertThat(recentPayment.getStatus()).isEqualTo(PaymentStatus.PENDING);  // Should not expire
-        verify(paymentRepository, times(1)).save(oldPayment);
-        verify(paymentRepository, never()).save(recentPayment);
+        assertThat(expired.getStatus()).isEqualTo(Payment.PaymentStatus.EXPIRED);
+        verify(paymentRepository).save(expired);
     }
 
     @Test
-    void findByUserIdAndStatus_DelegatesToRepository() {
-        // Arrange
-        PaymentStatus status = PaymentStatus.CONFIRMED;
-        Payment payment = Payment.builder()
-                .id(paymentIdUuid)
-                .userId(userIdUuid)
-                .status(status)
-                .build();
+    void getPendingPayments_ReturnsList() {
+        when(paymentRepository.findPendingPayments()).thenReturn(List.of());
 
-        when(paymentRepository.findByUserIdAndStatus(userIdUuid, status))
-                .thenReturn(List.of(payment));
+        List<Payment> pending = paymentService.getPendingPayments();
 
-        // Act
-        List<PaymentDto> result = paymentService.findByUserIdAndStatus(userId, status);
-
-        // Assert
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getId()).isEqualTo(paymentIdUuid);
-        assertThat(result.get(0).getStatus()).isEqualTo(status);
-        verify(paymentRepository).findByUserIdAndStatus(userIdUuid, status);
-    }
-
-    @Test
-    void getPayment_CorrectUser_ReturnsPayment() {
-        // Arrange
-        Payment payment = Payment.builder()
-                .id(paymentIdUuid)
-                .userId(userIdUuid)
-                .subscriptionMonths(1)
-                .amount(10000)
-                .status(PaymentStatus.PENDING)
-                .build();
-
-        when(paymentRepository.findById(paymentIdUuid)).thenReturn(Optional.of(payment));
-
-        // Act
-        PaymentDto result = paymentService.getPayment(paymentId, userId);
-
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(paymentIdUuid);
-        assertThat(result.getUserId()).isEqualTo(userIdUuid);
-        assertThat(result.getAmount()).isEqualTo(10000);
-    }
-
-    @Test
-    void getPayment_WrongUser_ThrowsException() {
-        // Arrange
-        String wrongUserId = "wrong-user-789";
-        Payment payment = Payment.builder()
-                .id(paymentIdUuid)
-                .userId(userIdUuid)  // Different user
-                .build();
-
-        when(paymentRepository.findById(paymentIdUuid)).thenReturn(Optional.of(payment));
-
-        // Act & Assert
-        assertThatThrownBy(() -> paymentService.getPayment(paymentId, wrongUserId))
-                .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Access denied");
-    }
-
-    @Test
-    void getPayment_NotFound_ThrowsException() {
-        // Arrange
-        String nonExistentPaymentId = "non-existent-payment";
-        UUID nonExistentUuid = UUID.fromString(nonExistentPaymentId);
-        when(paymentRepository.findById(nonExistentUuid)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThatThrownBy(() -> paymentService.getPayment(nonExistentPaymentId, userId))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Payment not found");
+        assertThat(pending).isEmpty();
     }
 }

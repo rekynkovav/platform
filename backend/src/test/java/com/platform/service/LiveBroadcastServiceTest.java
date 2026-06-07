@@ -2,9 +2,9 @@ package com.platform.service;
 
 import com.platform.exception.AccessDeniedException;
 import com.platform.exception.ResourceNotFoundException;
+import com.platform.model.BroadcastStatus;
 import com.platform.model.LiveBroadcast;
 import com.platform.model.dto.LiveBroadcastDto;
-import com.platform.model.enums.BroadcastStatus;
 import com.platform.repository.LiveBroadcastRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +13,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,309 +33,173 @@ class LiveBroadcastServiceTest {
     private BroadcastArchiveService archiveService;
 
     @InjectMocks
-    private LiveBroadcastService liveBroadcastService;
+    private LiveBroadcastService broadcastService;
 
-    private String userId;
-    private UUID userIdUuid;
-    private String broadcastId;
-    private UUID broadcastIdUuid;
-    private String ownerId;
-    private UUID ownerIdUuid;
+    private UUID userId;
+    private UUID broadcastId;
+    private LiveBroadcast broadcast;
 
     @BeforeEach
     void setUp() {
-        userId = "user-123";
-        userIdUuid = UUID.fromString(userId);
-        broadcastId = "broadcast-456";
-        broadcastIdUuid = UUID.fromString(broadcastId);
-        ownerId = "owner-789";
-        ownerIdUuid = UUID.fromString(ownerId);
+        userId = UUID.randomUUID();
+        broadcastId = UUID.randomUUID();
+
+        broadcast = LiveBroadcast.builder()
+                .id(broadcastId)
+                .title("Test Broadcast")
+                .description("Test Description")
+                .streamType("live")
+                .ownerId(userId)
+                .status(BroadcastStatus.IDLE)
+                .rtmpStreamKey(broadcastId.toString())
+                .viewerCount(0)
+                .build();
     }
 
     @Test
-    void createBroadcast_CreatesWithIdleStatusAndStreamKey() {
-        // Arrange
-        String title = "Test Broadcast";
-        String description = "Test description";
+    void createBroadcast_SavesAndReturnsBroadcast() {
+        when(broadcastRepository.save(any(LiveBroadcast.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        when(broadcastRepository.save(any(LiveBroadcast.class))).thenAnswer(inv -> {
-            LiveBroadcast broadcast = inv.getArgument(0);
-            broadcast.setId(broadcastIdUuid);
-            return broadcast;
-        });
+        LiveBroadcast result = broadcastService.createBroadcast(
+                "Title", "Description", "live", userId.toString());
 
-        // Act
-        LiveBroadcastDto result = liveBroadcastService.createBroadcast(title, description, userId);
-
-        // Assert
         assertThat(result).isNotNull();
-        assertThat(result.getTitle()).isEqualTo(title);
-        assertThat(result.getDescription()).isEqualTo(description);
-        assertThat(result.getOwnerId()).isEqualTo(userIdUuid);
+        assertThat(result.getTitle()).isEqualTo("Title");
         assertThat(result.getStatus()).isEqualTo(BroadcastStatus.IDLE);
-        assertThat(result.getRtmpStreamKey()).isEqualTo(broadcastId);
+        assertThat(result.getOwnerId()).isEqualTo(userId);
         verify(broadcastRepository).save(any(LiveBroadcast.class));
     }
 
     @Test
-    void startBroadcast_ByOwner_StartsSuccessfully() {
-        // Arrange
-        LiveBroadcast broadcast = LiveBroadcast.builder()
-                .id(broadcastIdUuid)
-                .ownerId(ownerIdUuid)
-                .title("Test Broadcast")
-                .status(BroadcastStatus.IDLE)
-                .build();
+    void startBroadcast_OwnerCanStart() {
+        when(broadcastRepository.findById(broadcastId)).thenReturn(Optional.of(broadcast));
+        when(broadcastRepository.save(any(LiveBroadcast.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        when(broadcastRepository.findById(broadcastIdUuid)).thenReturn(Optional.of(broadcast));
-        when(broadcastRepository.save(any(LiveBroadcast.class))).thenReturn(broadcast);
+        String rtmpUrl = broadcastService.startBroadcast(broadcastId.toString(), userId.toString());
 
-        // Act
-        String rtmpUrl = liveBroadcastService.startBroadcast(broadcastId, ownerId);
-
-        // Assert
-        assertThat(rtmpUrl).isNotNull();
         assertThat(rtmpUrl).contains("rtmp://");
-        assertThat(rtmpUrl).contains(broadcastId);
         assertThat(broadcast.getStatus()).isEqualTo(BroadcastStatus.LIVE);
         assertThat(broadcast.getStartedAt()).isNotNull();
         verify(broadcastRepository).save(broadcast);
     }
 
     @Test
-    void startBroadcast_ByOtherUser_ThrowsException() {
-        // Arrange
-        String otherUserId = "other-999";
-        LiveBroadcast broadcast = LiveBroadcast.builder()
-                .id(broadcastIdUuid)
-                .ownerId(ownerIdUuid)
-                .title("Test Broadcast")
-                .status(BroadcastStatus.IDLE)
-                .build();
+    void startBroadcast_NonOwner_ThrowsException() {
+        when(broadcastRepository.findById(broadcastId)).thenReturn(Optional.of(broadcast));
 
-        when(broadcastRepository.findById(broadcastIdUuid)).thenReturn(Optional.of(broadcast));
+        assertThatThrownBy(() -> broadcastService.startBroadcast(
+                broadcastId.toString(), UUID.randomUUID().toString()))
+                .isInstanceOf(AccessDeniedException.class);
 
-        // Act & Assert
-        assertThatThrownBy(() -> liveBroadcastService.startBroadcast(broadcastId, otherUserId))
-                .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("permission");
-
-        verify(broadcastRepository, never()).save(any(LiveBroadcast.class));
+        verify(broadcastRepository, never()).save(any());
     }
 
     @Test
-    void stopBroadcast_ByOwner_StopsSuccessfully() {
-        // Arrange
-        LiveBroadcast broadcast = LiveBroadcast.builder()
-                .id(broadcastIdUuid)
-                .ownerId(ownerIdUuid)
-                .title("Test Broadcast")
-                .status(BroadcastStatus.LIVE)
-                .startedAt(Instant.now().minusSeconds(300))
-                .build();
+    void stopBroadcast_OwnerCanStop() {
+        broadcast.setStatus(BroadcastStatus.LIVE);
+        when(broadcastRepository.findById(broadcastId)).thenReturn(Optional.of(broadcast));
+        when(broadcastRepository.save(any(LiveBroadcast.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        when(broadcastRepository.findById(broadcastIdUuid)).thenReturn(Optional.of(broadcast));
-        when(broadcastRepository.save(any(LiveBroadcast.class))).thenReturn(broadcast);
+        broadcastService.stopBroadcast(broadcastId.toString(), userId.toString());
 
-        // Act
-        liveBroadcastService.stopBroadcast(broadcastId, ownerId);
-
-        // Assert
         assertThat(broadcast.getStatus()).isEqualTo(BroadcastStatus.ENDED);
         assertThat(broadcast.getEndedAt()).isNotNull();
-        verify(archiveService).archiveBroadcast(broadcastId);
         verify(broadcastRepository).save(broadcast);
     }
 
     @Test
-    void stopBroadcast_ByOtherUser_ThrowsException() {
-        // Arrange
-        String otherUserId = "other-999";
-        LiveBroadcast broadcast = LiveBroadcast.builder()
-                .id(broadcastIdUuid)
-                .ownerId(ownerIdUuid)
-                .title("Test Broadcast")
-                .status(BroadcastStatus.LIVE)
-                .build();
+    void getBroadcast_Existing_ReturnsBroadcast() {
+        when(broadcastRepository.findById(broadcastId)).thenReturn(Optional.of(broadcast));
 
-        when(broadcastRepository.findById(broadcastIdUuid)).thenReturn(Optional.of(broadcast));
+        LiveBroadcast result = broadcastService.getBroadcast(broadcastId.toString());
 
-        // Act & Assert
-        assertThatThrownBy(() -> liveBroadcastService.stopBroadcast(broadcastId, otherUserId))
-                .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("permission");
-
-        verify(broadcastRepository, never()).save(any(LiveBroadcast.class));
-        verify(archiveService, never()).archiveBroadcast(any());
-    }
-
-    @Test
-    void getBroadcast_Found_ReturnsBroadcast() {
-        // Arrange
-        LiveBroadcast broadcast = LiveBroadcast.builder()
-                .id(broadcastIdUuid)
-                .ownerId(ownerIdUuid)
-                .title("Test Broadcast")
-                .status(BroadcastStatus.LIVE)
-                .viewerCount(100)
-                .maxViewers(150)
-                .build();
-
-        when(broadcastRepository.findById(broadcastIdUuid)).thenReturn(Optional.of(broadcast));
-
-        // Act
-        LiveBroadcastDto result = liveBroadcastService.getBroadcast(broadcastId);
-
-        // Assert
         assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(broadcastIdUuid);
-        assertThat(result.getTitle()).isEqualTo("Test Broadcast");
-        assertThat(result.getStatus()).isEqualTo(BroadcastStatus.LIVE);
-        assertThat(result.getViewerCount()).isEqualTo(100);
-        assertThat(result.getMaxViewers()).isEqualTo(150);
+        assertThat(result.getId()).isEqualTo(broadcastId);
     }
 
     @Test
-    void getBroadcast_NotFound_ThrowsException() {
-        // Arrange
-        String nonExistentBroadcastId = "non-existent-broadcast";
-        UUID nonExistentUuid = UUID.fromString(nonExistentBroadcastId);
-        when(broadcastRepository.findById(nonExistentUuid)).thenReturn(Optional.empty());
+    void getBroadcast_NonExistent_ThrowsException() {
+        when(broadcastRepository.findById(broadcastId)).thenReturn(Optional.empty());
 
-        // Act & Assert
-        assertThatThrownBy(() -> liveBroadcastService.getBroadcast(nonExistentBroadcastId))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Broadcast not found");
+        assertThatThrownBy(() -> broadcastService.getBroadcast(broadcastId.toString()))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    void getHlsPlaylist_LiveBroadcast_ReturnsUrl() {
-        // Arrange
-        LiveBroadcast broadcast = LiveBroadcast.builder()
-                .id(broadcastIdUuid)
-                .ownerId(ownerIdUuid)
-                .title("Test Broadcast")
-                .status(BroadcastStatus.LIVE)
-                .build();
+    void getActiveBroadcasts_ReturnsLiveBroadcasts() {
+        when(broadcastRepository.findByStatus(BroadcastStatus.LIVE)).thenReturn(List.of(broadcast));
 
-        when(broadcastRepository.findById(broadcastIdUuid)).thenReturn(Optional.of(broadcast));
+        List<LiveBroadcast> active = broadcastService.getActiveBroadcasts();
 
-        // Act
-        String hlsUrl = liveBroadcastService.getHlsPlaylist(broadcastId);
-
-        // Assert
-        assertThat(hlsUrl).isNotNull();
-        assertThat(hlsUrl).contains("http://");
-        assertThat(hlsUrl).contains(broadcastId);
-        assertThat(hlsUrl).contains(".m3u8");
+        assertThat(active).hasSize(1);
     }
 
     @Test
-    void getHlsPlaylist_NotLive_ThrowsException() {
-        // Arrange
-        LiveBroadcast broadcast = LiveBroadcast.builder()
-                .id(broadcastIdUuid)
-                .ownerId(ownerIdUuid)
-                .title("Test Broadcast")
-                .status(BroadcastStatus.IDLE)  // Not LIVE
-                .build();
+    void deleteBroadcast_OwnerCanDelete() {
+        when(broadcastRepository.findById(broadcastId)).thenReturn(Optional.of(broadcast));
 
-        when(broadcastRepository.findById(broadcastIdUuid)).thenReturn(Optional.of(broadcast));
+        broadcastService.deleteBroadcast(broadcastId.toString(), userId.toString());
 
-        // Act & Assert
-        assertThatThrownBy(() -> liveBroadcastService.getHlsPlaylist(broadcastId))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("not live");
+        verify(broadcastRepository).delete(broadcast);
+    }
+
+    @Test
+    void deleteBroadcast_NonOwner_ThrowsException() {
+        when(broadcastRepository.findById(broadcastId)).thenReturn(Optional.of(broadcast));
+
+        assertThatThrownBy(() -> broadcastService.deleteBroadcast(
+                broadcastId.toString(), UUID.randomUUID().toString()))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(broadcastRepository, never()).delete(any());
+    }
+
+    @Test
+    void toDto_ConvertsCorrectly() {
+        broadcast.setCreatedAt(LocalDateTime.now());
+        broadcast.setStartedAt(LocalDateTime.now());
+        broadcast.setViewerCount(42);
+
+        LiveBroadcastDto dto = broadcastService.toDto(broadcast);
+
+        assertThat(dto).isNotNull();
+        assertThat(dto.getId()).isEqualTo(broadcastId.toString());
+        assertThat(dto.getTitle()).isEqualTo("Test Broadcast");
+        assertThat(dto.getStatus()).isEqualTo("IDLE");
+        assertThat(dto.getViewerCount()).isEqualTo(42);
+        assertThat(dto.getUserId()).isEqualTo(userId.toString());
+    }
+
+    @Test
+    void toDto_Null_ReturnsNull() {
+        LiveBroadcastDto dto = broadcastService.toDto(null);
+        assertThat(dto).isNull();
     }
 
     @Test
     void onStreamStart_UpdatesStatusToLive() {
-        // Arrange
-        String streamKey = broadcastId;
-        LiveBroadcast broadcast = LiveBroadcast.builder()
-                .id(broadcastIdUuid)
-                .ownerId(ownerIdUuid)
-                .title("Test Broadcast")
-                .status(BroadcastStatus.IDLE)
-                .build();
+        when(broadcastRepository.findByRtmpStreamKey(broadcastId.toString()))
+                .thenReturn(Optional.of(broadcast));
+        when(broadcastRepository.save(any(LiveBroadcast.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        when(broadcastRepository.findByRtmpStreamKey(streamKey)).thenReturn(Optional.of(broadcast));
-        when(broadcastRepository.save(any(LiveBroadcast.class))).thenReturn(broadcast);
+        broadcastService.onStreamStart(broadcastId.toString());
 
-        // Act
-        liveBroadcastService.onStreamStart(streamKey);
-
-        // Assert
         assertThat(broadcast.getStatus()).isEqualTo(BroadcastStatus.LIVE);
         assertThat(broadcast.getStartedAt()).isNotNull();
         verify(broadcastRepository).save(broadcast);
     }
 
     @Test
-    void addViewer_IncrementsViewerCount() {
-        // Arrange
-        LiveBroadcast broadcast = LiveBroadcast.builder()
-                .id(broadcastIdUuid)
-                .ownerId(ownerIdUuid)
-                .title("Test Broadcast")
-                .status(BroadcastStatus.LIVE)
-                .viewerCount(50)
-                .maxViewers(100)
-                .build();
+    void onStreamStop_UpdatesStatusToEnded() {
+        broadcast.setStatus(BroadcastStatus.LIVE);
+        when(broadcastRepository.findByRtmpStreamKey(broadcastId.toString()))
+                .thenReturn(Optional.of(broadcast));
+        when(broadcastRepository.save(any(LiveBroadcast.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        when(broadcastRepository.findById(broadcastIdUuid)).thenReturn(Optional.of(broadcast));
-        when(broadcastRepository.save(any(LiveBroadcast.class))).thenReturn(broadcast);
+        broadcastService.onStreamStop(broadcastId.toString());
 
-        // Act
-        liveBroadcastService.addViewer(broadcastId);
-
-        // Assert
-        assertThat(broadcast.getViewerCount()).isEqualTo(51);
+        assertThat(broadcast.getStatus()).isEqualTo(BroadcastStatus.ENDED);
+        assertThat(broadcast.getEndedAt()).isNotNull();
         verify(broadcastRepository).save(broadcast);
-    }
-
-    @Test
-    void addViewer_SetsNewMaxViewersRecord() {
-        // Arrange
-        LiveBroadcast broadcast = LiveBroadcast.builder()
-                .id(broadcastIdUuid)
-                .ownerId(ownerIdUuid)
-                .title("Test Broadcast")
-                .status(BroadcastStatus.LIVE)
-                .viewerCount(150)  // Current
-                .maxViewers(100)   // Old record
-                .build();
-
-        when(broadcastRepository.findById(broadcastIdUuid)).thenReturn(Optional.of(broadcast));
-        when(broadcastRepository.save(any(LiveBroadcast.class))).thenReturn(broadcast);
-
-        // Act
-        liveBroadcastService.addViewer(broadcastId);
-
-        // Assert
-        assertThat(broadcast.getViewerCount()).isEqualTo(151);
-        assertThat(broadcast.getMaxViewers()).isEqualTo(151);  // New record
-        verify(broadcastRepository).save(broadcast);
-    }
-
-    @Test
-    void deleteBroadcast_ByOtherUser_ThrowsException() {
-        // Arrange
-        String otherUserId = "other-999";
-        LiveBroadcast broadcast = LiveBroadcast.builder()
-                .id(broadcastIdUuid)
-                .ownerId(ownerIdUuid)
-                .title("Test Broadcast")
-                .status(BroadcastStatus.ENDED)
-                .build();
-
-        when(broadcastRepository.findById(broadcastIdUuid)).thenReturn(Optional.of(broadcast));
-
-        // Act & Assert
-        assertThatThrownBy(() -> liveBroadcastService.deleteBroadcast(broadcastId, otherUserId))
-                .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("permission");
-
-        verify(broadcastRepository, never()).delete(any());
     }
 }

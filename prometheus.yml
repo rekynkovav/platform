@@ -19,12 +19,6 @@ scrape_configs:
           application: 'platform'
           service: 'backend'
 
-  - job_name: 'redis'
-    static_configs:
-      - targets: ['redis-exporter:9121']
-    metrics_path: '/metrics'
-
-
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']

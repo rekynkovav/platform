@@ -62,7 +62,7 @@ public class LiveBroadcastService {
     public String startBroadcast(String broadcastId, String userId) {
         LiveBroadcast broadcast = getBroadcast(broadcastId);
 
-        if (!broadcast.getOwnerId().equals(userId)) {
+        if (!broadcast.getOwnerId().toString().equals(userId)) {
             throw new AccessDeniedException("You don't have permission to start this broadcast");
         }
 
@@ -82,7 +82,7 @@ public class LiveBroadcastService {
     public void stopBroadcast(String broadcastId, String userId) {
         LiveBroadcast broadcast = getBroadcast(broadcastId);
 
-        if (!broadcast.getOwnerId().equals(userId)) {
+        if (!broadcast.getOwnerId().toString().equals(userId)) {
             throw new AccessDeniedException("You don't have permission to stop this broadcast");
         }
 
@@ -116,7 +116,7 @@ public class LiveBroadcastService {
     public void deleteBroadcast(String broadcastId, String userId) {
         LiveBroadcast broadcast = getBroadcast(broadcastId);
         
-        if (!broadcast.getOwnerId().equals(userId)) {
+        if (!broadcast.getOwnerId().toString().equals(userId)) {
             throw new AccessDeniedException("You don't have permission to delete this broadcast");
         }
         
@@ -167,7 +167,7 @@ public class LiveBroadcastService {
     @Timed(value = "broadcast.add_viewer", description = "Time to add viewer")
     @Transactional
     public void addViewer(String broadcastId) {
-        broadcastRepository.incrementViewerCount(broadcastId);
+        broadcastRepository.incrementViewerCount(UUID.fromString(broadcastId));
         
         LiveBroadcast broadcast = getBroadcast(broadcastId);
         int currentViewers = broadcast.getViewerCount() != null ? broadcast.getViewerCount() + 1 : 1;
@@ -199,7 +199,6 @@ public class LiveBroadcastService {
         dto.setEndedAt(broadcast.getEndedAt());
         dto.setViewerCount(broadcast.getViewerCount());
         dto.setHlsPlaylistUrl(broadcast.getHlsPlaylistUrl());
-        // dto.setThumbnailUrl(broadcast.getThumbnailUrl()); // Метод не существует
 
         return dto;
     }
@@ -207,6 +206,6 @@ public class LiveBroadcastService {
     @Timed(value = "broadcast.remove_viewer", description = "Time to remove viewer")
     @Transactional
     public void removeViewer(String broadcastId) {
-        broadcastRepository.decrementViewerCount(broadcastId);
+        broadcastRepository.decrementViewerCount(UUID.fromString(broadcastId));
     }
 }

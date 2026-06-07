@@ -6,8 +6,11 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -16,11 +19,16 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@IdClass(Message.MessageId.class)
 public class Message {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Id
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false, nullable = false)
+    private LocalDateTime createdAt;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
@@ -32,10 +40,10 @@ public class Message {
     private String userName;
 
     @Column(name = "chat_type")
-    private String chatType; // "general", "admin_group", "private"
+    private String chatType;
 
     @Column(name = "recipient_id")
-    private UUID recipientId; // для личных сообщений
+    private UUID recipientId;
 
     @Column(name = "is_read")
     private Boolean isRead = false;
@@ -49,10 +57,6 @@ public class Message {
     @Column(name = "file_name")
     private String fileName;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
     @Column(name = "room_id")
     private UUID roomId;
 
@@ -62,4 +66,43 @@ public class Message {
     @Version
     @Column(name = "version", nullable = false)
     private Long version = 0L;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
+
+    /**
+     * Composite primary key class for partitioned messages table.
+     * Matches PRIMARY KEY (id, created_at) in v7 migration.
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MessageId implements Serializable {
+        private UUID id;
+        private LocalDateTime createdAt;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MessageId messageId = (MessageId) o;
+            return Objects.equals(id, messageId.id) && Objects.equals(createdAt, messageId.createdAt);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(id, createdAt);
+        }
+    }
 }

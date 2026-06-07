@@ -1,34 +1,48 @@
 databaseChangeLog:
   - changeSet:
-      id: 05-composite-indexes
+      id: 05-composite-indexes-part1
       author: platform
       labels: performance
-      comment: Составные индексы для производительности
+      comment: Составные индексы для производительности (часть 1)
+      runInTransaction: false
       changes:
         - sql:
             sql: |
-              -- Составные индексы для частых запросов
               CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_messages_room_created
               ON messages(room_id, created_at DESC);
-
+        - sql:
+            sql: |
               CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_payments_user_created
               ON payments(user_id, created_at DESC);
-
+        - sql:
+            sql: |
               CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_notifications_user_read_created
               ON notifications(user_id, is_read, created_at DESC);
-
+        - sql:
+            sql: |
               CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_live_broadcasts_status_started
               ON live_broadcasts(status, started_at DESC);
 
-              -- Частичные индексы для фильтрации
+  - changeSet:
+      id: 05-composite-indexes-part2
+      author: platform
+      labels: performance
+      comment: Составные индексы для производительности (часть 2)
+      runInTransaction: false
+      changes:
+        - sql:
+            sql: |
               CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_messages_active
               ON messages(created_at DESC) WHERE deleted_at IS NULL;
-
+        - sql:
+            sql: |
               CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_payments_pending
               ON payments(created_at) WHERE status = 'PENDING';
-
-              -- Подсказка для планировщика
-              ANALYZE messages;
-              ANALYZE payments;
-              ANALYZE notifications;
-              ANALYZE live_broadcasts;
+        - sql:
+            sql: ANALYZE messages;
+        - sql:
+            sql: ANALYZE payments;
+        - sql:
+            sql: ANALYZE notifications;
+        - sql:
+            sql: ANALYZE live_broadcasts;

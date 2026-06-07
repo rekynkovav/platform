@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -26,7 +27,14 @@ public class EncryptionService {
     private static final int IV_SIZE = 16;
 
     public byte[] generateFileKey(String userId, String fileId) {
-        return generateHLSKey(userId, fileId);
+        try {
+            String combined = masterKey + ":" + userId + ":" + fileId;
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return digest.digest(combined.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            log.error("Failed to generate file key", e);
+            throw new RuntimeException("Failed to generate file key", e);
+        }
     }
 
     public String generateIV() {
@@ -77,7 +85,7 @@ public class EncryptionService {
 
     public Cipher getCipher(int mode, byte[] key, String iv) throws Exception {
         SecretKeySpec keySpec = new SecretKeySpec(key, "AES");
-        IvParameterSpec ivSpec = new IvParameterSpec(iv.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        IvParameterSpec ivSpec = new IvParameterSpec(iv.getBytes(StandardCharsets.UTF_8));
         Cipher cipher = Cipher.getInstance(algorithm);
         cipher.init(mode, keySpec, ivSpec);
         return cipher;

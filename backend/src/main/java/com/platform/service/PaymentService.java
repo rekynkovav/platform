@@ -51,18 +51,19 @@ public class PaymentService {
         String username = jwt.getClaim("preferred_username");
 
         // Проверка на существующий активный платёж
-        List<Payment> pendingPayments = paymentRepository.findByUserIdAndStatus(userId, Payment.PaymentStatus.PENDING);
+        List<Payment> pendingPayments = paymentRepository.findByUserIdAndStatus(UUID.fromString(userId), Payment.PaymentStatus.PENDING);
         if (!pendingPayments.isEmpty()) {
             throw new BusinessException("У вас уже есть активный платёж. Дождитесь подтверждения.");
         }
 
         BigDecimal amount = calculateAmount(subscriptionMonths);
-        String paymentId = generatePaymentId();
+        UUID paymentUuid = UUID.randomUUID();
+        String paymentId = generatePaymentId(paymentUuid);
         String qrData = qrCodeService.generatePaymentQRData(amount, paymentId, username);
         String qrCodeBase64 = qrCodeService.generateQRCodeBase64(qrData);
 
         Payment payment = Payment.builder()
-            .id(UUID.fromString(paymentId))
+            .id(paymentUuid)
             .userId(UUID.fromString(userId))
             .amount(amount)
             .currency("RUB")
@@ -83,14 +84,14 @@ public class PaymentService {
     @Transactional(readOnly = true, timeout = 10)
     public Payment getPayment(String paymentId, Jwt jwt) {
         String userId = jwt.getSubject();
-        return paymentRepository.findByIdAndUserId(paymentId, userId)
+        return paymentRepository.findByIdAndUserId(UUID.fromString(paymentId), UUID.fromString(userId))
             .orElseThrow(() -> new ResourceNotFoundException("Payment not found: " + paymentId));
     }
 
     @Timed(value = "payment.get_user_payments", description = "Time to get user payments")
     public List<Payment> getUserPayments(Jwt jwt) {
         String userId = jwt.getSubject();
-        return paymentRepository.findByUserId(userId);
+        return paymentRepository.findByUserId(UUID.fromString(userId));
     }
 
     @Timed(value = "payment.check_status", description = "Time to check payment status")
@@ -164,15 +165,15 @@ public class PaymentService {
         };
     }
 
-    private String generatePaymentId() {
+    private String generatePaymentId(UUID uuid) {
         long timestamp = System.currentTimeMillis();
-        String random = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String random = uuid.toString().substring(0, 8).toUpperCase();
         return String.format("PAY-%d-%s", timestamp, random);
     }
 
     @Timed(value = "payment.find_by_user_and_status", description = "Time to find payments by user and status")
     public List<Payment> findByUserIdAndStatus(String userId, Payment.PaymentStatus status) {
-        return paymentRepository.findByUserIdAndStatus(userId, status);
+        return paymentRepository.findByUserIdAndStatus(UUID.fromString(userId), status);
     }
 
 }

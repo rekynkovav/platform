@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getToken, updateToken } from '../keycloak';
+import { getToken, updateToken, isTokenExpired, logout } from '../keycloak';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081/api';
 const USE_MOCK = process.env.REACT_APP_USE_MOCK_AUTH === 'true';
@@ -18,8 +18,8 @@ class ApiClient {
         this.client.interceptors.request.use(async (config) => {
             let token = getToken();
 
-            // Обновляем если истекает
-            if (token && await updateToken()) {
+            // Обновляем только если истекает (избегаем лишних вызовов updateToken)
+            if (token && isTokenExpired() && await updateToken()) {
                 token = getToken();
             }
 
@@ -35,12 +35,7 @@ class ApiClient {
             (response) => response.data,
             (error) => {
                 if (error.response?.status === 401) {
-                    // Token expired — logout
-                    if (process.env.NODE_ENV === 'development') {
-                        sessionStorage.clear();
-                    }
-                    sessionStorage.clear();
-                    window.location.href = '/';
+                    logout(); // Перенаправляет на страницу логина Keycloak
                 }
                 if (error.response?.status === 429) {
                     console.warn('Rate limit exceeded');
@@ -102,7 +97,6 @@ export const chatApi = {
     getUsers: (roomSlug) => api.get(`/chat/${roomSlug}/users`),
     getQuestions: (mode) => api.get(`/chat/questions/${mode}`),
     sendQuestion: (mode, data) => api.post(`/chat/questions/${mode}`, data),
-    // Новые методы для QuestionDto
     getQuestionsDto: (mode) => api.get(`/chat/questions-dto/${mode}`),
     sendQuestionDto: (mode, data) => api.post(`/chat/questions-dto/${mode}`, data),
     answerQuestionDto: (questionId, data) => api.post(`/chat/questions-dto/${questionId}/answer`, data),
@@ -149,19 +143,40 @@ export const feedApi = {
     deletePost: (id) => api.delete(`/feed/posts/${id}`)
 };
 
-export const demoApi = {
-    getDemoRole: () => api.get('/demo/role'),
-    setDemoRole: (role) => api.post('/demo/role', { role }),
-    getWillAttendCounts: () => api.get('/demo/will-attend-counts'),
-    saveWillAttendCounts: (counts) => api.post('/demo/will-attend-counts', counts),
-    hasUserAttended: (broadcastId, userId) => api.get(`/demo/attended/${broadcastId}/${userId}`),
-    markUserAttended: (broadcastId, userId) => api.post(`/demo/attended/${broadcastId}/${userId}`),
-    getDashboardMenuData: () => api.get('/demo/dashboard-menu'),
-    saveDashboardMenuData: (data) => api.post('/demo/dashboard-menu', data),
-    getBroadcasts: () => api.get('/demo/broadcasts'),
-    saveBroadcasts: (broadcasts) => api.post('/demo/broadcasts', broadcasts),
-    getScheduledEvents: () => api.get('/demo/scheduled-events'),
-    saveScheduledEvents: (events) => api.post('/demo/scheduled-events', events)
+// Удалены неиспользуемые demoApi (ранее дублировали функциональность)
+// Все необходимые эндпоинты доступны через основные API.
+
+// Events & Materials API (EventsHub)
+export const eventsApi = {
+    getUpcoming: () => api.get('/events/upcoming'),
+    getPast: () => api.get('/events/past'),
+    getNext: () => api.get('/events/next'),
+    getById: (id) => api.get(`/events/${id}`),
+    create: (data) => api.post('/events', data),
+    update: (id, data) => api.put(`/events/${id}`, data),
+    delete: (id) => api.delete(`/events/${id}`),
+    getMaterialsBySection: (sectionId) => api.get(`/events/materials/${sectionId}`),
+    getMaterial: (id) => api.get(`/events/materials/item/${id}`),
+    createMaterial: (data) => api.post('/events/materials', data),
+    updateMaterial: (id, data) => api.put(`/events/materials/${id}`, data),
+    deleteMaterial: (id) => api.delete(`/events/materials/${id}`)
+};
+
+// Feedback API (отзывы и предложения в EventsHub)
+export const feedbackApi = {
+    getAll: () => api.get('/events/materials/feedback'),
+    create: (data) => api.post('/events/materials', { ...data, sectionId: 'feedback', type: 'text' }),
+    delete: (id) => api.delete(`/events/materials/${id}`)
+};
+
+// Notifications API
+export const notificationApi = {
+    getUserNotifications: () => api.get('/notifications'),
+    getUnread: () => api.get('/notifications/unread'),
+    markAsRead: (id) => api.put(`/notifications/${id}/read`),
+    markAllAsRead: () => api.put('/notifications/read-all'),
+    updateNotifications: (notifications) => api.post('/notifications/sync', notifications),
+    getUpcomingEvents: () => api.get('/events/upcoming')
 };
 
 export default api;

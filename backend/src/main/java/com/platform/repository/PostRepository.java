@@ -14,21 +14,30 @@ import java.util.List;
 @Repository
 public interface PostRepository extends JpaRepository<Post, String> {
 
-    @Query("SELECT p FROM Post p ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Post p WHERE p.deletedAt IS NULL ORDER BY p.createdAt DESC")
     List<Post> findFeed(Pageable pageable);
 
-    @Query("SELECT p FROM Post p WHERE p.createdAt < :before ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Post p WHERE p.deletedAt IS NULL AND p.createdAt < :before ORDER BY p.createdAt DESC")
     List<Post> findFeedBefore(@Param("before") String before, Pageable pageable);
+
+    /**
+     * Получить ленту по категории (для /api/feed/nutrition и т.д.)
+     */
+    @Query("SELECT p FROM Post p WHERE p.deletedAt IS NULL AND p.category = :category ORDER BY p.createdAt DESC")
+    List<Post> findFeedByCategory(@Param("category") String category, Pageable pageable);
+
+    @Query("SELECT p FROM Post p WHERE p.deletedAt IS NULL AND p.category = :category AND p.createdAt < :before ORDER BY p.createdAt DESC")
+    List<Post> findFeedByCategoryBefore(@Param("category") String category, @Param("before") String before, Pageable pageable);
 
     List<Post> findByAuthorId(String authorId);
 
     long countByAuthorId(String authorId);
 
-    @Query("SELECT p FROM Post p WHERE p.flagged = true")
+    @Query("SELECT p FROM Post p WHERE p.flagged = true AND p.deletedAt IS NULL")
     List<Post> findByIsFlaggedTrue();
 
     @Query("UPDATE Post p SET p.viewsCount = p.viewsCount + 1 WHERE p.id = :id")
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     void incrementViews(@Param("id") String id);
 }

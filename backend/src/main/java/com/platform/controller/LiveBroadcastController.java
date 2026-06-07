@@ -38,7 +38,6 @@ public class LiveBroadcastController {
         String userId = jwt.getSubject();
 
         log.info("User {} creating broadcast: {}", userId, request.getTitle());
-        log.info("Пользователь {} создаёт трансляцию: {}", userId, request.getTitle());
 
         LiveBroadcast broadcast = broadcastService.createBroadcast(
             request.getTitle(),
@@ -47,6 +46,38 @@ public class LiveBroadcastController {
             userId
         );
         return ResponseEntity.ok(broadcastService.toDto(broadcast));
+    }
+
+    /**
+     * Алиас для фронтенда: создание + старт трансляции одним вызовом
+     * Frontend: POST /api/broadcast/start
+     */
+    @PostMapping("/start")
+    @PreAuthorize("hasAnyRole('CONSULTANT_PITANIE', 'CONSULTANT_SPORT', 'MODERATOR_ADMIN', 'DEVELOPER', 'VYACHESLAV', 'SUPER_ADMIN')")
+    @Timed(value = "broadcast.start.time", description = "Time to start broadcast")
+    @Counted(value = "broadcast.start.count", description = "Number of broadcast starts")
+    public ResponseEntity<Map<String, String>> createAndStartBroadcast(
+            @jakarta.validation.Valid @RequestBody CreateBroadcastRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userId = jwt.getSubject();
+        metricsService.incrementBroadcasts();
+
+        LiveBroadcast broadcast = broadcastService.createBroadcast(
+            request.getTitle(),
+            request.getDescription(),
+            request.getStreamType(),
+            userId
+        );
+
+        String rtmpUrl = broadcastService.startBroadcast(broadcast.getId().toString(), userId);
+
+        log.info("User {} created and started broadcast {}", userId, broadcast.getId());
+
+        return ResponseEntity.ok(Map.of(
+            "streamUrl", rtmpUrl,
+            "streamKey", broadcast.getId().toString(),
+            "status", "live"
+        ));
     }
 
     @PostMapping("/{id}/start")
@@ -61,7 +92,6 @@ public class LiveBroadcastController {
         String rtmpUrl = broadcastService.startBroadcast(id, userId);
 
         log.info("User {} started broadcast {}", userId, id);
-        log.info("Пользователь {} запустил трансляцию {}", userId, id);
 
         return ResponseEntity.ok(Map.of(
             "streamUrl", rtmpUrl,
@@ -79,16 +109,26 @@ public class LiveBroadcastController {
         broadcastService.stopBroadcast(id, userId);
 
         log.info("User {} stopped broadcast {}", userId, id);
-        log.info("Пользователь {} остановил трансляцию {}", userId, id);
 
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Алиас для фронтенда: остановка трансляции через /end
+     * Frontend: POST /api/broadcast/{id}/end
+     */
+    @PostMapping("/{id}/end")
+    @PreAuthorize("hasAnyRole('CONSULTANT_PITANIE', 'CONSULTANT_SPORT', 'MODERATOR_ADMIN', 'DEVELOPER', 'VYACHESLAV', 'SUPER_ADMIN')")
+    public ResponseEntity<Void> endBroadcast(
+            @PathVariable String id,
+            @AuthenticationPrincipal Jwt jwt) {
+        return stopBroadcast(id, jwt);
     }
 
     @GetMapping("/active")
     public ResponseEntity<List<LiveBroadcastDto>> getActiveBroadcasts() {
         List<LiveBroadcast> broadcasts = broadcastService.getActiveBroadcasts();
         log.debug("Active broadcasts count: {}", broadcasts.size());
-        log.debug("Количество активных трансляций: {}", broadcasts.size());
 
         List<LiveBroadcastDto> dtos = broadcasts.stream()
             .map(broadcastService::toDto)
@@ -100,6 +140,26 @@ public class LiveBroadcastController {
     public ResponseEntity<LiveBroadcastDto> getBroadcast(@PathVariable String id) {
         LiveBroadcast broadcast = broadcastService.getBroadcast(id);
         return ResponseEntity.ok(broadcastService.toDto(broadcast));
+    }
+
+    /**
+     * Статистика трансляции для фронтенда
+     * Frontend: GET /api/broadcast/{id}/stats
+     */
+    @GetMapping("/{id}/stats")
+    public ResponseEntity<Map<String, Object>> getBroadcastStats(
+            @PathVariable String id,
+            @AuthenticationPrincipal Jwt jwt) {
+        LiveBroadcast broadcast = broadcastService.getBroadcast(id);
+        LiveBroadcastDto dto = broadcastService.toDto(broadcast);
+
+        return ResponseEntity.ok(Map.of(
+            "broadcastId", id,
+            "status", dto.getStatus() != null ? dto.getStatus() : "UNKNOWN",
+            "viewerCount", dto.getViewerCount() != null ? dto.getViewerCount() : 0,
+            "startedAt", dto.getStartedAt() != null ? dto.getStartedAt().toString() : "",
+            "endedAt", dto.getEndedAt() != null ? dto.getEndedAt().toString() : ""
+        ));
     }
 
     @GetMapping("/{id}/archive")
@@ -125,7 +185,6 @@ public class LiveBroadcastController {
         broadcastService.deleteBroadcast(id, userId);
 
         log.warn("User {} deleted broadcast {}", userId, id);
-        log.warn("Пользователь {} удалил трансляцию {}", userId, id);
 
         return ResponseEntity.ok().build();
     }
@@ -157,7 +216,6 @@ public class LiveBroadcastController {
         String streamKey = payload.get("streamKey");
 
         log.info("RTMP webhook: action={}, streamKey={}", action, streamKey);
-        log.info("RTMP вебхук: действие={}, ключ={}", action, streamKey);
 
         if ("publish".equals(action)) {
             broadcastService.onStreamStart(streamKey);

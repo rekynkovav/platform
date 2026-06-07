@@ -13,7 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "posts")
+@Table(name = "posts", indexes = {
+    @Index(name = "idx_posts_category", columnList = "category"),
+    @Index(name = "idx_posts_created_at", columnList = "created_at"),
+    @Index(name = "idx_posts_author_id", columnList = "author_id")
+})
 @Data
 @Builder
 @NoArgsConstructor
@@ -41,6 +45,13 @@ public class Post {
 
     @Column(name = "media_type")
     private String mediaType;
+
+    /**
+     * Категория поста: general, nutrition, sport, announcement и т.д.
+     * Используется для фильтрации ленты (/api/feed/nutrition)
+     */
+    @Column(name = "category", length = 50)
+    private String category;
 
     @Column(name = "likes_count")
     private Integer likesCount = 0;

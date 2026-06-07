@@ -21,7 +21,7 @@ public interface ArchiveRepository extends JpaRepository<Archive, String> {
 
     List<Archive> findByEventId(String eventId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query("UPDATE Archive a SET a.viewsCount = a.viewsCount + 1 WHERE a.id = :id")
     void incrementViews(@Param("id") String id);
