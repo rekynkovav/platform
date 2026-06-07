@@ -5,7 +5,7 @@
 
 -- 1. Создаём новую партиционированную таблицу (только если не существует)
 CREATE TABLE IF NOT EXISTS messages_new (
-    LIKE messages INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
+    LIKE messages INCLUDING DEFAULTS INCLUDING CONSTRAINTS
 ) PARTITION BY RANGE (created_at);
 
 -- 2. Создаём партиции на 24 месяца вперёд
@@ -26,4 +26,4 @@ BEGIN
         );
     END LOOP;
 END;
-$$;
+$$ LANGUAGE plpgsql;
