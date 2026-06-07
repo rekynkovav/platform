@@ -13,4 +13,16 @@ DO $$
 DECLARE
     start_date DATE;
     end_date DATE;
-    partit
+    i INTEGER;
+BEGIN
+    FOR i IN 0..23 LOOP
+        start_date := date_trunc('month', CURRENT_DATE) + (i || ' months')::INTERVAL;
+        end_date := start_date + INTERVAL '1 month';
+        EXECUTE format(
+            'CREATE TABLE IF NOT EXISTS messages_%s PARTITION OF messages_new FOR VALUES FROM (%L) TO (%L)',
+            to_char(start_date, 'YYYY_MM'),
+            start_date,
+            end_date
+        );
+    END LOOP;
+END $$;
