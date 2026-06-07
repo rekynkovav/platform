@@ -52,7 +52,21 @@ if git diff --cached --quiet; then
 fi
 
 echo "[STEP 2/4] Committing..."
-git commit -m "Snapshot ${TS}"
+
+# Build a commit message that describes the changes
+COMMIT_MSG=$(mktemp)
+{
+    echo "Snapshot ${TS}"
+    echo ""
+    echo "Changed files:"
+    git diff --cached --name-only | sed 's/^/  - /'
+    echo ""
+    echo "---"
+    git diff --cached --stat
+} > "$COMMIT_MSG"
+
+git commit -F "$COMMIT_MSG"
+rm -f "$COMMIT_MSG"
 
 echo "[STEP 3/4] Creating branch: ${BRANCH}"
 git checkout -b "${BRANCH}"
