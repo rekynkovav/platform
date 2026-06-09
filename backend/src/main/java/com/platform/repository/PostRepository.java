@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -18,7 +19,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
     List<Post> findFeed(Pageable pageable);
 
     @Query("SELECT p FROM Post p WHERE p.deletedAt IS NULL AND p.createdAt < :before ORDER BY p.createdAt DESC")
-    List<Post> findFeedBefore(@Param("before") String before, Pageable pageable);
+    List<Post> findFeedBefore(@Param("before") LocalDateTime before, Pageable pageable);
 
     /**
      * Получить ленту по категории (для /api/feed/nutrition и т.д.)
@@ -27,7 +28,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
     List<Post> findFeedByCategory(@Param("category") String category, Pageable pageable);
 
     @Query("SELECT p FROM Post p WHERE p.deletedAt IS NULL AND p.category = :category AND p.createdAt < :before ORDER BY p.createdAt DESC")
-    List<Post> findFeedByCategoryBefore(@Param("category") String category, @Param("before") String before, Pageable pageable);
+    List<Post> findFeedByCategoryBefore(@Param("category") String category, @Param("before") LocalDateTime before, Pageable pageable);
 
     List<Post> findByAuthorId(String authorId);
 

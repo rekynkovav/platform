@@ -8,7 +8,6 @@ import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -25,13 +24,12 @@ public class JacksonConfig {
         // Регистрация модуля для Java 8 Time
         JavaTimeModule javaTimeModule = new JavaTimeModule();
         javaTimeModule.addSerializer(LocalDateTime.class,
-            new LocalDateTimeSerializer(DateTimeFormatter.ISO_DATE_TIME));
+            new LocalDateTimeSerializer(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT)));
         mapper.registerModule(javaTimeModule);
 
         // Настройки сериализации
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
         // Настройки десериализации - БЕЗОПАСНЫЕ
         mapper.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES); // Включаем для безопасности
@@ -52,14 +50,5 @@ public class JacksonConfig {
         mapper.enable(DeserializationFeature.USE_LONG_FOR_INTS);
 
         return mapper;
-    }
-
-    @Bean
-    public Jackson2ObjectMapperBuilder objectMapperBuilder() {
-        Jackson2ObjectMapperBuilder builder = new Jackson2ObjectMapperBuilder();
-        builder.featuresToDisable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        builder.featuresToDisable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-        builder.modules(new JavaTimeModule());
-        return builder;
     }
 }

@@ -114,6 +114,11 @@ public class AdminService {
     @Transactional
     public void moderatePost(String postId, boolean approve, String reason, org.springframework.security.oauth2.jwt.Jwt jwt) {
         String currentUserId = jwt.getSubject();
+        String currentUserRole = getUserRole(jwt);
+
+        if (!"MODERATOR_ADMIN".equals(currentUserRole) && !"SUPER_ADMIN".equals(currentUserRole) && !"VYACHESLAV".equals(currentUserRole)) {
+            throw new AccessDeniedException("Only admin can moderate posts");
+        }
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));

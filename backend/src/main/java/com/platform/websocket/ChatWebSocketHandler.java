@@ -111,7 +111,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
         MessageDto saved = chatService.sendMessageToRoom(
                 roomSlug,
-                payloadObj.getUserId(),
+                userId,
                 payloadObj.getContent(),
                 payloadObj.getMediaId(),
                 (String) session.getAttributes().get("userRole")

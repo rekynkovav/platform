@@ -32,6 +32,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
         // Статистика трансляций
         registry.addHandler(broadcastStatsWebSocketHandler, "/ws/broadcast/{broadcastId}/stats")
+                .addInterceptors(handshakeInterceptor)
                 .setAllowedOrigins(
                     "http://localhost:3000",
                     "http://localhost:3001",

@@ -7,25 +7,23 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.core.convert.converter.Converter;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtClaimAccessor;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import org.springframework.security.web.SecurityFilterChain;
 
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import org.springframework.core.convert.converter.Converter;
 
 @Configuration
 @EnableWebSecurity
@@ -42,31 +40,24 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Публичные эндпоинты
                         .requestMatchers("/actuator/**", "/health", "/api/health", "/api/health/**", "/ws/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
 
-                        // Защита медиа контента
                         .requestMatchers("/api/media/stream/**").hasAnyRole("USER_0", "USER_1", "USER_2", "MODERATOR_ADMIN", "SUPER_ADMIN", "CONSULTANT_PITANIE", "CONSULTANT_SPORT", "DEVELOPER", "VYACHESLAV")
                         .requestMatchers("/api/media/key/**").hasAnyRole("USER_0", "USER_1", "USER_2", "MODERATOR_ADMIN", "SUPER_ADMIN", "CONSULTANT_PITANIE", "CONSULTANT_SPORT", "DEVELOPER", "VYACHESLAV")
                         .requestMatchers("/api/media/download/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/media/upload/**").hasAnyRole("MODERATOR_ADMIN", "SUPER_ADMIN", "CONSULTANT_PITANIE", "CONSULTANT_SPORT", "DEVELOPER", "VYACHESLAV")
 
-                        // Админка
                         .requestMatchers("/api/admin/**").hasAnyRole("MODERATOR_ADMIN", "SUPER_ADMIN", "VYACHESLAV")
 
-                        // Дашборд (конфигурация меню)
                         .requestMatchers("/api/dashboard/**").hasAnyRole("MODERATOR_ADMIN", "SUPER_ADMIN", "VYACHESLAV")
 
-                        // Демо-эндпоинты (только для авторизованных)
                         .requestMatchers("/api/demo/**").authenticated()
 
-                        // Пользователи
                         .requestMatchers("/api/users/**").authenticated()
 
                         .requestMatchers("/api/broadcast/create", "/api/broadcast/start", "/api/broadcast/*/end", "/api/broadcast/*/stats", "/api/broadcast/webhook/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_CONSULTANT_PITANIE", "ROLE_CONSULTANT_SPORT", "ROLE_MODERATOR_ADMIN", "ROLE_DEVELOPER", "ROLE_VYACHESLAV")
 
-                        // Защищённые эндпоинты
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -74,6 +65,28 @@ public class SecurityConfig {
                 );
 
         return http.build();
+    }
+
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
+        roleHierarchy.setHierarchy(
+            "ROLE_SUPER_ADMIN > ROLE_MODERATOR_ADMIN\n" +
+            "ROLE_SUPER_ADMIN > ROLE_DEVELOPER\n" +
+            "ROLE_SUPER_ADMIN > ROLE_VYACHESLAV\n" +
+            "ROLE_MODERATOR_ADMIN > ROLE_USER_0\n" +
+            "ROLE_MODERATOR_ADMIN > ROLE_USER_1\n" +
+            "ROLE_MODERATOR_ADMIN > ROLE_USER_2\n" +
+            "ROLE_MODERATOR_ADMIN > ROLE_CONSULTANT_PITANIE\n" +
+            "ROLE_MODERATOR_ADMIN > ROLE_CONSULTANT_SPORT\n" +
+            "ROLE_DEVELOPER > ROLE_USER_0\n" +
+            "ROLE_DEVELOPER > ROLE_USER_1\n" +
+            "ROLE_DEVELOPER > ROLE_USER_2\n" +
+            "ROLE_VYACHESLAV > ROLE_USER_0\n" +
+            "ROLE_VYACHESLAV > ROLE_USER_1\n" +
+            "ROLE_VYACHESLAV > ROLE_USER_2"
+        );
+        return roleHierarchy;
     }
 
     @Bean
@@ -96,7 +109,6 @@ public class SecurityConfig {
         JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
         jwtConverter.setJwtGrantedAuthoritiesConverter(customConverter);
 
-        // Извлекаем username из preferred_username
         jwtConverter.setPrincipalClaimName("preferred_username");
 
         return jwtConverter;

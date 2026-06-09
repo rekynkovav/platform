@@ -24,7 +24,7 @@ public class ResilienceConfig {
 
     // Circuit Breaker для Keycloak (unique - not in PlatformCircuitBreakerConfig)
     @Bean
-    public CircuitBreaker keycloakCircuitBreaker() {
+    public CircuitBreaker keycloakCircuitBreaker(CircuitBreakerRegistry circuitBreakerRegistry) {
         CircuitBreakerConfig config = CircuitBreakerConfig.custom()
             .failureRateThreshold(50)
             .slowCallRateThreshold(50)
@@ -38,7 +38,7 @@ public class ResilienceConfig {
             .ignoreExceptions(IllegalArgumentException.class)
             .build();
 
-        return CircuitBreakerRegistry.of(config).circuitBreaker("keycloak");
+        return circuitBreakerRegistry.circuitBreaker("keycloak", config);
     }
 
     // Retry для Keycloak

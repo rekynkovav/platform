@@ -27,7 +27,9 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -99,9 +101,9 @@ public class ChatService {
         List<Message> messages;
         if (before != null && !before.isEmpty()) {
             Instant beforeInstant = Instant.parse(before);
-            messages = messageRepository.findPrivateMessagesBefore(userId, otherUserId, beforeInstant, pageable);
+            messages = messageRepository.findPrivateMessagesBefore(UUID.fromString(userId), UUID.fromString(otherUserId), beforeInstant, pageable);
         } else {
-            messages = messageRepository.findPrivateMessages(userId, otherUserId, pageable);
+            messages = messageRepository.findPrivateMessages(UUID.fromString(userId), UUID.fromString(otherUserId), pageable);
         }
         return messages.stream().map(this::toDto).collect(Collectors.toList());
     }
@@ -177,7 +179,7 @@ public class ChatService {
     }
 
     public long getUnreadCount(String userId) {
-        return messageRepository.countUnreadByRecipient(userId);
+        return messageRepository.countUnreadByRecipient(UUID.fromString(userId));
     }
 
     @Timed(value = "chat.get_messages_paginated", description = "Time to get paginated messages")
@@ -284,11 +286,18 @@ public class ChatService {
         List<Message> allMessages = messageRepository.findByRoomIdOrderByCreatedAtAsc(
                 room.getId(), PageRequest.of(0, 100));
 
-        // Разделяем на вопросы (без recipientId) и ответы (с recipientId)
+        // Строим индекс ответов по questionId для O(1) поиска
+        Map<String, Message> answerMap = new HashMap<>();
+        for (Message msg : allMessages) {
+            if (msg.getRecipientId() != null) {
+                answerMap.putIfAbsent(msg.getRecipientId().toString(), msg);
+            }
+        }
+
+        // Формируем вопросы с ответами из Map
         List<QuestionDto> questions = new ArrayList<>();
         for (Message msg : allMessages) {
             if (msg.getRecipientId() == null) {
-                // Это вопрос
                 QuestionDto q = QuestionDto.builder()
                         .id(msg.getId().toString())
                         .question(msg.getContent())
@@ -298,20 +307,15 @@ public class ChatService {
                         .isAnswered(false)
                         .createdAt(msg.getCreatedAt())
                         .build();
-                questions.add(q);
-            }
-        }
 
-        // Находим ответы для каждого вопроса
-        for (QuestionDto q : questions) {
-            for (Message msg : allMessages) {
-                if (msg.getRecipientId() != null && msg.getRecipientId().toString().equals(q.getId())) {
-                    q.setAnswer(msg.getContent());
+                Message answer = answerMap.get(q.getId());
+                if (answer != null) {
+                    q.setAnswer(answer.getContent());
                     q.setAnswered(true);
-                    q.setAnsweredAt(msg.getCreatedAt());
-                    q.setAnsweredBy(msg.getUserName());
-                    break; // один ответ на вопрос
+                    q.setAnsweredAt(answer.getCreatedAt());
+                    q.setAnsweredBy(answer.getUserName());
                 }
+                questions.add(q);
             }
         }
 

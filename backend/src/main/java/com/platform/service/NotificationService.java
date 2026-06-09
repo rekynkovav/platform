@@ -10,11 +10,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
@@ -23,6 +25,7 @@ public class NotificationService {
     /**
      * Создать уведомление и сразу отправить по WebSocket
      */
+    @Transactional
     public Notification createAndSend(String userId, String type, String title, String message,
                                       String relatedId, String relatedRoomSlug) {
 
@@ -70,9 +73,10 @@ public class NotificationService {
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
+    @Transactional
     @Caching(evict = {
-        @CacheEvict(value = "unreadNotifications", key = "#notificationId"),
-        @CacheEvict(value = "allNotifications", key = "#notificationId")
+        @CacheEvict(value = "unreadNotifications", allEntries = true),
+        @CacheEvict(value = "allNotifications", allEntries = true)
     })
     public Notification markAsRead(String notificationId) {
         Notification notification = notificationRepository.findById(Long.parseLong(notificationId))
@@ -84,6 +88,7 @@ public class NotificationService {
     /**
      * Пометить уведомление как прочитанное с проверкой владельца
      */
+    @Transactional
     @CacheEvict(value = {"unreadNotifications", "allNotifications"}, key = "#userId")
     public void markAsReadForUser(Long notificationId, String userId) {
         notificationRepository.findById(notificationId).ifPresent(n -> {
@@ -98,11 +103,13 @@ public class NotificationService {
     /**
      * Пометить все как прочитанные
      */
-    @CacheEvict(value = {"unreadNotifications", "allNotifications"}, key = "#userId")
+    @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = "unreadNotifications", allEntries = true),
+        @CacheEvict(value = "allNotifications", allEntries = true)
+    })
     public void markAllAsRead(String userId) {
-        List<Notification> unread = getUnreadForUser(userId);
-        unread.forEach(n -> n.setRead(true));
-        notificationRepository.saveAll(unread);
+        notificationRepository.markAllAsReadByUserId(userId);
     }
 
     /**

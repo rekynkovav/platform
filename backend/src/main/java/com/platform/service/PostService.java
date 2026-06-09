@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,7 +39,8 @@ public class PostService {
     public List<PostDto> getFeed(String userId, String before, Pageable pageable) {
         List<Post> posts;
         if (before != null && !before.isEmpty()) {
-            posts = postRepository.findFeedBefore(before, pageable);
+            LocalDateTime beforeDateTime = parseBefore(before);
+            posts = postRepository.findFeedBefore(beforeDateTime, pageable);
         } else {
             posts = postRepository.findFeed(pageable);
         }
@@ -51,12 +54,21 @@ public class PostService {
     public List<PostDto> getFeedByCategory(String category, String userId, String before, Pageable pageable) {
         List<Post> posts;
         if (before != null && !before.isEmpty()) {
-            posts = postRepository.findFeedByCategoryBefore(category, before, pageable);
+            LocalDateTime beforeDateTime = parseBefore(before);
+            posts = postRepository.findFeedByCategoryBefore(category, beforeDateTime, pageable);
         } else {
             posts = postRepository.findFeedByCategory(category, pageable);
         }
         Set<String> likedPostIds = getLikedPostIds(posts, userId);
         return posts.stream().map(post -> toDto(post, userId, likedPostIds)).collect(Collectors.toList());
+    }
+
+    private LocalDateTime parseBefore(String before) {
+        try {
+            return LocalDateTime.parse(before, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        } catch (DateTimeParseException e) {
+            throw new com.platform.exception.BadRequestException("Invalid 'before' parameter format. Expected ISO-8601 DateTime, e.g. 2026-06-09T12:00:00");
+        }
     }
 
     public PostDto getPost(String postId, String userId) {

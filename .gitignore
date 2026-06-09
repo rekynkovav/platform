@@ -38,6 +38,7 @@ f r o n t e n d / p u b l i c / a u d i o / * . m p 3
 .env
 .env.local
 .env.*.local
+.env.docker
 *.key
 *.pem
 *.pfx

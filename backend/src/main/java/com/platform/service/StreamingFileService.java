@@ -16,13 +16,25 @@ public class StreamingFileService {
 
     private static final int BUFFER_SIZE = 8192; // 8KB
     private static final long MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
+    private static final String BASE_UPLOAD_DIR = System.getenv("UPLOAD_DIR") != null
+            ? System.getenv("UPLOAD_DIR")
+            : "/app/uploads";
+
+    private Path validateAndResolvePath(String filePath) throws IOException {
+        Path basePath = Paths.get(BASE_UPLOAD_DIR).toRealPath();
+        Path resolvedPath = basePath.resolve(filePath).normalize().toRealPath();
+        if (!resolvedPath.startsWith(basePath)) {
+            throw new SecurityException("Path traversal detected: " + filePath);
+        }
+        return resolvedPath;
+    }
 
     public void streamFile(String filePath, HttpServletResponse response) throws IOException {
-        Path path = Paths.get(filePath);
+        Path path = validateAndResolvePath(filePath);
         File file = path.toFile();
 
         if (!file.exists()) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "File not found: " + filePath);
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "File not found");
             return;
         }
 
@@ -88,11 +100,13 @@ public class StreamingFileService {
 
         try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
             for (File file : files) {
-                if (file.exists() && file.isFile()) {
-                    ZipEntry entry = new ZipEntry(file.getName());
+                Path validatedPath = validateAndResolvePath(file.getAbsolutePath());
+                File validatedFile = validatedPath.toFile();
+                if (validatedFile.exists() && validatedFile.isFile()) {
+                    ZipEntry entry = new ZipEntry(validatedFile.getName());
                     zos.putNextEntry(entry);
 
-                    try (FileInputStream fis = new FileInputStream(file)) {
+                    try (FileInputStream fis = new FileInputStream(validatedFile)) {
                         byte[] buffer = new byte[BUFFER_SIZE];
                         int length;
                         while ((length = fis.read(buffer)) >= 0) {

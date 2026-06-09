@@ -6,6 +6,7 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
@@ -19,6 +20,27 @@ public class QRCodeService {
 
     private static final int QR_CODE_WIDTH = 300;
     private static final int QR_CODE_HEIGHT = 300;
+
+    @Value("${app.payment.recipient-name}")
+    private String recipientName;
+
+    @Value("${app.payment.account}")
+    private String account;
+
+    @Value("${app.payment.bank}")
+    private String bank;
+
+    @Value("${app.payment.bik}")
+    private String bik;
+
+    @Value("${app.payment.corr-account}")
+    private String corrAccount;
+
+    @Value("${app.payment.inn}")
+    private String inn;
+
+    @Value("${app.payment.kpp}")
+    private String kpp;
 
     public String generateQRCodeBase64(String data) {
         try {
@@ -36,13 +58,6 @@ public class QRCodeService {
     }
 
     public String generatePaymentQRData(BigDecimal amount, String paymentId, String username) {
-        String recipientName = "БФАДД";
-        String account = "40703810512000002359";
-        String bank = "ВОЛОГОДСКОЕ ОТДЕЛЕНИЕ N8638 ПАО СБЕРБАНК г. Вологда";
-        String bik = "041909644";
-        String corrAccount = "30101810900000000644";
-        String inn = "9715470089";
-        String kpp = "771501001";
         String purpose = String.format("Подписка %s", paymentId);
 
         return String.format(

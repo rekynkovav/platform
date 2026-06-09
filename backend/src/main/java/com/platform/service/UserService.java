@@ -41,12 +41,14 @@ public class UserService {
     }
 
     @Timed(value = "user.update", description = "Time to update user")
+    @Transactional
     @CachePut(value = "users", key = "#user.id")
     public User updateUser(User user) {
         return userRepository.save(user);
     }
 
     @Timed(value = "user.delete", description = "Time to delete user")
+    @Transactional
     @CacheEvict(value = "users", key = "#id")
     public void deleteUser(UUID id) {
         userRepository.deleteById(id);

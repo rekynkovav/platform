@@ -1,22 +1,19 @@
 package com.platform.service;
 
 import com.platform.model.MediaFile;
-import com.platform.service.StorageService;
+import com.platform.util.FFmpegExecutor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -34,6 +31,7 @@ public class HLSStreamingService {
 
     private final EncryptionService encryptionService;
     private final StorageService storageService;
+    private final FFmpegExecutor ffmpegExecutor;
 
     /**
      * Конвертация видео в HLS формат с шифрованием
@@ -94,32 +92,7 @@ public class HLSStreamingService {
 
             log.info("Starting HLS conversion for file: {}", fileId);
 
-            ProcessBuilder pb = new ProcessBuilder(command);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line).append("\n");
-                    log.debug("FFmpeg: {}", line);
-                }
-            }
-
-            int exitCode;
-            try {
-                exitCode = process.waitFor(30, TimeUnit.MINUTES) ? process.exitValue() : -1;
-            } finally {
-                if (process.isAlive()) {
-                    process.destroyForcibly();
-                }
-            }
-
-            if (exitCode != 0) {
-                log.error("FFmpeg failed with exit code: {}. Output: {}", exitCode, output);
-                throw new RuntimeException("HLS conversion failed");
-            }
+            ffmpegExecutor.execute(command);
 
             int segmentCount = countSegments(hlsDir);
             String playlistS3Key;
@@ -134,7 +107,7 @@ public class HLSStreamingService {
             return HLSResult.builder()
                 .playlistUrl(playlistS3Key)
                 .segmentCount(segmentCount)
-                .duration(getVideoDuration(inputVideo))
+                .duration(ffmpegExecutor.probeDuration(inputVideo))
                 .build();
 
         } catch (Exception e) {
@@ -161,37 +134,6 @@ public class HLSStreamingService {
         }
 
         return playlistS3Key;
-    }
-
-    private int getVideoDuration(File videoFile) {
-        try {
-            List<String> command = new ArrayList<>();
-            command.add("ffprobe");
-            command.add("-v");
-            command.add("error");
-            command.add("-show_entries");
-            command.add("format=duration");
-            command.add("-of");
-            command.add("default=noprint_wrappers=1:nokey=1");
-            command.add(videoFile.getAbsolutePath());
-
-            ProcessBuilder pb = new ProcessBuilder(command);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String duration = reader.readLine();
-                process.waitFor(10, TimeUnit.SECONDS);
-                return (int) Double.parseDouble(duration);
-            } finally {
-                if (process.isAlive()) {
-                    process.destroyForcibly();
-                }
-            }
-        } catch (Exception e) {
-            log.error("Failed to get video duration", e);
-            return 0;
-        }
     }
 
     private int countSegments(Path hlsDir) {

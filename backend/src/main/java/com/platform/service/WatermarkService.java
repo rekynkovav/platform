@@ -1,5 +1,6 @@
 package com.platform.service;
 
+import com.platform.util.FFmpegExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
@@ -8,9 +9,7 @@ import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 import java.util.concurrent.Future;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,24 +27,15 @@ public class WatermarkService {
     @Value("${app.watermark.temp-path:/tmp/watermarks}")
     private String tempPath;
 
+    private final FFmpegExecutor ffmpegExecutor;
+
+    public WatermarkService(FFmpegExecutor ffmpegExecutor) {
+        this.ffmpegExecutor = ffmpegExecutor;
+    }
+
     @PostConstruct
     public void checkFFmpeg() {
-        try {
-            ProcessBuilder pb = new ProcessBuilder("ffmpeg", "-version");
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                while (reader.readLine() != null) {}
-            }
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                log.error("FFMPEG NOT AVAILABLE! Install: apt-get install ffmpeg");
-            } else {
-                log.info("FFmpeg is available");
-            }
-        } catch (Exception e) {
-            log.error("FFMPEG NOT FOUND! Watermark and HLS will not work. Error: {}", e.getMessage());
-        }
+        ffmpegExecutor.checkAvailability();
     }
 
     /**
@@ -56,15 +46,12 @@ public class WatermarkService {
     @Async("ffmpegExecutor")
     public Future<File> addVideoWatermark(File inputVideo, String userId, String fileId) {
         try {
-            // Генерируем уникальный watermark текст
             String watermarkText = generateWatermarkText(userId, fileId);
 
-            // Создаём временный файл для вывода
             Path outputPath = Paths.get(tempPath, "watermarked_" + UUID.randomUUID() + ".mp4");
             Files.createDirectories(outputPath.getParent());
             File outputFile = outputPath.toFile();
 
-            // Команда FFmpeg для наложения текста (почти невидимый)
             List<String> command = new ArrayList<>();
             command.add("ffmpeg");
             command.add("-i");
@@ -81,31 +68,14 @@ public class WatermarkService {
 
             log.info("Adding watermark to video: {}", inputVideo.getName());
 
-            ProcessBuilder pb = new ProcessBuilder(command);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line).append("\n");
-                }
-            }
-
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                log.error("FFmpeg watermark failed: {}", output);
-                // Если FFmpeg не доступен, возвращаем исходный файл
-                return new AsyncResult<>(inputVideo);
-            }
+            ffmpegExecutor.execute(command);
 
             log.info("Watermark added successfully: {}", outputFile.getAbsolutePath());
             return new AsyncResult<>(outputFile);
 
         } catch (Exception e) {
             log.error("Failed to add watermark to video", e);
-            return new org.springframework.scheduling.annotation.AsyncResult<>(inputVideo);
+            return new AsyncResult<>(inputVideo);
         }
     }
 
@@ -133,23 +103,7 @@ public class WatermarkService {
             command.add("-y");
             command.add(outputFile.getAbsolutePath());
 
-            ProcessBuilder pb = new ProcessBuilder(command);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line).append("\n");
-                }
-            }
-
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                log.error("Image watermark failed: {}", output);
-                return new AsyncResult<>(inputImage);
-            }
+            ffmpegExecutor.execute(command);
 
             return new AsyncResult<>(outputFile);
 
@@ -165,7 +119,6 @@ public class WatermarkService {
      */
     private String generateWatermarkText(String userId, String fileId) {
         long timestamp = System.currentTimeMillis();
-        // Кодируем в base64 чтобы скрыть от глаз
         String raw = String.format("UID:%s|FID:%s|TS:%d", userId, fileId, timestamp);
         return raw;
     }
@@ -184,8 +137,6 @@ public class WatermarkService {
      */
     public String extractWatermark(File videoFile) {
         try {
-            // Используем ffprobe для извлечения текста (сложно)
-            // Базовая реализация: возвращаем заглушку
             log.info("Extracting watermark from: {}", videoFile.getName());
             return "watermark_data_placeholder";
         } catch (Exception e) {

@@ -78,6 +78,15 @@ app:
       master-key: ${MEDIA_ENCRYPTION_KEY:}
       algorithm: "AES/GCM/NoPadding"
 
+  payment:
+    recipient-name: ${PAYMENT_RECIPIENT_NAME:БФАДД}
+    account: ${PAYMENT_ACCOUNT:40703810512000002359}
+    bank: ${PAYMENT_BANK:ВОЛОГОДСКОЕ ОТДЕЛЕНИЕ N8638 ПАО СБЕРБАНК г. Вологда}
+    bik: ${PAYMENT_BIK:041909644}
+    corr-account: ${PAYMENT_CORR_ACCOUNT:30101810900000000644}
+    inn: ${PAYMENT_INN:9715470089}
+    kpp: ${PAYMENT_KPP:771501001}
+
 keycloak:
   auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080/auth}
   realm: ${KEYCLOAK_REALM:platform}

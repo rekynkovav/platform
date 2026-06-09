@@ -10,6 +10,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ChatRoomService {
 
     private final ChatRoomRepository chatRoomRepository;
@@ -26,7 +28,7 @@ public class ChatRoomService {
     @PostConstruct
     public void initDefaultRooms() {
         // Временно отключено из-за проблем с JSONB
-        System.out.println("⚠️ Инициализация комнат временно отключена из-за проблем с JSONB");
+        log.info("Инициализация комнат временно отключена из-за проблем с JSONB");
     }
 
     private void createIfNotExists(String slug, String type, String name) {
@@ -61,7 +63,7 @@ public class ChatRoomService {
      * Одноразовый backfill после запуска (вызывается из @PostConstruct)
      */
     public void backfillExistingMessages() {
-        System.out.println("✅ Backfill room_id выполнен через Liquibase (v5/03-backfill-room-id)");
+        log.info("Backfill room_id выполнен через Liquibase (v5/03-backfill-room-id)");
     }
 
     /**
@@ -105,6 +107,7 @@ public class ChatRoomService {
     /**
      * Установить права для роли в комнате
      */
+    @Transactional
     public void setPermission(UUID roomId, String role, String permissionLevel) {
         ChatRoomPermission permission = chatRoomPermissionRepository.findByChatRoomIdAndRole(roomId, role)
                 .orElseGet(() -> ChatRoomPermission.builder()
@@ -151,6 +154,7 @@ public class ChatRoomService {
      * Инициализация дефолтных прав доступа для всех комнат
      * Вызывается один раз при старте приложения
      */
+    @Transactional
     public void initDefaultPermissions() {
         setPermissionForRoom("questions-general", "ROLE_USER_0", "read_write");
         setPermissionForRoom("questions-general", "ROLE_CONSULTANT_PITANIE", "admin");
@@ -170,7 +174,7 @@ public class ChatRoomService {
         setPermissionForRoom("nutrition", "ROLE_USER_0", "read_write");
         setPermissionForRoom("nutrition", "ROLE_CONSULTANT_PITANIE", "admin");
 
-        System.out.println("✅ Default room permissions initialized successfully");
+        log.info("Default room permissions initialized successfully");
     }
 
     private void setPermissionForRoom(String roomSlug, String role, String permissionLevel) {
