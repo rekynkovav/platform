@@ -27,6 +27,9 @@ public class Reaction {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @Version
+    private Long version = 0L;
+
     @Column(name = "post_id", nullable = false)
     private String postId;
 

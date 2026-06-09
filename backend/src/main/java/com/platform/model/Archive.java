@@ -21,6 +21,9 @@ public class Archive {
     @Id
     private String id;
 
+    @Version
+    private Long version = 0L;
+
     @Column(nullable = false)
     private String title;
 

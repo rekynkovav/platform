@@ -4,13 +4,14 @@
   "displayName": "Platform",
   "displayNameHtml": "<b>Platform</b> Auth",
   "sslRequired": "external",
-  "registrationAllowed": true,
+  "registrationAllowed": false,
   "registrationEmailAsUsername": false,
   "rememberMe": true,
-  "verifyEmail": false,
+  "verifyEmail": true,
   "loginWithEmailAllowed": false,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
+  "passwordPolicy": "length(8) and upperCase(1) and lowerCase(1) and digits(1)",
   "editUsernameAllowed": true,
   "accessTokenLifespan": 300,
   "ssoSessionIdleTimeout": 3600,
@@ -53,7 +54,7 @@
       "emailVerified": true,
       "firstName": "Super",
       "lastName": "Admin",
-      "credentials": [{ "type": "password", "value": "admin123", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "admin123", "temporary": true }],
       "realmRoles": ["super_admin"]
     },
     {
@@ -63,7 +64,7 @@
       "emailVerified": true,
       "firstName": "Moderator",
       "lastName": "Admin",
-      "credentials": [{ "type": "password", "value": "moderator123", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "moderator123", "temporary": true }],
       "realmRoles": ["moderator_admin"]
     },
     {
@@ -73,7 +74,7 @@
       "emailVerified": true,
       "firstName": "User",
       "lastName": "Level 2",
-      "credentials": [{ "type": "password", "value": "password", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "password", "temporary": true }],
       "realmRoles": ["user_2"]
     },
     {
@@ -83,7 +84,7 @@
       "emailVerified": true,
       "firstName": "User",
       "lastName": "Level 1",
-      "credentials": [{ "type": "password", "value": "password", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "password", "temporary": true }],
       "realmRoles": ["user_1"]
     },
     {
@@ -93,7 +94,7 @@
       "emailVerified": true,
       "firstName": "User",
       "lastName": "Level 0",
-      "credentials": [{ "type": "password", "value": "password", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "password", "temporary": true }],
       "realmRoles": ["user_0"]
     },
     {
@@ -103,7 +104,7 @@
       "emailVerified": true,
       "firstName": "Consultant",
       "lastName": "Nutrition",
-      "credentials": [{ "type": "password", "value": "pitanie123", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "pitanie123", "temporary": true }],
       "realmRoles": ["consultant_pitanie"]
     },
     {
@@ -113,7 +114,7 @@
       "emailVerified": true,
       "firstName": "Consultant",
       "lastName": "Sport",
-      "credentials": [{ "type": "password", "value": "sport123", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "sport123", "temporary": true }],
       "realmRoles": ["consultant_sport"]
     },
     {
@@ -123,7 +124,7 @@
       "emailVerified": true,
       "firstName": "Developer",
       "lastName": "Account",
-      "credentials": [{ "type": "password", "value": "dev123", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "dev123", "temporary": true }],
       "realmRoles": ["developer"]
     },
     {
@@ -133,7 +134,7 @@
       "emailVerified": true,
       "firstName": "Vyacheslav",
       "lastName": "Timoshenko",
-      "credentials": [{ "type": "password", "value": "vyacheslav123", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "vyacheslav123", "temporary": true }],
       "realmRoles": ["vyacheslav"]
     }
   ],

@@ -1,10 +1,12 @@
 package com.platform.config;
 
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @Profile("prod")
 public class ProductionGuard {
@@ -28,49 +30,48 @@ public class ProductionGuard {
 
     @PostConstruct
     public void validateProductionConfig() {
-        System.out.println("\n========== PRODUCTION CONFIGURATION CHECK ==========");
+        log.info("\n========== PRODUCTION CONFIGURATION CHECK ==========");
 
         boolean hasError = false;
 
         if (debug) {
-            System.err.println("❌ DEBUG MODE IS ENABLED IN PRODUCTION! Set debug=false");
+            log.error("DEBUG MODE IS ENABLED IN PRODUCTION! Set debug=false");
             hasError = true;
         }
 
         if (showSql) {
-            System.err.println("❌ SQL SHOW ENABLED IN PRODUCTION! Set spring.jpa.show-sql=false");
+            log.error("SQL SHOW ENABLED IN PRODUCTION! Set spring.jpa.show-sql=false");
             hasError = true;
         }
 
         if (!"never".equals(stacktrace)) {
-            System.err.println("❌ STACKTRACE EXPOSED IN PRODUCTION! Set server.error.include-stacktrace=never");
+            log.error("STACKTRACE EXPOSED IN PRODUCTION! Set server.error.include-stacktrace=never");
             hasError = true;
         }
 
         if (h2ConsoleEnabled) {
-            System.err.println("❌ H2 CONSOLE ENABLED IN PRODUCTION! Set spring.h2.console.enabled=false");
+            log.error("H2 CONSOLE ENABLED IN PRODUCTION! Set spring.h2.console.enabled=false");
             hasError = true;
         }
 
         // Проверка на опасные эндпоинты
         for (String endpoint : FORBIDDEN_ENDPOINTS) {
             if (exposedEndpoints.contains(endpoint)) {
-                System.err.println("❌ DANGEROUS ENDPOINT EXPOSED: " + endpoint +
-                    "! Remove from management.endpoints.web.exposure.include");
+                log.error("DANGEROUS ENDPOINT EXPOSED: {}! Remove from management.endpoints.web.exposure.include", endpoint);
                 hasError = true;
             }
         }
 
         if (hasError) {
-            System.err.println("====================================================\n");
+            log.error("====================================================\n");
             throw new IllegalStateException("Production configuration is unsafe. Fix the issues above.");
         }
 
-        System.out.println("✅ Production configuration is safe");
-        System.out.println("   - Debug mode: OFF");
-        System.out.println("   - SQL logging: OFF");
-        System.out.println("   - Stacktraces: HIDDEN");
-        System.out.println("   - H2 Console: OFF");
-        System.out.println("====================================================\n");
+        log.info("Production configuration is safe");
+        log.info("  - Debug mode: OFF");
+        log.info("  - SQL logging: OFF");
+        log.info("  - Stacktraces: HIDDEN");
+        log.info("  - H2 Console: OFF");
+        log.info("====================================================\n");
     }
 }

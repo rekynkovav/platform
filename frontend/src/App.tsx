@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { initKeycloak, getUsername, getUserRoles, logout } from './keycloak';
+import { initKeycloak, getUsername, getUserRoles, logout, login as keycloakLogin } from './keycloak';
 import NavTabs from './components/Navigation/NavTabs';
 import MainFeed from './components/Feed/MainFeed';
 import Dashboard from './components/Dashboard/Dashboard';
@@ -69,8 +69,7 @@ function App() {
   };
 
   const handleLogin = (): void => {
-    const loginUrl = 'http://localhost:8080/auth/realms/platform/protocol/openid-connect/auth?client_id=platform-frontend&redirect_uri=' + encodeURIComponent(window.location.origin) + '&response_type=code&scope=openid';
-    window.location.href = loginUrl;
+    keycloakLogin();
   };
 
   const showAccessDeniedMessage = (x: number, y: number): void => {

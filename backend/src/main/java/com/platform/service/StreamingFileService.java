@@ -1,6 +1,7 @@
 package com.platform.service;
 
 import org.springframework.stereotype.Service;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import java.io.*;
@@ -29,7 +30,7 @@ public class StreamingFileService {
         return resolvedPath;
     }
 
-    public void streamFile(String filePath, HttpServletResponse response) throws IOException {
+    public void streamFile(String filePath, HttpServletRequest request, HttpServletResponse response) throws IOException {
         Path path = validateAndResolvePath(filePath);
         File file = path.toFile();
 
@@ -54,7 +55,7 @@ public class StreamingFileService {
         response.setHeader("Accept-Ranges", "bytes");
 
         // Поддержка частичной загрузки (Range)
-        String rangeHeader = response.getHeader("Range");
+        String rangeHeader = request.getHeader("Range");
         long start = 0;
         long end = file.length() - 1;
 

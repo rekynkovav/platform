@@ -19,6 +19,9 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    private Long version = 0L;
+
     private String userId;           // кому уведомление
     private String type;             // event, question, answer, admin-reply
     private String title;

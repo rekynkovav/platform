@@ -582,10 +582,13 @@ const Dashboard = () => {
     const handleItemClick = useCallback((item) => {
         if (item.description && item.description.trim()) {
             const url = item.description.trim();
-            if (url.startsWith('http://') || url.startsWith('https://')) {
-                window.open(url, '_blank');
-            } else {
-                window.open('https://' + url, '_blank');
+            try {
+                const parsed = new URL(url.startsWith('http') ? url : 'https://' + url);
+                if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+                    window.open(parsed.href, '_blank', 'noopener,noreferrer');
+                }
+            } catch (e) {
+                console.warn('Invalid URL:', url);
             }
         }
     }, []);

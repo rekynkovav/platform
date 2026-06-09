@@ -23,6 +23,9 @@ public class Contact {
     @Id
     private String id;
 
+    @Version
+    private Long version = 0L;
+
     @Column(name = "user_id", nullable = false)
     private String userId;
 

@@ -33,6 +33,9 @@ public class Post {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @Version
+    private Long version = 0L;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 

@@ -456,7 +456,7 @@ const ArchiveList = () => {
             const streamUrl = response.data.url;
 
             // Открываем в новом окне или встроенном плеере
-            window.open(streamUrl, '_blank');
+            window.open(streamUrl, '_blank', 'noopener,noreferrer');
 
         } catch (error) {
             console.error('Ошибка получения ссылки для просмотра:', error);

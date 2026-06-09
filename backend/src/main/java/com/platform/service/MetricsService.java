@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class MetricsService {
@@ -18,7 +19,7 @@ public class MetricsService {
     private final Timer processingTimer;
     private final Counter loginSuccessCounter;
     private final Counter loginFailureCounter;
-    private final Counter websocketConnectionsCounter;
+    private final AtomicInteger activeWebSocketConnections = new AtomicInteger(0);
     private final Timer websocketMessageTimer;
     private final Counter websocketErrorsCounter;
 
@@ -53,8 +54,8 @@ public class MetricsService {
             .description("Failed logins")
             .register(registry);
 
-        this.websocketConnectionsCounter = Counter.builder("websocket.connections.total")
-            .description("Total WebSocket connections")
+        Gauge.builder("websocket.connections.active", activeWebSocketConnections, AtomicInteger::get)
+            .description("Active WebSocket connections")
             .register(registry);
 
         this.websocketMessageTimer = Timer.builder("websocket.message.time")
@@ -82,11 +83,11 @@ public class MetricsService {
     public void incrementLoginFailure() { loginFailureCounter.increment(); }
 
     public void incrementWebSocketConnections() {
-        websocketConnectionsCounter.increment();
+        activeWebSocketConnections.incrementAndGet();
     }
 
     public void decrementWebSocketConnections() {
-        websocketConnectionsCounter.increment(-1);
+        activeWebSocketConnections.decrementAndGet();
     }
 
     public Timer.Sample startWebSocketTimer() {
@@ -117,7 +118,7 @@ public class MetricsService {
 
     @Scheduled(fixedRate = 1000)
     public void updateWebSocketConnectionsRate() {
-        long current = (long) websocketConnectionsCounter.count();
+        long current = activeWebSocketConnections.get();
         long delta = current - lastWebSocketConnectionsCount;
         lastWebSocketConnectionsCount = current;
         websocketConnectionsPerSecond.set(delta);

@@ -23,7 +23,7 @@ public class EncryptionService {
     private String masterKey;
 
     private static final String ALGORITHM = "AES/GCM/NoPadding";
-    private static final String HLS_ALGORITHM = "AES/CBC/NoPadding";
+    private static final String HLS_ALGORITHM = "AES/CBC/PKCS5Padding";
     private static final String KEY_ALGORITHM = "AES";
     private static final int KEY_SIZE = 32;
     private static final int IV_SIZE = 12;

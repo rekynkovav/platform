@@ -1,5 +1,6 @@
 # Stage 1: Build
 FROM node:20-alpine AS builder
+ARG BUILD_DATE
 WORKDIR /app
 COPY package*.json ./
 RUN npm install

@@ -24,6 +24,9 @@ public class Event {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @Version
+    private Long version = 0L;
+
     @Column(nullable = false)
     private String title;
 

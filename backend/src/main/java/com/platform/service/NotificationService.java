@@ -6,10 +6,10 @@ import com.platform.model.Notification;
 import com.platform.repository.NotificationRepository;
 import com.platform.websocket.ChatWebSocketHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -21,6 +21,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final ChatWebSocketHandler webSocketHandler;
+    private final CacheManager cacheManager;
 
     /**
      * Создать уведомление и сразу отправить по WebSocket
@@ -74,15 +75,19 @@ public class NotificationService {
     }
 
     @Transactional
-    @Caching(evict = {
-        @CacheEvict(value = "unreadNotifications", allEntries = true),
-        @CacheEvict(value = "allNotifications", allEntries = true)
-    })
     public Notification markAsRead(String notificationId) {
         Notification notification = notificationRepository.findById(Long.parseLong(notificationId))
                 .orElseThrow(() -> new RuntimeException("Notification not found: " + notificationId));
         notification.setRead(true);
-        return notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+
+        String userId = notification.getUserId();
+        if (userId != null) {
+            cacheManager.getCache("unreadNotifications").evict(userId);
+            cacheManager.getCache("allNotifications").evict(userId);
+        }
+
+        return saved;
     }
 
     /**
@@ -104,12 +109,10 @@ public class NotificationService {
      * Пометить все как прочитанные
      */
     @Transactional
-    @Caching(evict = {
-        @CacheEvict(value = "unreadNotifications", allEntries = true),
-        @CacheEvict(value = "allNotifications", allEntries = true)
-    })
     public void markAllAsRead(String userId) {
         notificationRepository.markAllAsReadByUserId(userId);
+        cacheManager.getCache("unreadNotifications").evict(userId);
+        cacheManager.getCache("allNotifications").evict(userId);
     }
 
     /**

@@ -8,7 +8,7 @@ interface KeycloakConfig {
 
 interface KeycloakInitOptions {
   onLoad: 'check-sso' | 'login-required';
-  silentCheckSsoRedirectUri: string;
+  redirectUri: string;
   pkceMethod: 'S256';
 }
 
@@ -17,6 +17,8 @@ const keycloakConfig: KeycloakConfig = {
   realm: 'platform',
   clientId: 'platform-frontend'
 };
+
+const REDIRECT_URI = window.location.origin + '/';
 
 let keycloakInstance: KeycloakInstance | null = null;
 let isInitialized = false;
@@ -29,10 +31,24 @@ export const initKeycloak = async (): Promise<boolean> => {
 
   keycloakInstance = new Keycloak(keycloakConfig);
 
+  // keycloak-js v24: init() with onLoad:'login-required' calls kc.login({}) internally.
+  // The adapter's redirectUri(options) fallback chain is:
+  //   options.redirectUri → kc.redirectUri → location.href
+  // If kc.redirectUri is falsy at call time, location.href is used — on the callback page
+  // that contains #state=...&code=..., producing a redirect loop.
+  // Fix: intercept every login() call to force the correct redirectUri.
+  const originalLogin = keycloakInstance.login.bind(keycloakInstance);
+  (keycloakInstance as any).login = (options?: any) => {
+    return originalLogin({
+      ...(options || {}),
+      redirectUri: REDIRECT_URI
+    });
+  };
+
   try {
     const authenticated = await keycloakInstance.init({
-      onLoad: 'check-sso',
-      silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+      onLoad: 'login-required',
+      redirectUri: REDIRECT_URI,
       pkceMethod: 'S256'
     } as KeycloakInitOptions);
 
@@ -59,12 +75,19 @@ export const initKeycloak = async (): Promise<boolean> => {
       };
     }
 
+    const hasAuthParams = window.location.search.includes('code=') ||
+                          window.location.search.includes('state=') ||
+                          window.location.hash.includes('code=') ||
+                          window.location.hash.includes('state=');
+    if (hasAuthParams) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     isInitialized = true;
     return authenticated;
   } catch (error) {
     console.error('Keycloak init failed:', error);
 
-    // Более детальная обработка ошибок
     if (error instanceof Error) {
       if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
         console.error('Network error: Keycloak server is unreachable');
@@ -81,7 +104,7 @@ export const initKeycloak = async (): Promise<boolean> => {
 };
 
 export const login = (): void => {
-  keycloakInstance?.login();
+  keycloakInstance?.login({ redirectUri: REDIRECT_URI });
 };
 
 export const logout = (): void => {
@@ -110,7 +133,6 @@ export const updateToken = async (): Promise<boolean> => {
       return await keycloakInstance.updateToken(30);
     } catch (error) {
       console.error('Failed to update token:', error);
-      // Если токен не удалось обновить, пробуем перелогиниться
       if (error instanceof Error && error.message.includes('expired')) {
         console.warn('Token expired, attempting to re-login');
         login();

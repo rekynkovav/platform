@@ -1,5 +1,6 @@
 package com.platform.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -45,9 +46,10 @@ class MediaQueueStreamingFileServiceTest {
     @Test
     void streamFile_FileNotFound_Sends404(@TempDir Path tempDir) throws IOException {
         StreamingFileService service = new StreamingFileService();
+        HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
 
-        service.streamFile(tempDir.resolve("nonexistent.mp4").toString(), response);
+        service.streamFile(tempDir.resolve("nonexistent.mp4").toString(), request, response);
 
         verify(response).sendError(eq(HttpServletResponse.SC_NOT_FOUND), anyString());
     }
@@ -55,6 +57,7 @@ class MediaQueueStreamingFileServiceTest {
     @Test
     void streamFile_SmallFile_DoesNotSend413(@TempDir Path tempDir) throws IOException {
         StreamingFileService service = new StreamingFileService();
+        HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         when(response.getOutputStream()).thenReturn(new jakarta.servlet.ServletOutputStream() {
@@ -67,13 +70,14 @@ class MediaQueueStreamingFileServiceTest {
         Path smallFile = tempDir.resolve("small.txt");
         Files.writeString(smallFile, "hello");
 
-        service.streamFile(smallFile.toString(), response);
+        service.streamFile(smallFile.toString(), request, response);
         verify(response, never()).sendError(eq(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE), anyString());
     }
 
     @Test
     void streamFile_ValidFile_SetsHeadersAndStreams(@TempDir Path tempDir) throws IOException {
         StreamingFileService service = new StreamingFileService();
+        HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         when(response.getOutputStream()).thenReturn(new jakarta.servlet.ServletOutputStream() {
@@ -86,7 +90,7 @@ class MediaQueueStreamingFileServiceTest {
         Path testFile = tempDir.resolve("test.txt");
         Files.writeString(testFile, "streaming content");
 
-        service.streamFile(testFile.toString(), response);
+        service.streamFile(testFile.toString(), request, response);
 
         verify(response).setContentType(anyString());
         verify(response).setContentLengthLong(17L);

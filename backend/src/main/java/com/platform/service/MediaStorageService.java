@@ -22,9 +22,14 @@ public class MediaStorageService {
 
     private final StorageService storageService;
 
+    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
     @Timed(value = "media.save", description = "Time to save media")
     public PostDto.MediaUploadResponse saveMedia(MultipartFile file, String type) {
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("File size exceeds 50MB limit");
+        }
+
         try {
             String mediaType = determineMediaType(file, type);
 

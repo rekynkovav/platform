@@ -30,6 +30,9 @@ public class EventMaterial {
     @Column()
     private UUID id;
 
+    @Version
+    private Long version = 0L;
+
     /** Идентификатор раздела: about, important, interviews, beginners, reflections, participants, music, motivation, movies, results, challenge */
     @Column(name = "section_id", nullable = false, length = 50)
     private String sectionId;
