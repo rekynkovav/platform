@@ -26,6 +26,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.UUID;
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
@@ -42,67 +44,76 @@ public class SecureMediaService {
     private final EncryptionService encryptionService;
     private final WatermarkService watermarkService;
     private final HLSStreamingService hlsStreamingService;
+    private final UploadLimitService uploadLimitService;
 
     @Transactional
     public MediaFile uploadSecureMedia(MultipartFile file, String fileType, Jwt jwt, HttpServletRequest request) {
-        // ПРОВЕРКА РАЗМЕРА ФАЙЛА (1 ГБ максимум)
-        long maxFileSize = 1024 * 1024 * 1024; // 1 GB
+        long maxFileSize = 1024 * 1024 * 1024;
         if (file.getSize() > maxFileSize) {
             throw new BusinessException("File too large. Maximum size is 1 GB");
         }
 
-        try {
-            String userId = jwt.getSubject();
-            String fileId = UUID.randomUUID().toString();
+        String userId = jwt.getSubject();
 
-            // СОХРАНЯЕМ ВРЕМЕННЫЙ ФАЙЛ НА ДИСК (потоково)
-            Path tempPath = Paths.get(System.getProperty("java.io.tmpdir"),
+        if (!uploadLimitService.checkDailyLimit(userId)) {
+            throw new BusinessException("Daily upload limit exceeded");
+        }
+        if (!uploadLimitService.checkStorageLimit(userId, file.getSize())) {
+            throw new BusinessException("Storage limit exceeded");
+        }
+
+        String fileId = UUID.randomUUID().toString();
+        Path tempPath = null;
+        File tempFile = null;
+        File watermarkedFile = null;
+        Path encryptedPath = null;
+
+        try {
+            tempPath = Paths.get(System.getProperty("java.io.tmpdir"),
                 "upload_" + fileId + "_" + file.getOriginalFilename());
 
             try (InputStream inputStream = file.getInputStream()) {
                 Files.copy(inputStream, tempPath, StandardCopyOption.REPLACE_EXISTING);
             }
 
-            File tempFile = tempPath.toFile();
-            File watermarkedFile = tempFile;
+            tempFile = tempPath.toFile();
+            watermarkedFile = tempFile;
 
             if ("video".equals(fileType)) {
                 try {
                     Future<File> futureWatermark = watermarkService.addVideoWatermark(tempFile, userId, fileId);
-                    watermarkedFile = futureWatermark.get(); // ждём завершения
-                } catch (InterruptedException | ExecutionException e) {
+                    watermarkedFile = futureWatermark.get(5, TimeUnit.MINUTES);
+                } catch (InterruptedException | ExecutionException | TimeoutException e) {
                     log.error("Video watermark processing failed", e);
                     throw new RuntimeException("Failed to add video watermark", e);
                 }
             } else if ("image".equals(fileType)) {
                 try {
                     Future<File> futureWatermark = watermarkService.addImageWatermark(tempFile, userId, fileId);
-                    watermarkedFile = futureWatermark.get(); // ждём завершения
-                } catch (InterruptedException | ExecutionException e) {
+                    watermarkedFile = futureWatermark.get(5, TimeUnit.MINUTES);
+                } catch (InterruptedException | ExecutionException | TimeoutException e) {
                     log.error("Image watermark processing failed", e);
                     throw new RuntimeException("Failed to add image watermark", e);
                 }
             }
 
-            // ШИФРОВАНИЕ ПОТОКОВО с записью во временный файл
             byte[] encryptionKey = encryptionService.generateFileKey(userId, fileId);
             String iv = encryptionService.generateIV();
 
-            Path encryptedPath = Paths.get(System.getProperty("java.io.tmpdir"), "encrypted_" + fileId);
+            encryptedPath = Paths.get(System.getProperty("java.io.tmpdir"), "encrypted_" + fileId);
 
             try (InputStream fis = Files.newInputStream(watermarkedFile.toPath());
                  OutputStream fos = Files.newOutputStream(encryptedPath);
                  CipherOutputStream cos = new CipherOutputStream(fos,
                      encryptionService.getCipher(Cipher.ENCRYPT_MODE, encryptionKey, iv))) {
 
-                byte[] buffer = new byte[8192];  // 8KB буфер
+                byte[] buffer = new byte[8192];
                 int bytesRead;
                 while ((bytesRead = fis.read(buffer)) != -1) {
                     cos.write(buffer, 0, bytesRead);
                 }
             }
 
-            // ПОТОКОВАЯ ЗАГРУЗКА В S3 (без readAllBytes)
             String storageKey;
             try (InputStream encryptedStream = Files.newInputStream(encryptedPath)) {
                 storageKey = storageService.upload(
@@ -113,7 +124,6 @@ public class SecureMediaService {
                 );
             }
 
-            // HLS конвертация
             String hlsPlaylistUrl = null;
             Integer duration = null;
             if ("video".equals(fileType) && hlsStreamingService != null) {
@@ -125,7 +135,6 @@ public class SecureMediaService {
                     }
                 } catch (Exception e) {
                     log.warn("HLS conversion failed, continuing without HLS: {}", e.getMessage());
-                    log.warn("Конвертация HLS не удалась, продолжаем без HLS: {}", e.getMessage());
                 }
             }
 
@@ -148,23 +157,25 @@ public class SecureMediaService {
 
             mediaFile = mediaFileRepository.save(mediaFile);
             logAccess(fileId, userId, "UPLOAD", request, true, null);
-
-            // ЧИСТИМ ВРЕМЕННЫЕ ФАЙЛЫ
-            Files.deleteIfExists(tempPath);
-            Files.deleteIfExists(encryptedPath);
-            if (!watermarkedFile.equals(tempFile)) {
-                watermarkedFile.delete();
-            }
+            uploadLimitService.incrementDailyCount(userId);
 
             log.info("Secure media uploaded: {} by {}", fileId, userId);
-            log.info("Защищённый медиа-файл загружен: {} пользователем {}", fileId, userId);
 
             return mediaFile;
 
         } catch (Exception e) {
             log.error("Failed to upload secure media", e);
-            log.error("Не удалось загрузить защищённый медиа-файл", e);
             throw new RuntimeException("Failed to upload media: " + e.getMessage());
+        } finally {
+            try {
+                if (tempPath != null) Files.deleteIfExists(tempPath);
+                if (encryptedPath != null) Files.deleteIfExists(encryptedPath);
+                if (watermarkedFile != null && !watermarkedFile.equals(tempFile)) {
+                    watermarkedFile.delete();
+                }
+            } catch (Exception e) {
+                log.warn("Failed to cleanup temp files", e);
+            }
         }
     }
 

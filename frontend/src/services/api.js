@@ -120,7 +120,7 @@ export const userApi = {
 
 export const mediaApi = {
     upload: (file, onProgress) => api.upload('/media/upload', file, onProgress),
-    getStreamUrl: (id) => `${API_URL}/media/stream/${id}`,
+    getStreamUrl: (id) => api.get(`/media/stream/${id}`),
     delete: (id) => api.delete(`/media/${id}`)
 };
 

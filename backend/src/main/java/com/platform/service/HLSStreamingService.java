@@ -13,8 +13,10 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -53,10 +55,12 @@ public class HLSStreamingService {
 
             Path keyInfoFile = hlsDir.resolve("keyinfo.txt");
             String keyUrl = String.format("/api/media/key/%s", fileId);
+            byte[] iv = new byte[16];
+            new SecureRandom().nextBytes(iv);
             String keyInfoContent = String.format("%s\n%s\n%s",
                 keyUrl,
                 keyFile.toAbsolutePath(),
-                bytesToHex(encryptionKey).substring(0, 32)
+                bytesToHex(iv)
             );
             Files.writeString(keyInfoFile, keyInfoContent);
 
@@ -103,20 +107,33 @@ public class HLSStreamingService {
                 }
             }
 
-            int exitCode = process.waitFor();
+            int exitCode;
+            try {
+                exitCode = process.waitFor(30, TimeUnit.MINUTES) ? process.exitValue() : -1;
+            } finally {
+                if (process.isAlive()) {
+                    process.destroyForcibly();
+                }
+            }
+
             if (exitCode != 0) {
                 log.error("FFmpeg failed with exit code: {}. Output: {}", exitCode, output);
                 throw new RuntimeException("HLS conversion failed");
             }
 
-            String playlistS3Key = uploadHLSFiles(hlsDir, fileId);
-            deleteDirectory(hlsDir.toFile());
+            int segmentCount = countSegments(hlsDir);
+            String playlistS3Key;
+            try {
+                playlistS3Key = uploadHLSFiles(hlsDir, fileId);
+            } finally {
+                deleteDirectory(hlsDir.toFile());
+            }
 
             log.info("HLS conversion completed for file: {}", fileId);
 
             return HLSResult.builder()
                 .playlistUrl(playlistS3Key)
-                .segmentCount(countSegments(hlsDir))
+                .segmentCount(segmentCount)
                 .duration(getVideoDuration(inputVideo))
                 .build();
 
@@ -159,11 +176,17 @@ public class HLSStreamingService {
             command.add(videoFile.getAbsolutePath());
 
             ProcessBuilder pb = new ProcessBuilder(command);
+            pb.redirectErrorStream(true);
             Process process = pb.start();
 
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String duration = reader.readLine();
+                process.waitFor(10, TimeUnit.SECONDS);
                 return (int) Double.parseDouble(duration);
+            } finally {
+                if (process.isAlive()) {
+                    process.destroyForcibly();
+                }
             }
         } catch (Exception e) {
             log.error("Failed to get video duration", e);

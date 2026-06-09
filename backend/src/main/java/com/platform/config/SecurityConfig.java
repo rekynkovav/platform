@@ -7,11 +7,20 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimAccessor;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -30,15 +39,11 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf
-                    .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                    .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-                    .ignoringRequestMatchers("/api/webhook/**", "/api/public/**", "/ws/**")
-                )
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Публичные эндпоинты
-                        .requestMatchers("/actuator/**", "/health", "/ws/**").permitAll()
+                        .requestMatchers("/actuator/**", "/health", "/api/health", "/api/health/**", "/ws/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
 
                         // Защита медиа контента
@@ -59,6 +64,8 @@ public class SecurityConfig {
                         // Пользователи
                         .requestMatchers("/api/users/**").authenticated()
 
+                        .requestMatchers("/api/broadcast/create", "/api/broadcast/start", "/api/broadcast/*/end", "/api/broadcast/*/stats", "/api/broadcast/webhook/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_CONSULTANT_PITANIE", "ROLE_CONSULTANT_SPORT", "ROLE_MODERATOR_ADMIN", "ROLE_DEVELOPER", "ROLE_VYACHESLAV")
+
                         // Защищённые эндпоинты
                         .anyRequest().authenticated()
                 )
@@ -71,14 +78,23 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-
-        // Keycloak хранит роли в realm_access.roles
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("realm_access.roles");
-        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
+        Converter<Jwt, Collection<GrantedAuthority>> customConverter = jwt -> {
+            Collection<GrantedAuthority> authorities = new ArrayList<>();
+            Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
+            if (realmAccess != null) {
+                Object rolesObj = realmAccess.get("roles");
+                if (rolesObj instanceof List) {
+                    for (Object role : (List<?>) rolesObj) {
+                        String roleStr = role.toString().toUpperCase();
+                        authorities.add(new SimpleGrantedAuthority("ROLE_" + roleStr));
+                    }
+                }
+            }
+            return authorities;
+        };
 
         JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
-        jwtConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+        jwtConverter.setJwtGrantedAuthoritiesConverter(customConverter);
 
         // Извлекаем username из preferred_username
         jwtConverter.setPrincipalClaimName("preferred_username");

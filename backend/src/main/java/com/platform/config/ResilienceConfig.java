@@ -15,7 +15,9 @@ import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.io.IOException;
 import java.time.Duration;
+import java.util.concurrent.TimeoutException;
 
 @Configuration
 public class ResilienceConfig {
@@ -58,7 +60,7 @@ public class ResilienceConfig {
         RetryConfig config = RetryConfig.custom()
             .maxAttempts(2)
             .waitDuration(Duration.ofSeconds(1))
-            .retryExceptions(Exception.class)
+            .retryExceptions(IOException.class, TimeoutException.class)
             .build();
 
         return RetryRegistry.of(config).retry("external-api");

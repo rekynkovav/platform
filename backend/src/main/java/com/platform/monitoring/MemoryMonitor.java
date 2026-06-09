@@ -66,22 +66,7 @@ public class MemoryMonitor {
         double heapPercent = (double) heap.getUsed() / heap.getMax() * 100;
 
         if (heapPercent > 85) {
-            log.info("High memory usage ({}%), forcing GC...", String.format("%.1f", heapPercent));
-            System.gc();
-
-            // Повторная проверка через 5 секунд
-            try {
-                Thread.sleep(5000);
-                MemoryUsage afterGc = memoryBean.getHeapMemoryUsage();
-                double afterPercent = (double) afterGc.getUsed() / afterGc.getMax() * 100;
-                log.info("After GC: {}% -> {}%", String.format("%.1f", heapPercent), String.format("%.1f", afterPercent));
-
-                if (afterPercent > heapPercent - 5) {
-                    log.warn("⚠️ GC didn't free significant memory. Check for strong references!");
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            log.warn("High memory usage: {}%", String.format("%.1f", heapPercent));
         }
     }
 

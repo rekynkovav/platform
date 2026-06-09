@@ -92,7 +92,7 @@ export const useChat = (chatRoom, config = {}) => {
                         const mediaResponse = await mediaApi.getStreamUrl(msg.mediaId);
                         return {
                             ...msg,
-                            mediaUrl: mediaResponse.data.url,
+                            mediaUrl: mediaResponse.url,
                             mediaType: msg.mediaType || 'file'
                         };
                     } catch (e) {
@@ -123,8 +123,7 @@ export const useChat = (chatRoom, config = {}) => {
         const key = `${storageKeyPrefix}_${room}`;
         const savedMessages = sessionStorage.getItem(key);
 
-        // Флаг для принудительной загрузки тестовых сообщений (можно изменить на false после тестирования)
-        const FORCE_TEST_MESSAGES = true;
+        const FORCE_TEST_MESSAGES = process.env.NODE_ENV === 'development';
 
         if (savedMessages && !FORCE_TEST_MESSAGES) {
             try {
@@ -433,7 +432,7 @@ export const useChat = (chatRoom, config = {}) => {
             let mediaUrl = null;
             try {
                 const urlResponse = await mediaApi.getStreamUrl(mediaFile.id);
-                mediaUrl = urlResponse.data.url;
+                mediaUrl = urlResponse.url;
             } catch (e) {
                 console.warn('Could not get preview URL:', e);
             }
@@ -615,7 +614,7 @@ export const useChat = (chatRoom, config = {}) => {
                         let mediaUrl = null;
                         try {
                             const urlResponse = await mediaApi.getStreamUrl(mediaFile.id);
-                            mediaUrl = urlResponse.data.url;
+                            mediaUrl = urlResponse.url;
                         } catch (e) {
                             console.warn('Could not get audio URL:', e);
                         }
@@ -711,7 +710,7 @@ export const useChat = (chatRoom, config = {}) => {
         if (useApi) {
             try {
                 const response = await mediaApi.getStreamUrl(mediaId);
-                const url = response.data.url;
+                const url = response.url;
                 mediaUrlCache.current.set(mediaId, url);
                 return url;
             } catch (error) {

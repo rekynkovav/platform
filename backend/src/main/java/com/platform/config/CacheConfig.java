@@ -33,6 +33,18 @@ public class CacheConfig {
                 .entryTtl(Duration.ofMinutes(15)))
             .withCacheConfiguration("messages", RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(2)))
+            .withCacheConfiguration("unreadNotifications", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(2)))
+            .withCacheConfiguration("allNotifications", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(5)))
+            .withCacheConfiguration("chatMessages", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(1)))
+            .withCacheConfiguration("chatMessagesPaginated", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(1)))
+            .withCacheConfiguration("questionsByMode", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(2)))
+            .withCacheConfiguration("userRoles", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(10)))
             .build();
     }
 }

@@ -47,7 +47,7 @@
   ],
   "users": [
     {
-      "username": "super_admin",
+      "username": "superadmin",
       "email": "super@platform.local",
       "enabled": true,
       "emailVerified": true,
@@ -67,33 +67,33 @@
       "realmRoles": ["moderator_admin"]
     },
     {
-      "username": "user_2",
+      "username": "user2",
       "email": "user2@platform.local",
       "enabled": true,
       "emailVerified": true,
       "firstName": "User",
       "lastName": "Level 2",
-      "credentials": [{ "type": "password", "value": "user2pass123", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "password", "temporary": false }],
       "realmRoles": ["user_2"]
     },
     {
-      "username": "user_1",
+      "username": "user1",
       "email": "user1@platform.local",
       "enabled": true,
       "emailVerified": true,
       "firstName": "User",
       "lastName": "Level 1",
-      "credentials": [{ "type": "password", "value": "user1pass123", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "password", "temporary": false }],
       "realmRoles": ["user_1"]
     },
     {
-      "username": "user_0",
+      "username": "user0",
       "email": "user0@platform.local",
       "enabled": true,
       "emailVerified": true,
       "firstName": "User",
       "lastName": "Level 0",
-      "credentials": [{ "type": "password", "value": "user0pass123", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "password", "temporary": false }],
       "realmRoles": ["user_0"]
     },
     {

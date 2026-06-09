@@ -30,7 +30,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: false
     properties:
       hibernate:
@@ -44,14 +44,12 @@ spring:
     defer-datasource-initialization: false
 
   liquibase:
-    enabled: true
-    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: false
 
   cache:
-    type: simple
+    type: redis
 
   main:
-    allow-circular-references: true
     allow-bean-definition-overriding: true
 
 server:
@@ -95,6 +93,9 @@ app:
     base-url: https://platform.local/media
     max-file-size: 100MB
     allowed-formats: mp4,mp3,jpg,png,gif,webm
+    encryption:
+      master-key: ${MEDIA_ENCRYPTION_KEY:}
+      algorithm: "AES/GCM/NoPadding"
 
 security:
   cors:
@@ -107,7 +108,7 @@ bucket4j:
 yandex:
   s3:
     access-key: ${YANDEX_S3_ACCESS_KEY:}
-    secret-key: ${Yandex_S3_SECRET_KEY:}
+    secret-key: ${YANDEX_S3_SECRET_KEY:}
     bucket: ${YANDEX_S3_BUCKET:platform-media}
     endpoint: https://storage.yandexcloud.net
     region: ru-central1

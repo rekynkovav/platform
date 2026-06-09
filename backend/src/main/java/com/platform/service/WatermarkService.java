@@ -31,7 +31,12 @@ public class WatermarkService {
     @PostConstruct
     public void checkFFmpeg() {
         try {
-            Process process = Runtime.getRuntime().exec("ffmpeg -version");
+            ProcessBuilder pb = new ProcessBuilder("ffmpeg", "-version");
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                while (reader.readLine() != null) {}
+            }
             int exitCode = process.waitFor();
             if (exitCode != 0) {
                 log.error("FFMPEG NOT AVAILABLE! Install: apt-get install ffmpeg");
@@ -129,8 +134,22 @@ public class WatermarkService {
             command.add(outputFile.getAbsolutePath());
 
             ProcessBuilder pb = new ProcessBuilder(command);
+            pb.redirectErrorStream(true);
             Process process = pb.start();
-            process.waitFor();
+
+            StringBuilder output = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                log.error("Image watermark failed: {}", output);
+                return new AsyncResult<>(inputImage);
+            }
 
             return new AsyncResult<>(outputFile);
 

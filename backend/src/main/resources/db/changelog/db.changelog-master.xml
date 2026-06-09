@@ -40,32 +40,32 @@
     <include file="db/changelog/v6/07-additional-indexes.yaml"/>
 
     <!-- V7 -->
-    <include file="db/changelog/v7/01-partition-messages.sql">
-        <preConditions>
-            <onFail>MARK_RAN</onFail>
+    <changeSet id="v7-partition-messages" author="platform" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="messages_new"/>
             </not>
         </preConditions>
-    </include>
+        <sqlFile path="db/changelog/v7/01-partition-messages.sql" splitStatements="false"/>
+    </changeSet>
 
     <!-- V8 -->
-    <include file="db/changelog/v8/01-add-archive-fields.sql">
-        <preConditions>
-            <onFail>MARK_RAN</onFail>
+    <changeSet id="v8-archive-fields" author="platform" runInTransaction="false" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
             <not>
                 <columnExists tableName="live_broadcasts" columnName="recorded_url"/>
             </not>
         </preConditions>
-    </include>
+        <sqlFile path="db/changelog/v8/01-add-archive-fields.sql"/>
+    </changeSet>
 
     <!-- V9: Очистка данных для первого релиза -->
-    <include file="db/changelog/v9/01-cleanup-data.sql">
-        <preConditions>
-            <onFail>MARK_RAN</onFail>
+    <changeSet id="v9-cleanup-data" author="platform" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
             <tableExists tableName="users"/>
         </preConditions>
-    </include>
+        <sqlFile path="db/changelog/v9/01-cleanup-data.sql" splitStatements="false"/>
+    </changeSet>
     <include file="db/changelog/v9/02-initial-data.sql"/>
 
     <!-- V10: Создание таблицы access_logs (сущность AccessLog.java) -->
@@ -78,14 +78,14 @@
     <include file="db/changelog/v12/01-create-event-materials-table.yaml"/>
 
     <!-- V13: Исправление таблицы notifications под JPA модель -->
-    <include file="db/changelog/v13/01-fix-notifications-schema.sql">
-        <preConditions>
-            <onFail>MARK_RAN</onFail>
+    <changeSet id="v13-fix-notifications" author="platform" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
             <sqlCheck expectedResult="1">
                 SELECT 1
             </sqlCheck>
         </preConditions>
-    </include>
+        <sqlFile path="db/changelog/v13/01-fix-notifications-schema.sql" splitStatements="false"/>
+    </changeSet>
 
     <!-- Модули (ЗАКОММЕНТИРОВАНО: дублируют v3, раскомментировать только если v3 удален) -->
     <!-- <include file="db/changelog/db.changelog-media.yaml"/> -->

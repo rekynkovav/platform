@@ -20,6 +20,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 @Slf4j
 @Service
@@ -29,6 +31,9 @@ public class LiveBroadcastService {
 
     private final LiveBroadcastRepository broadcastRepository;
     private final BroadcastArchiveService archiveService;
+
+    @Qualifier("taskExecutor")
+    private final Executor taskExecutor;
 
     @Timed(value = "broadcast.create", description = "Time to create broadcast")
     @Transactional(rollbackFor = Exception.class, timeout = 30)
@@ -46,6 +51,7 @@ public class LiveBroadcastService {
             .ownerId(UUID.fromString(userId))
             .status(BroadcastStatus.IDLE)
             .rtmpStreamKey(broadcastId)
+            .version(0L)
             .build();
 
         return broadcastRepository.save(broadcast);
@@ -91,7 +97,7 @@ public class LiveBroadcastService {
         broadcastRepository.save(broadcast);
 
         // Асинхронное архивирование
-        CompletableFuture.runAsync(() -> archiveService.archiveBroadcast(broadcastId));
+        CompletableFuture.runAsync(() -> archiveService.archiveBroadcast(broadcastId), taskExecutor);
 
         log.info("Broadcast stopped: {} by {}", broadcastId, userId);
     }

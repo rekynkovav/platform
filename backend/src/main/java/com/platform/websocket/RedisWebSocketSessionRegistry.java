@@ -17,6 +17,7 @@ public class RedisWebSocketSessionRegistry {
 
     private static final String SESSION_PREFIX = "ws:session:";
     private static final String USER_SESSIONS_PREFIX = "ws:user:";
+    private static final String ALL_SESSIONS_KEY = "ws:sessions:all";
     private static final long SESSION_TTL = 24 * 60 * 60; // 24 часа
 
     private final RedisTemplate<String, String> redisTemplate;
@@ -32,6 +33,7 @@ public class RedisWebSocketSessionRegistry {
         redisTemplate.expire(USER_SESSIONS_PREFIX + userId, SESSION_TTL, TimeUnit.SECONDS);
         redisTemplate.opsForSet().add(SESSION_PREFIX + sessionId, userId);
         redisTemplate.expire(SESSION_PREFIX + sessionId, SESSION_TTL, TimeUnit.SECONDS);
+        redisTemplate.opsForSet().add(ALL_SESSIONS_KEY, sessionId);
 
         log.debug("Session registered: userId={}, sessionId={}", userId, sessionId);
     }
@@ -40,6 +42,7 @@ public class RedisWebSocketSessionRegistry {
         localSessions.remove(sessionId);
         redisTemplate.opsForHash().delete(USER_SESSIONS_PREFIX + userId, sessionId);
         redisTemplate.delete(SESSION_PREFIX + sessionId);
+        redisTemplate.opsForSet().remove(ALL_SESSIONS_KEY, sessionId);
 
         log.debug("Session unregistered: userId={}, sessionId={}", userId, sessionId);
     }
@@ -62,11 +65,10 @@ public class RedisWebSocketSessionRegistry {
     }
 
     public void sendToAll(String message) {
-        Set<String> sessionIds = redisTemplate.keys(SESSION_PREFIX + "*");
+        Set<String> sessionIds = redisTemplate.opsForSet().members(ALL_SESSIONS_KEY);
         if (sessionIds == null) return;
 
-        for (String key : sessionIds) {
-            String sessionId = key.substring(SESSION_PREFIX.length());
+        for (String sessionId : sessionIds) {
             WebSocketSession session = localSessions.get(sessionId);
 
             if (session != null && session.isOpen()) {
@@ -90,7 +92,7 @@ public class RedisWebSocketSessionRegistry {
     }
 
     public int getOnlineCount() {
-        Set<String> keys = redisTemplate.keys(SESSION_PREFIX + "*");
-        return keys != null ? keys.size() : 0;
+        Long size = redisTemplate.opsForSet().size(ALL_SESSIONS_KEY);
+        return size != null ? size.intValue() : 0;
     }
 }

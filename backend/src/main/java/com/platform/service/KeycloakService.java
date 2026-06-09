@@ -1,5 +1,6 @@
 package com.platform.service;
 
+import com.platform.exception.KeycloakException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
@@ -10,6 +11,7 @@ import org.keycloak.representations.idm.RoleRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.retry.annotation.Retryable;
+import jakarta.annotation.PostConstruct;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 
@@ -21,19 +23,29 @@ import java.util.List;
 @RequiredArgsConstructor
 public class KeycloakService {
 
-    // @Value("${keycloak.auth-server-url}")
-    private String serverUrl = "http://keycloak:8080";
+    @Value("${keycloak.auth-server-url}")
+    private String serverUrl;
 
-    // @Value("${keycloak.realm}")
-    private String realm = "platform";
+    @Value("${keycloak.realm}")
+    private String realm;
 
-    // @Value("${keycloak.resource}")
-    private String clientId = "platform-backend";
+    @Value("${keycloak.resource}")
+    private String clientId;
 
-    // @Value("${keycloak.credentials.secret}")
-    private String clientSecret = "test-secret-key";
+    @Value("${keycloak.credentials.secret}")
+    private String clientSecret;
 
     private Keycloak keycloak;
+
+    @PostConstruct
+    public void validateConfig() {
+        if (clientSecret == null || clientSecret.isBlank()) {
+            throw new IllegalStateException("KEYCLOAK_SECRET is not configured. Set keycloak.credentials.secret property");
+        }
+        if (serverUrl == null || serverUrl.isBlank()) {
+            throw new IllegalStateException("Keycloak auth-server-url is not configured");
+        }
+    }
 
     private Keycloak getKeycloak() {
         if (keycloak == null) {
@@ -71,7 +83,7 @@ public class KeycloakService {
 
         } catch (Exception e) {
             log.error("Failed to update user role in Keycloak", e);
-            throw new RuntimeException("Failed to update user role: " + e.getMessage());
+            throw new KeycloakException("Failed to update user role: " + e.getMessage());
         }
     }
 
@@ -97,7 +109,7 @@ public class KeycloakService {
 
         } catch (Exception e) {
             log.error("Failed to add role to user in Keycloak", e);
-            throw new RuntimeException("Failed to add role: " + e.getMessage());
+            throw new KeycloakException("Failed to add role: " + e.getMessage());
         }
     }
 
@@ -115,7 +127,7 @@ public class KeycloakService {
 
         } catch (Exception e) {
             log.error("Failed to get user roles from Keycloak", e);
-            throw new RuntimeException("Failed to get user roles: " + e.getMessage());
+            throw new KeycloakException("Failed to get user roles: " + e.getMessage());
         }
     }
 }

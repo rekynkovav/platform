@@ -43,7 +43,7 @@ public class MediaStorageService {
             );
 
             // Генерируем URL для доступа к файлу
-            String url = storageService.generatePresignedUrl(storagePath, 3600 * 24 * 7); // 7 дней
+            String url = storageService.generatePresignedUrl(storagePath, 3600);
 
             log.info("Media saved via StorageService: {}", url);
 

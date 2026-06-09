@@ -109,6 +109,33 @@ public class GlobalExceptionHandler {
             .body(Map.of("error", "Concurrent update detected, please retry"));
     }
 
+    // 500 - Encryption error
+    @ExceptionHandler(EncryptionException.class)
+    public ResponseEntity<Map<String, String>> handleEncryption(EncryptionException e) {
+        log.error("Encryption error", e);
+        return ResponseEntity
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of("error", "Encryption error"));
+    }
+
+    // 500 - Keycloak error
+    @ExceptionHandler(KeycloakException.class)
+    public ResponseEntity<Map<String, String>> handleKeycloak(KeycloakException e) {
+        log.error("Keycloak error", e);
+        return ResponseEntity
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of("error", "Authentication service error"));
+    }
+
+    // 500 - Payment processing error
+    @ExceptionHandler(PaymentProcessingException.class)
+    public ResponseEntity<Map<String, String>> handlePayment(PaymentProcessingException e) {
+        log.error("Payment processing error", e);
+        return ResponseEntity
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of("error", "Payment processing error"));
+    }
+
     // 500 - Unhandled errors
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneric(Exception e) {

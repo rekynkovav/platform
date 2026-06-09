@@ -1,0 +1,22 @@
+# Сборка и артефакты
+target/
+build/
+*.jar
+*.war
+
+# Зависимости
+node_modules/
+.gradle/
+.mvn/
+
+# IDE и системные файлы
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Логи и временные файлы
+logs/
+*.log
+tmp/

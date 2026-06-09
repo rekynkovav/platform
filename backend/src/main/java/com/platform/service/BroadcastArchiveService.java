@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,7 +32,7 @@ public class BroadcastArchiveService {
     private final StorageService storageService;
 
     private static final String ARCHIVE_PREFIX = "archive/";
-    private static final String HLS_TEMP_PREFIX = "/hls/";
+    private static final String HLS_TEMP_PREFIX = "/tmp/hls/";
 
     /**
      * Архивирование стрима после окончания
@@ -174,7 +175,21 @@ public class BroadcastArchiveService {
         );
         pb.redirectErrorStream(true);
         Process process = pb.start();
-        int exitCode = process.waitFor();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            while (reader.readLine() != null) {
+                // consume stream to prevent deadlock
+            }
+        }
+
+        int exitCode;
+        try {
+            exitCode = process.waitFor(30, TimeUnit.MINUTES) ? process.exitValue() : -1;
+        } finally {
+            if (process.isAlive()) {
+                process.destroyForcibly();
+            }
+        }
 
         if (exitCode != 0) {
             throw new RuntimeException("FFmpeg conversion failed with exit code: " + exitCode);
@@ -194,12 +209,26 @@ public class BroadcastArchiveService {
             "ffmpeg", "-i", playlistPath,
             "-c:a", "aac",
             "-b:a", "128k",
-            "-vn",  // Без видео
+            "-vn",
             outputPath
         );
         pb.redirectErrorStream(true);
         Process process = pb.start();
-        int exitCode = process.waitFor();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            while (reader.readLine() != null) {
+                // consume stream to prevent deadlock
+            }
+        }
+
+        int exitCode;
+        try {
+            exitCode = process.waitFor(30, TimeUnit.MINUTES) ? process.exitValue() : -1;
+        } finally {
+            if (process.isAlive()) {
+                process.destroyForcibly();
+            }
+        }
 
         if (exitCode != 0) {
             throw new RuntimeException("FFmpeg conversion failed with exit code: " + exitCode);
@@ -232,11 +261,17 @@ public class BroadcastArchiveService {
             "-of", "default=noprint_wrappers=1:nokey=1",
             mp4File.getAbsolutePath()
         );
+        pb.redirectErrorStream(true);
         Process process = pb.start();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             String line = reader.readLine();
+            process.waitFor(10, TimeUnit.SECONDS);
             if (line != null) {
                 return (int) Double.parseDouble(line);
+            }
+        } finally {
+            if (process.isAlive()) {
+                process.destroyForcibly();
             }
         }
         return 0;

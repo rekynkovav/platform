@@ -126,7 +126,7 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
             const mediaResponse = await mediaApi.getStreamUrl(msg.mediaId);
             return {
               ...msg,
-              mediaUrl: mediaResponse.data.url,
+              mediaUrl: mediaResponse.url,
               mediaType: msg.mediaType || 'file'
             } as ChatMessage;
           } catch (e) {
@@ -154,7 +154,7 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
         ? sessionStorage.getItem(key)
         : null;
 
-    const FORCE_TEST_MESSAGES = true;
+    const FORCE_TEST_MESSAGES = process.env.NODE_ENV === 'development';
 
     if (savedMessages && !FORCE_TEST_MESSAGES) {
       try {
@@ -422,7 +422,7 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
       let mediaUrl: string | null = null;
       try {
         const urlResponse = await mediaApi.getStreamUrl(mediaFile.id);
-        mediaUrl = urlResponse.data.url;
+        mediaUrl = urlResponse.url;
       } catch (e) {
         console.warn('Could not get preview URL:', e);
       }
@@ -612,7 +612,7 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
             let mediaUrl: string | null = null;
             try {
               const urlResponse = await mediaApi.getStreamUrl(mediaFile.id);
-              mediaUrl = urlResponse.data.url;
+              mediaUrl = urlResponse.url;
             } catch (e) {
               console.warn('Could not get audio URL:', e);
             }
@@ -718,7 +718,7 @@ export const useChat = (chatRoom: string, config: UseChatConfig = {}): UseChatRe
     if (useApi) {
       try {
         const response = await mediaApi.getStreamUrl(mediaId);
-        const url = response.data.url;
+        const url = response.url;
         mediaUrlCache.current.set(mediaId, url);
         return url;
       } catch (error) {

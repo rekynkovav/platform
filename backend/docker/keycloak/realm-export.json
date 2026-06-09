@@ -2,72 +2,152 @@
   "realm": "platform",
   "enabled": true,
   "displayName": "Platform",
-  "roles": {
-    "realm": [
-      { "name": "USER_0", "description": "Зритель без прав" },
-      { "name": "USER_1", "description": "Новичок" },
-      { "name": "USER_2", "description": "Продвинутый фанат" },
-      { "name": "CONSULTANT_PITANIE", "description": "Консультант по питанию" },
-      { "name": "CONSULTANT_SPORT", "description": "Консультант по спорту" },
-      { "name": "MODERATOR_ADMIN", "description": "Модератор/Админ" },
-      { "name": "DEVELOPER", "description": "Разработчик" },
-      { "name": "VYACHESLAV", "description": "Вячеслав" },
-      { "name": "SUPER_ADMIN", "description": "Главный Админ" }
-    ]
-  },
-  "users": [
-    {
-      "username": "user0",
-      "email": "user0@platform.com",
-      "firstName": "Зритель",
-      "lastName": "Без прав",
-      "enabled": true,
-      "credentials": [{ "type": "password", "value": "password" }],
-      "realmRoles": ["USER_0"]
-    },
-    {
-      "username": "user1",
-      "email": "user1@platform.com",
-      "firstName": "Новичок",
-      "lastName": "Пользователь",
-      "enabled": true,
-      "credentials": [{ "type": "password", "value": "password" }],
-      "realmRoles": ["USER_1"]
-    },
-    {
-      "username": "user2",
-      "email": "user2@platform.com",
-      "firstName": "Продвинутый",
-      "lastName": "Фанат",
-      "enabled": true,
-      "credentials": [{ "type": "password", "value": "password" }],
-      "realmRoles": ["USER_2"]
-    },
-    {
-      "username": "superadmin",
-      "email": "admin@platform.com",
-      "firstName": "Главный",
-      "lastName": "Админ",
-      "enabled": true,
-      "credentials": [{ "type": "password", "value": "admin123" }],
-      "realmRoles": ["SUPER_ADMIN", "VYACHESLAV"]
-    }
-  ],
+  "displayNameHtml": "<b>Platform</b> Auth",
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 3600,
+  "ssoSessionMaxLifespan": 604800,
   "clients": [
     {
       "clientId": "platform-frontend",
       "name": "Platform Frontend",
       "publicClient": true,
+      "redirectUris": [
+        "https://platform.local/*",
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "https://platform.local",
+        "http://localhost:3000"
+      ],
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": true,
-      "redirectUris": ["http://localhost:3000/*"],
-      "webOrigins": ["http://localhost:3000"]
+      "serviceAccountsEnabled": false
     },
     {
       "clientId": "platform-backend",
       "name": "Platform Backend",
-      "publicClient": false,
+      "secret": "backend-secret-2026",
       "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true,
+      "redirectUris": [],
+      "publicClient": false,
+      "standardFlowEnabled": false,
       "directAccessGrantsEnabled": true
     }
-  ]
+  ],
+  "users": [
+    {
+      "username": "superadmin",
+      "email": "super@platform.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Super",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "admin123", "temporary": false }],
+      "realmRoles": ["super_admin"]
+    },
+    {
+      "username": "moderator_admin",
+      "email": "moderator@platform.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Moderator",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "moderator123", "temporary": false }],
+      "realmRoles": ["moderator_admin"]
+    },
+    {
+      "username": "user2",
+      "email": "user2@platform.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "User",
+      "lastName": "Level 2",
+      "credentials": [{ "type": "password", "value": "password", "temporary": false }],
+      "realmRoles": ["user_2"]
+    },
+    {
+      "username": "user1",
+      "email": "user1@platform.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "User",
+      "lastName": "Level 1",
+      "credentials": [{ "type": "password", "value": "password", "temporary": false }],
+      "realmRoles": ["user_1"]
+    },
+    {
+      "username": "user0",
+      "email": "user0@platform.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "User",
+      "lastName": "Level 0",
+      "credentials": [{ "type": "password", "value": "password", "temporary": false }],
+      "realmRoles": ["user_0"]
+    },
+    {
+      "username": "consultant_pitanie",
+      "email": "pitanie@platform.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Consultant",
+      "lastName": "Nutrition",
+      "credentials": [{ "type": "password", "value": "pitanie123", "temporary": false }],
+      "realmRoles": ["consultant_pitanie"]
+    },
+    {
+      "username": "consultant_sport",
+      "email": "sport@platform.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Consultant",
+      "lastName": "Sport",
+      "credentials": [{ "type": "password", "value": "sport123", "temporary": false }],
+      "realmRoles": ["consultant_sport"]
+    },
+    {
+      "username": "developer",
+      "email": "dev@platform.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Developer",
+      "lastName": "Account",
+      "credentials": [{ "type": "password", "value": "dev123", "temporary": false }],
+      "realmRoles": ["developer"]
+    },
+    {
+      "username": "vyacheslav",
+      "email": "vyacheslav@platform.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Vyacheslav",
+      "lastName": "Timoshenko",
+      "credentials": [{ "type": "password", "value": "vyacheslav123", "temporary": false }],
+      "realmRoles": ["vyacheslav"]
+    }
+  ],
+  "roles": {
+    "realm": [
+      { "name": "user_0", "description": "Базовый пользователь (уровень 0)" },
+      { "name": "user_1", "description": "Пользователь уровень 1" },
+      { "name": "user_2", "description": "Пользователь уровень 2 (создатель контента)" },
+      { "name": "moderator_admin", "description": "Модератор / Администратор" },
+      { "name": "super_admin", "description": "Главный Администратор" },
+      { "name": "consultant_pitanie", "description": "Консультант по питанию" },
+      { "name": "consultant_sport", "description": "Консультант по спорту" },
+      { "name": "developer", "description": "Разработчик" },
+      { "name": "vyacheslav", "description": "Владелец платформы" }
+    ]
+  }
 }

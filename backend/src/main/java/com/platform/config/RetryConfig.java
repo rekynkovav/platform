@@ -7,6 +7,7 @@ import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.context.annotation.Bean;
 
+// Retry is handled by resilience4j — see ResilienceConfig.java
 @Configuration
 @EnableRetry
 public class RetryConfig {

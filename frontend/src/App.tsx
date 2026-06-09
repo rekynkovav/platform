@@ -30,32 +30,38 @@ function App() {
   const { hasLevel } = usePermissions();
 
   useEffect(() => {
+    let cancelled = false;
     const initAuth = async (retryCount = 0) => {
       const MAX_RETRIES = 3;
       const RETRY_DELAY = 2000;
 
       try {
         const auth = await initKeycloak();
-        setAuthenticated(auth);
-        if (auth) {
-          setUserRoles(getUserRoles());
-          setUsername(getUsername());
+        if (!cancelled) {
+          setAuthenticated(auth);
+          if (auth) {
+            setUserRoles(getUserRoles());
+            setUsername(getUsername());
+          }
         }
       } catch (error) {
         console.error('Auth init failed:', error);
 
-        if (retryCount < MAX_RETRIES) {
+        if (!cancelled && retryCount < MAX_RETRIES) {
           console.log(`Retrying... (${retryCount + 1}/${MAX_RETRIES})`);
           setTimeout(() => initAuth(retryCount + 1), RETRY_DELAY);
-        } else {
+        } else if (!cancelled) {
           console.error('Max retries reached. Auth failed.');
           setAuthError('Не удалось подключиться к серверу аутентификации. Проверьте подключение к интернету.');
         }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
     initAuth();
+    return () => { cancelled = true; };
   }, []);
 
   const handleLogout = (): void => {

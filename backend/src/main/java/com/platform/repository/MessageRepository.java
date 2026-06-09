@@ -74,4 +74,8 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     @Transactional
     @Query("UPDATE Message m SET m.createdAt = :createdAt WHERE m.id = :id")
     void updateCreatedAt(@Param("id") UUID id, @Param("createdAt") LocalDateTime createdAt);
+
+    @Modifying
+    @Query("DELETE FROM Message m WHERE m.roomId = :roomId AND m.recipientId = :questionId")
+    void deleteAnswersByRoomAndQuestionId(@Param("roomId") UUID roomId, @Param("questionId") UUID questionId);
 }

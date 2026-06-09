@@ -2,7 +2,6 @@ spring:
   application:
     name: platform-backend
   main:
-    allow-circular-references: true
     allow-bean-definition-overriding: true
   autoconfigure:
     exclude:
@@ -16,7 +15,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -24,16 +23,15 @@ spring:
     show-sql: false
 
   liquibase:
-    change-log: classpath:db/changelog/db.changelog-master.xml
-    enabled: true
+    enabled: false
 
   servlet:
     multipart:
-      max-file-size: 1GB
-      max-request-size: 1GB
+      max-file-size: 500MB
+      max-request-size: 500MB
 
   cache:
-    type: caffeine
+    type: redis
 
   security:
     oauth2:
@@ -70,10 +68,6 @@ app:
   storage:
     type: s3
 
-  encryption:
-    algorithm: AES/GCM/NoPadding
-    key-size: 256
-
   hls:
     enabled: true
     segment-duration: 10
@@ -82,7 +76,7 @@ app:
   media:
     encryption:
       master-key: ${MEDIA_ENCRYPTION_KEY:}
-      algorithm: "AES/CBC/PKCS5Padding"
+      algorithm: "AES/GCM/NoPadding"
 
 keycloak:
   auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080/auth}

@@ -8,6 +8,7 @@ import io.github.resilience4j.timelimiter.TimeLimiter;
 import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 @Service
@@ -28,6 +30,19 @@ public class ResilienceService {
     private final TimeLimiterRegistry timeLimiterRegistry;
     private final BulkheadRegistry bulkheadRegistry;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
+
+    @PreDestroy
+    public void shutdown() {
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
 
     // Метод для выполнения с Circuit Breaker
     public <T> T executeWithCircuitBreaker(String circuitBreakerName, Supplier<T> supplier) {
@@ -69,24 +84,6 @@ public class ResilienceService {
     public <T> T executeWithBulkhead(String bulkheadName, Supplier<T> supplier) {
         Bulkhead bulkhead = bulkheadRegistry.bulkhead(bulkheadName);
         return bulkhead.executeSupplier(supplier);
-    }
-
-    // Комплексный метод со всеми паттернами
-    public <T> T executeWithAllResiliencePatterns(
-            String circuitBreakerName,
-            String retryName,
-            String bulkheadName,
-            Supplier<T> supplier) {
-
-        Bulkhead bulkhead = bulkheadRegistry.bulkhead(bulkheadName);
-        Retry retry = retryRegistry.retry(retryName);
-        CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(circuitBreakerName);
-
-        Supplier<T> decoratedSupplier = CircuitBreaker.decorateSupplier(circuitBreaker, supplier);
-        decoratedSupplier = Retry.decorateSupplier(retry, decoratedSupplier);
-        decoratedSupplier = Bulkhead.decorateSupplier(bulkhead, decoratedSupplier);
-
-        return decoratedSupplier.get();
     }
 
     // Метод для получения статуса Circuit Breaker
@@ -133,13 +130,4 @@ public class ResilienceService {
         }
     }
 
-    // Метод для graceful fallback
-    public <T> T executeWithFallback(String circuitBreakerName, Supplier<T> supplier, Supplier<T> fallback) {
-        try {
-            return executeWithCircuitBreaker(circuitBreakerName, supplier);
-        } catch (Exception e) {
-            log.warn("Primary execution failed, using fallback for {}", circuitBreakerName, e);
-            return fallback.get();
-        }
-    }
 }

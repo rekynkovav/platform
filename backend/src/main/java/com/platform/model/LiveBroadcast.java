@@ -19,6 +19,7 @@ public class LiveBroadcast {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column()
     private UUID id;
 
     @Column(nullable = false)

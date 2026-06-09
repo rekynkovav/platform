@@ -22,6 +22,7 @@ public class Payment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column()
     private UUID id;
 
     @Column(name = "user_id", nullable = false)

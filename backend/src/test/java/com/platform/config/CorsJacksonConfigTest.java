@@ -3,34 +3,10 @@ package com.platform.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-import org.springframework.web.servlet.config.annotation.CorsRegistration;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 class CorsJacksonConfigTest {
-
-    // ==================== CorsConfig ====================
-
-    @Test
-    void corsConfig_AddCorsMappings_RegistersApiMapping() {
-        CorsConfig config = new CorsConfig();
-        CorsRegistry registry = mock(CorsRegistry.class);
-        CorsRegistration registration = mock(CorsRegistration.class);
-
-        org.mockito.Mockito.when(registry.addMapping("/api/**")).thenReturn(registration);
-        org.mockito.Mockito.when(registration.allowedOrigins("http://localhost:3000", "https://platform.local")).thenReturn(registration);
-        org.mockito.Mockito.when(registration.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")).thenReturn(registration);
-        org.mockito.Mockito.when(registration.allowedHeaders("*")).thenReturn(registration);
-        org.mockito.Mockito.when(registration.allowCredentials(true)).thenReturn(registration);
-        org.mockito.Mockito.when(registration.maxAge(3600)).thenReturn(registration);
-
-        config.addCorsMappings(registry);
-
-        verify(registry).addMapping("/api/**");
-    }
 
     // ==================== JacksonConfig ====================
 

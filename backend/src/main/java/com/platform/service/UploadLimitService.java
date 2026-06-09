@@ -33,4 +33,11 @@ public class UploadLimitService {
     public boolean checkStorageLimit(String userId, long fileSize, long currentUsage) {
         return currentUsage + fileSize <= STORAGE_LIMIT_BYTES;
     }
+
+    public boolean checkStorageLimit(String userId, long fileSize) {
+        String key = "upload_storage:" + userId;
+        String usageStr = redisTemplate.opsForValue().get(key);
+        long currentUsage = usageStr == null ? 0 : Long.parseLong(usageStr);
+        return currentUsage + fileSize <= STORAGE_LIMIT_BYTES;
+    }
 }

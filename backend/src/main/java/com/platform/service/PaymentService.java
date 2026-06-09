@@ -2,6 +2,8 @@ package com.platform.service;
 
 import com.platform.exception.ResourceNotFoundException;
 import com.platform.exception.BusinessException;
+import com.platform.exception.KeycloakException;
+import com.platform.exception.PaymentProcessingException;
 import com.platform.model.Payment;
 import com.platform.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
@@ -129,7 +131,6 @@ public class PaymentService {
             log.info("User role updated: {} -> USER_1", payment.getUserId());
         } catch (Exception e) {
             log.error("Failed to update user role in Keycloak", e);
-            throw new RuntimeException("Failed to update user role: " + e.getMessage());
         }
 
         log.info("Payment confirmed: {} by admin: {}", paymentId, adminId);

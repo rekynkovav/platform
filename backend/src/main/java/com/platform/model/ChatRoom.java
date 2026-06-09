@@ -19,6 +19,7 @@ public class ChatRoom {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column()
     private UUID id;
 
     @Column(nullable = false, unique = true, length = 100)

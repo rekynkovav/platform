@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 
 import java.util.List;
 
@@ -69,15 +70,15 @@ public class NotificationService {
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
-    /**
-     * Пометить как прочитанное
-     */
-    @CacheEvict(value = {"unreadNotifications", "allNotifications"}, key = "#notification.userId")
-    public void markAsRead(String notificationId) {
-        notificationRepository.findById(Long.parseLong(notificationId)).ifPresent(n -> {
-            n.setRead(true);
-            notificationRepository.save(n);
-        });
+    @Caching(evict = {
+        @CacheEvict(value = "unreadNotifications", key = "#notificationId"),
+        @CacheEvict(value = "allNotifications", key = "#notificationId")
+    })
+    public Notification markAsRead(String notificationId) {
+        Notification notification = notificationRepository.findById(Long.parseLong(notificationId))
+                .orElseThrow(() -> new RuntimeException("Notification not found: " + notificationId));
+        notification.setRead(true);
+        return notificationRepository.save(notification);
     }
 
     /**

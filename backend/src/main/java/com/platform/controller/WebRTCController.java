@@ -10,8 +10,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RestController
@@ -19,9 +21,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class WebRTCController {
 
-    // Ограничиваем размер хранилища для предотвращения DoS
-    private static final int MAX_SESSIONS = 1000;
-    private final Map<String, SdpSession> offerSessions = new ConcurrentHashMap<>();
+    private final Cache<String, SdpSession> offerSessions = Caffeine.newBuilder()
+        .maximumSize(1000)
+        .expireAfterWrite(1, TimeUnit.HOURS)
+        .build();
 
     @Data
     public static class OfferRequest {
@@ -46,13 +49,6 @@ public class WebRTCController {
 
         String userId = jwt.getSubject();
 
-        // Защита от переполнения памяти
-        if (offerSessions.size() >= MAX_SESSIONS) {
-            log.warn("WebRTC session limit reached for user {}", userId);
-            return ResponseEntity.status(503)
-                .body(Map.of("error", "Too many active sessions"));
-        }
-
         SdpSession session = new SdpSession();
         session.setUserId(userId);
         session.setSdp(offer.getSdp());
@@ -73,8 +69,7 @@ public class WebRTCController {
     public ResponseEntity<Map<String, String>> getIceCandidates(
             @PathVariable String broadcastId,
             @AuthenticationPrincipal Jwt jwt) {
-        // Проверка что сессия принадлежит пользователю
-        SdpSession session = offerSessions.get(broadcastId);
+        SdpSession session = offerSessions.getIfPresent(broadcastId);
         if (session == null || !session.getUserId().equals(jwt.getSubject())) {
             return ResponseEntity.status(403)
                 .body(Map.of("error", "Access denied"));

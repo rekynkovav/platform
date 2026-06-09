@@ -1,6 +1,5 @@
 global:
   resolve_timeout: 5m
-  slack_api_url: ""  # Заполнить при наличии Slack
 
 route:
   group_by: ['alertname', 'severity']

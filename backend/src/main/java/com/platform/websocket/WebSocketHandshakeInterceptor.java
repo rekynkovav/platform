@@ -28,7 +28,6 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                    WebSocketHandler wsHandler, Map<String, Object> attributes) {
 
-        // Приоритет 1: Заголовок Authorization
         HttpHeaders headers = request.getHeaders();
         List<String> authHeaders = headers.get("Authorization");
 
@@ -39,15 +38,6 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
             if (authHeader.startsWith("Bearer ")) {
                 token = authHeader.substring(7);
                 log.debug("Token extracted from Authorization header");
-            }
-        }
-
-        // Приоритет 2: Query parameter (fallback для совместимости)
-        if (token == null) {
-            String query = request.getURI().getQuery();
-            if (query != null && query.contains("token=")) {
-                token = query.split("token=")[1].split("&")[0];
-                log.warn("Token provided in query string - consider migrating to Authorization header");
             }
         }
 

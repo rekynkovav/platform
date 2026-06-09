@@ -282,7 +282,7 @@ public class ChatService {
 
         // Получаем все сообщения из комнаты (вопросы и ответы)
         List<Message> allMessages = messageRepository.findByRoomIdOrderByCreatedAtAsc(
-                room.getId(), PageRequest.of(0, 5000));
+                room.getId(), PageRequest.of(0, 100));
 
         // Разделяем на вопросы (без recipientId) и ответы (с recipientId)
         List<QuestionDto> questions = new ArrayList<>();
@@ -435,13 +435,7 @@ public class ChatService {
         }
 
         // Удаляем также все ответы на этот вопрос
-        List<Message> allInRoom = messageRepository.findByRoomIdOrderByCreatedAtAsc(
-                message.getRoomId(), PageRequest.of(0, 10000));
-        for (Message msg : allInRoom) {
-            if (questionUuid.equals(msg.getRecipientId())) {
-                messageRepository.delete(msg);
-            }
-        }
+        messageRepository.deleteAnswersByRoomAndQuestionId(message.getRoomId(), questionUuid);
 
         messageRepository.delete(message);
         log.info("Question {} deleted by user {}", questionId, userId);
@@ -469,31 +463,35 @@ public class ChatService {
             return chatRoomRepository.save(archivedRoom);
         });
 
-        List<Message> allMessages = messageRepository.findByRoomIdOrderByCreatedAtAsc(
-                room.getId(), PageRequest.of(0, 10000));
-
         LocalDateTime cutoff = LocalDateTime.now().minusHours(24);
         int archivedCount = 0;
+        int page = 0;
+        int batchSize = 100;
+        List<Message> batchMessages;
 
-        for (Message msg : allMessages) {
-            if (msg.getRecipientId() == null && msg.getCreatedAt() != null && msg.getCreatedAt().isBefore(cutoff)) {
-                // Проверяем есть ли ответ
-                boolean hasAnswer = allMessages.stream()
-                        .anyMatch(m -> msg.getId().equals(m.getRecipientId()));
-                if (hasAnswer) {
-                    msg.setRoomSlug(archivedRoomSlug);
-                    messageRepository.save(msg);
-                    // Переносим и ответы
-                    for (Message answer : allMessages) {
-                        if (msg.getId().equals(answer.getRecipientId())) {
-                            answer.setRoomSlug(archivedRoomSlug);
-                            messageRepository.save(answer);
+        do {
+            batchMessages = messageRepository.findByRoomIdOrderByCreatedAtAsc(
+                    room.getId(), PageRequest.of(page, batchSize));
+            page++;
+
+            for (Message msg : batchMessages) {
+                if (msg.getRecipientId() == null && msg.getCreatedAt() != null && msg.getCreatedAt().isBefore(cutoff)) {
+                    boolean hasAnswer = batchMessages.stream()
+                            .anyMatch(m -> msg.getId().equals(m.getRecipientId()));
+                    if (hasAnswer) {
+                        msg.setRoomSlug(archivedRoomSlug);
+                        messageRepository.save(msg);
+                        for (Message answer : batchMessages) {
+                            if (msg.getId().equals(answer.getRecipientId())) {
+                                answer.setRoomSlug(archivedRoomSlug);
+                                messageRepository.save(answer);
+                            }
                         }
+                        archivedCount++;
                     }
-                    archivedCount++;
                 }
             }
-        }
+        } while (batchMessages.size() >= batchSize);
 
         log.info("Archived {} answered questions for mode {}", archivedCount, mode);
         return archivedCount;

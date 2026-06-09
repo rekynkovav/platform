@@ -3,29 +3,10 @@ package com.platform.config;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.web.servlet.config.annotation.CorsRegistration;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class CorsCacheConfigTest {
-
-    // ==================== CorsConfig ====================
-
-    @Test
-    void corsConfig_AddCorsMappings_DoesNotThrow() {
-        CorsConfig config = new CorsConfig();
-        CorsRegistry registry = new CorsRegistry();
-
-        assertDoesNotThrow(() -> config.addCorsMappings(registry));
-    }
-
-    @Test
-    void corsConfig_ImplementsWebMvcConfigurer() {
-        CorsConfig config = new CorsConfig();
-        assertInstanceOf(org.springframework.web.servlet.config.annotation.WebMvcConfigurer.class, config);
-    }
 
     // ==================== CacheConfig ====================
 

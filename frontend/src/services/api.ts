@@ -267,7 +267,7 @@ export interface MediaFile {
 export const mediaApi = {
   upload: (file: File, onProgress?: UploadProgressCallback): Promise<MediaFile> =>
     api.upload('/media/upload', file, onProgress),
-  getStreamUrl: (id: string): string => `${API_URL}/media/stream/${id}`,
+  getStreamUrl: (id: string): Promise<{ url: string }> => api.get(`/media/stream/${id}`),
   delete: (id: string): Promise<void> => api.delete(`/media/${id}`)
 };
 

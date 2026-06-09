@@ -10,6 +10,7 @@ import com.platform.service.MetricsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.PingMessage;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -21,11 +22,14 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -41,12 +45,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private static final int MAX_SESSIONS_TOTAL = 100000;
     private static final int MAX_MESSAGES_PER_MINUTE = 60;
 
-    private final ExecutorService broadcastExecutor = Executors.newCachedThreadPool();
+    private final ExecutorService broadcastExecutor = new ThreadPoolExecutor(
+        4, 16, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue<>(500),
+        new ThreadPoolExecutor.CallerRunsPolicy());
 
     private final Map<String, Map<String, WebSocketSession>> roomSessions = new ConcurrentHashMap<>();
-    private final Map<String, WebSocketSession> userSessions = new ConcurrentHashMap<>();
+    private final Map<String, Set<WebSocketSession>> userSessions = new ConcurrentHashMap<>();
     private final Map<String, AtomicInteger> messageCounts = new ConcurrentHashMap<>();
-    private final Queue<PendingMessage> pendingMessages = new ConcurrentLinkedQueue<>();
+    private final Queue<PendingMessage> pendingMessages = new ArrayBlockingQueue<>(1000);
     private final ScheduledExecutorService retryExecutor = Executors.newScheduledThreadPool(2);
 
     private final Cache<String, Map<String, WebSocketSession>> roomSessionsCache = Caffeine.newBuilder()
@@ -56,14 +62,10 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        if (userSessions.size() >= MAX_SESSIONS_TOTAL) {
-            session.close(CloseStatus.SERVER_ERROR.withReason("Server at capacity"));
-            return;
-        }
-
         String userId = (String) session.getAttributes().get("userId");
         if (userId != null) {
-            userSessions.put(userId, session);
+            Set<WebSocketSession> sessions = userSessions.computeIfAbsent(userId, k -> new CopyOnWriteArraySet<>());
+            sessions.add(session);
         }
         log.info("WebSocket connected: {}, total sessions: {}", session.getId(), userSessions.size());
         if (metricsService != null) {
@@ -141,12 +143,41 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     public void sendNotificationToUser(String userId, Notification notification) {
-        WebSocketSession session = userSessions.get(userId);
-        if (session == null || !session.isOpen()) return;
+        Set<WebSocketSession> sessions = userSessions.get(userId);
+        if (sessions == null || sessions.isEmpty()) return;
 
         try {
             String json = objectMapper.writeValueAsString(notification);
-            session.sendMessage(new TextMessage(json));
+            TextMessage textMessage = new TextMessage(json);
+            for (WebSocketSession session : sessions) {
+                if (session.isOpen()) {
+                    try {
+                        session.sendMessage(textMessage);
+                    } catch (IOException e) {
+                        log.warn("Failed to send notification to session {}", session.getId());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to send notification to {}", userId);
+        }
+    }
+
+    public void sendNotificationToUser(String userId, String message) {
+        Set<WebSocketSession> sessions = userSessions.get(userId);
+        if (sessions == null || sessions.isEmpty()) return;
+
+        try {
+            TextMessage textMessage = new TextMessage(message);
+            for (WebSocketSession session : sessions) {
+                if (session.isOpen()) {
+                    try {
+                        session.sendMessage(textMessage);
+                    } catch (IOException e) {
+                        log.warn("Failed to send notification to session {}", session.getId());
+                    }
+                }
+            }
         } catch (Exception e) {
             log.error("Failed to send notification to {}", userId);
         }
@@ -156,7 +187,13 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         String userId = (String) session.getAttributes().get("userId");
         if (userId != null) {
-            userSessions.remove(userId);
+            Set<WebSocketSession> sessions = userSessions.get(userId);
+            if (sessions != null) {
+                sessions.remove(session);
+                if (sessions.isEmpty()) {
+                    userSessions.remove(userId);
+                }
+            }
         }
         roomSessions.values().forEach(map -> map.remove(session.getId()));
         log.info("WebSocket closed: {}, status: {}, active sessions: {}", session.getId(), status, userSessions.size());
@@ -169,22 +206,29 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     public void shutdown() {
         log.info("WebSocketHandler shutting down, closing {} user sessions", userSessions.size());
         broadcastExecutor.shutdown();
+        retryExecutor.shutdown();
         try {
             if (!broadcastExecutor.awaitTermination(30, TimeUnit.SECONDS)) {
                 broadcastExecutor.shutdownNow();
             }
+            if (!retryExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                retryExecutor.shutdownNow();
+            }
         } catch (InterruptedException e) {
             broadcastExecutor.shutdownNow();
+            retryExecutor.shutdownNow();
             Thread.currentThread().interrupt();
         }
 
-        for (WebSocketSession session : userSessions.values()) {
-            try {
-                if (session.isOpen()) {
-                    session.close(CloseStatus.GOING_AWAY);
+        for (Set<WebSocketSession> sessions : userSessions.values()) {
+            for (WebSocketSession session : sessions) {
+                try {
+                    if (session.isOpen()) {
+                        session.close(CloseStatus.GOING_AWAY);
+                    }
+                } catch (IOException e) {
+                    log.error("Error closing WebSocket session: {}", e.getMessage());
                 }
-            } catch (IOException e) {
-                log.error("Error closing WebSocket session: {}", e.getMessage());
             }
         }
         userSessions.clear();
@@ -201,9 +245,25 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Scheduled(fixedRate = 300000)
     public void cleanStaleSessions() {
         int before = userSessions.size();
-        userSessions.values().removeIf(s -> !s.isOpen());
+        userSessions.values().forEach(set -> set.removeIf(s -> !s.isOpen()));
+        userSessions.entrySet().removeIf(entry -> entry.getValue().isEmpty());
         roomSessions.values().forEach(map -> map.values().removeIf(s -> !s.isOpen()));
         log.info("Cleaned stale sessions: {} -> {}", before, userSessions.size());
+    }
+
+    @Scheduled(fixedRate = 30000)
+    public void sendHeartbeats() {
+        for (Set<WebSocketSession> sessions : userSessions.values()) {
+            for (WebSocketSession session : sessions) {
+                if (session.isOpen()) {
+                    try {
+                        session.sendMessage(new PingMessage());
+                    } catch (IOException e) {
+                        log.debug("Failed to send heartbeat to session {}", session.getId());
+                    }
+                }
+            }
+        }
     }
 
     private String getUserId(WebSocketSession session) {
@@ -253,7 +313,11 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             }
         } catch (IOException e) {
             if (attempt < 3) {
-                pendingMessages.offer(new PendingMessage(session, message, attempt + 1));
+                boolean offered = pendingMessages.offer(new PendingMessage(session, message, attempt + 1));
+                if (!offered) {
+                    log.warn("Pending message queue full, dropping retry for session: {}", session.getId());
+                    return;
+                }
                 retryExecutor.schedule(() -> processPendingMessages(),
                     (long) Math.pow(2, attempt) * 1000, TimeUnit.MILLISECONDS);
                 log.warn("Message delivery failed, scheduled retry {} for session: {}", attempt + 1, session.getId());
@@ -274,30 +338,19 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    @PreDestroy
-    public void cleanup() {
-        retryExecutor.shutdown();
-        try {
-            if (!retryExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
-                retryExecutor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            retryExecutor.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-    }
-
     public void closeUserSessions(String userId) {
-        // Закрыть все WebSocket сессии пользователя
-        userSessions.entrySet().stream()
-            .filter(entry -> entry.getKey().startsWith(userId + ":"))
-            .forEach(entry -> {
-                try {
-                    entry.getValue().close();
-                } catch (IOException e) {
-                    log.warn("Failed to close session for user {}: {}", userId, e.getMessage());
+        Set<WebSocketSession> sessions = userSessions.get(userId);
+        if (sessions == null) return;
+        for (WebSocketSession session : sessions) {
+            try {
+                if (session.isOpen()) {
+                    session.close(CloseStatus.GOING_AWAY);
                 }
-            });
+            } catch (IOException e) {
+                log.warn("Failed to close session for user {}: {}", userId, e.getMessage());
+            }
+        }
+        userSessions.remove(userId);
     }
 
     public boolean isHealthy() {

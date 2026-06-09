@@ -17,7 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -39,7 +41,8 @@ public class PostService {
         } else {
             posts = postRepository.findFeed(pageable);
         }
-        return posts.stream().map(post -> toDto(post, userId)).collect(Collectors.toList());
+        Set<String> likedPostIds = getLikedPostIds(posts, userId);
+        return posts.stream().map(post -> toDto(post, userId, likedPostIds)).collect(Collectors.toList());
     }
 
     /**
@@ -52,13 +55,21 @@ public class PostService {
         } else {
             posts = postRepository.findFeedByCategory(category, pageable);
         }
-        return posts.stream().map(post -> toDto(post, userId)).collect(Collectors.toList());
+        Set<String> likedPostIds = getLikedPostIds(posts, userId);
+        return posts.stream().map(post -> toDto(post, userId, likedPostIds)).collect(Collectors.toList());
     }
 
     public PostDto getPost(String postId, String userId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
-        return toDto(post, userId);
+        return toDto(post, userId, null);
+    }
+
+    private Set<String> getLikedPostIds(List<Post> posts, String userId) {
+        if (posts.isEmpty()) return Set.of();
+        List<String> postIds = posts.stream().map(Post::getId).collect(Collectors.toList());
+        List<String> likedIds = reactionRepository.findPostIdsByPostIdInAndUserIdAndType(postIds, userId, "like");
+        return new HashSet<>(likedIds);
     }
 
     @Transactional
@@ -86,7 +97,7 @@ public class PostService {
 
         post = postRepository.save(post);
         log.info("Post created: {} by {} in category {}", post.getId(), userId, post.getCategory());
-        return toDto(post, userId);
+        return toDto(post, userId, null);
     }
 
     @Transactional
@@ -108,7 +119,7 @@ public class PostService {
         post.setUpdatedAt(LocalDateTime.now());
         post = postRepository.save(post);
         log.info("Post updated: {} by {}", postId, userId);
-        return toDto(post, userId);
+        return toDto(post, userId, null);
     }
 
     @Transactional
@@ -148,8 +159,9 @@ public class PostService {
         }
     }
 
-    private PostDto toDto(Post post, String userId) {
-        boolean userLiked = reactionRepository.existsByPostIdAndUserIdAndType(post.getId(), userId, "like");
+    private PostDto toDto(Post post, String userId, Set<String> likedPostIds) {
+        boolean userLiked = likedPostIds != null ? likedPostIds.contains(post.getId())
+                : reactionRepository.existsByPostIdAndUserIdAndType(post.getId(), userId, "like");
         List<CommentDto> recentComments = commentService.getRecentComments(post.getId(), 3);
 
         return PostDto.builder()

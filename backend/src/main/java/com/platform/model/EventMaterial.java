@@ -27,6 +27,7 @@ public class EventMaterial {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column()
     private UUID id;
 
     /** Идентификатор раздела: about, important, interviews, beginners, reflections, participants, music, motivation, movies, results, challenge */

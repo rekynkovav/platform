@@ -14,7 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -36,8 +37,17 @@ public class ContactService {
             contacts = contactRepository.findByUserIdOrderByContactNameAsc(userId);
         }
 
+        Set<UUID> contactUserIds = contacts.stream()
+                .map(c -> UUID.fromString(c.getContactUserId()))
+                .collect(Collectors.toSet());
+
+        Map<UUID, User> userMap = userRepository.findAllById(contactUserIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        LocalDateTime now = LocalDateTime.now();
+
         return contacts.stream()
-                .map(this::toDto)
+                .map(c -> toDto(c, userMap, now))
                 .collect(Collectors.toList());
     }
 
@@ -63,7 +73,8 @@ public class ContactService {
         contact = contactRepository.save(contact);
         log.info("Contact added: {} -> {}", userId, contactUserId);
 
-        return toDto(contact);
+        Map<UUID, User> userMap = Map.of(contactUser.getId(), contactUser);
+        return toDto(contact, userMap, LocalDateTime.now());
     }
 
     @Transactional
@@ -94,33 +105,26 @@ public class ContactService {
 
         log.info("Contact nickname updated: {} -> {} by {}", contactId, nickname, userId);
 
-        return toDto(contact);
+        User contactUser = userRepository.findById(UUID.fromString(contact.getContactUserId())).orElse(null);
+        Map<UUID, User> userMap = contactUser != null ? Map.of(contactUser.getId(), contactUser) : Map.of();
+        return toDto(contact, userMap, LocalDateTime.now());
     }
 
-    private ContactDto toDto(Contact contact) {
+    private ContactDto toDto(Contact contact, Map<UUID, User> userMap, LocalDateTime now) {
+        User user = userMap.get(UUID.fromString(contact.getContactUserId()));
         return ContactDto.builder()
                 .id(contact.getId())
                 .userId(contact.getUserId())
                 .contactUserId(contact.getContactUserId())
                 .contactName(contact.getContactName())
-                .status(getUserStatus(contact.getContactUserId()))
-                .avatarUrl(getUserAvatar(contact.getContactUserId()))
+                .status(getUserStatus(user, now))
+                .avatarUrl(user != null ? user.getAvatarUrl() : null)
                 .createdAt(contact.getCreatedAt())
                 .build();
     }
 
-    private String getUserStatus(String userId) {
-        return userRepository.findById(UUID.fromString(userId))
-                .map(user -> {
-                    if (user.getLastActiveAt() == null) return "offline";
-                    return user.getLastActiveAt().isAfter(LocalDateTime.now().minusMinutes(5)) ? "online" : "offline";
-                })
-                .orElse("offline");
-    }
-
-    private String getUserAvatar(String userId) {
-        return userRepository.findById(UUID.fromString(userId))
-                .map(User::getAvatarUrl)
-                .orElse(null);
+    private static String getUserStatus(User user, LocalDateTime now) {
+        if (user == null || user.getLastActiveAt() == null) return "offline";
+        return user.getLastActiveAt().isAfter(now.minusMinutes(5)) ? "online" : "offline";
     }
 }

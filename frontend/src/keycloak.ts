@@ -22,6 +22,7 @@ let keycloakInstance: KeycloakInstance | null = null;
 let isInitialized = false;
 let userRoles: string[] = [];
 let username = '';
+let tokenRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
 export const initKeycloak = async (): Promise<boolean> => {
   if (isInitialized) return keycloakInstance?.authenticated || false;
@@ -42,12 +43,20 @@ export const initKeycloak = async (): Promise<boolean> => {
       }
       username = token?.preferred_username || token?.email || 'User';
 
-      // Обновление токена за 60 секунд до истечения
-      setInterval(() => {
+      if (tokenRefreshIntervalId) {
+        clearInterval(tokenRefreshIntervalId);
+      }
+
+      tokenRefreshIntervalId = setInterval(() => {
         keycloakInstance?.updateToken(30).catch(err => {
           console.error('Failed to refresh token', err);
         });
       }, 60000);
+
+      keycloakInstance.onTokenExpired = () => {
+        console.warn('Token expired, redirecting to login');
+        logout();
+      };
     }
 
     isInitialized = true;
@@ -76,6 +85,10 @@ export const login = (): void => {
 };
 
 export const logout = (): void => {
+  if (tokenRefreshIntervalId) {
+    clearInterval(tokenRefreshIntervalId);
+    tokenRefreshIntervalId = null;
+  }
   if (process.env.NODE_ENV === 'development') {
     localStorage.clear();
   }
