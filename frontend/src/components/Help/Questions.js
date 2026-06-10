@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FixedSizeList as List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { getUsername, getUserId } from '../../keycloak';
 import { chatApi } from '../../services/api';
 import './Questions.css';

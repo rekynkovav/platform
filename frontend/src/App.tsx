@@ -140,7 +140,7 @@ function App() {
     );
   }
 
-  const renderContent = (): JSX.Element => {
+  const renderContent = (): React.ReactNode => {
     switch (activeTab) {
       case 'main':
         return <MainFeed />;

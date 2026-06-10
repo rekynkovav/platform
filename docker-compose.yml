@@ -112,7 +112,7 @@ services:
       KEYCLOAK_RESOURCE: platform-backend
       KEYCLOAK_SECRET: ${KEYCLOAK_SECRET:-backend-secret-2026}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_pass}
-      MEDIA_ENCRYPTION_KEY: ${MEDIA_ENCRYPTION_KEY:?ERROR: MEDIA_ENCRYPTION_KEY must be set in .env}
+      MEDIA_ENCRYPTION_KEY: ${MEDIA_ENCRYPTION_KEY:?MEDIA_ENCRYPTION_KEY must be set}
       MEDIA_PATH: /app/uploads
       MEDIA_BASE_URL: https://platform.local/media
       RTMP_SERVER_URL: rtmp://rtmp:1935/live

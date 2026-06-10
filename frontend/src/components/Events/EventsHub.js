@@ -187,7 +187,7 @@ const EventsHub = () => {
     };
 
     // Отправка отзыва/предложения
-    const handleSendFeedback = () => {
+    const handleSendFeedback = async () => {
         if (!feedbackText.trim()) {
             alert('Введите ваш отзыв или предложение');
             return;

@@ -356,10 +356,14 @@ const NutritionFeed = () => {
             if (currentTrack?.id === postToDelete.id) {
                 stopTrack();
             }
-
-        setShowDeleteConfirm(false);
-        setPostToDelete(null);
-        forceUpdate(prev => prev + 1);
+        } catch (error) {
+            console.error('Ошибка удаления поста:', error);
+            alert('Не удалось удалить запись');
+        } finally {
+            setShowDeleteConfirm(false);
+            setPostToDelete(null);
+            forceUpdate(prev => prev + 1);
+        }
     };
 
     // Функция для отмены удаления
@@ -547,7 +551,6 @@ const NutritionFeed = () => {
             }
         };
         loadMenuData();
-    }, []);
     }, []);
 
     const saveMenuData = useCallback(async (data) => {

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { notificationApi } from '../../services/api';
 import './NotificationBell.css';
 
 const NotificationBell = () => {
@@ -47,65 +46,71 @@ const NotificationBell = () => {
         setError(null);
     };
 
-    const loadNotifications = async () => {
-        try {
-            const data = await notificationApi.getUserNotifications();
-            setNotifications(data);
-            setUnreadCount(data.filter(n => !n.read).length);
-        } catch (err) {
-            console.error('Ошибка загрузки уведомлений:', err);
-            setError('Не удалось загрузить уведомления');
+    const loadNotifications = () => {
+        const saved = localStorage.getItem('userNotifications');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                setNotifications(parsed);
+                setUnreadCount(parsed.filter(n => !n.read).length);
+            } catch (e) {
+                console.error('Ошибка загрузки уведомлений:', e);
+                localStorage.removeItem('userNotifications');
+                setNotifications([]);
+                setUnreadCount(0);
+                setError('Не удалось загрузить уведомления. Данные повреждены.');
+            }
         }
     };
 
-    const saveNotifications = async (notifs) => {
-        try {
-            // Обновляем уведомления на сервере
-            await notificationApi.updateNotifications(notifs);
-            setNotifications(notifs);
-            setUnreadCount(notifs.filter(n => !n.read).length);
-        } catch (err) {
-            console.error('Ошибка сохранения уведомлений:', err);
-            setError('Не удалось сохранить уведомления');
-        }
+    const saveNotifications = (notifs) => {
+        localStorage.setItem('userNotifications', JSON.stringify(notifs));
+        setNotifications(notifs);
+        setUnreadCount(notifs.filter(n => !n.read).length);
     };
 
-    const checkUpcomingEvents = async () => {
-        try {
-            const events = await notificationApi.getUpcomingEvents();
-            const now = new Date();
-            const existingNotifs = notifications;
+    const checkUpcomingEvents = () => {
+        const savedEvents = localStorage.getItem('scheduledEvents');
+        if (!savedEvents) return;
 
-            events.forEach(event => {
-                const eventDate = new Date(`${event.date}T${event.time || '00:00'}`);
-                const timeDiff = eventDate - now;
-                const hoursLeft = timeDiff / (1000 * 60 * 60);
+        const events = JSON.parse(savedEvents);
+        const now = new Date();
+        const saved = localStorage.getItem('userNotifications');
+        const existingNotifs = saved ? JSON.parse(saved) : [];
 
-                if (hoursLeft <= 24 && hoursLeft > 0) {
-                    const notificationId = `event-24h-${event.id}`;
-                    const exists = existingNotifs.some(n => n.id === notificationId);
+        const shownEventNotifications = localStorage.getItem('shownEventNotifications');
+        const shownNotifs = shownEventNotifications ? JSON.parse(shownEventNotifications) : [];
 
-                    if (!exists) {
-                        const newNotif = {
-                            id: notificationId,
-                            type: 'event',
-                            title: 'Скоро событие!',
-                            message: `"${event.title}" начнется через ${Math.floor(hoursLeft)} ч`,
-                            timestamp: new Date().toISOString(),
+        events.forEach(event => {
+            const eventDate = new Date(`${event.date}T${event.time || '00:00'}`);
+            const timeDiff = eventDate - now;
+            const hoursLeft = timeDiff / (1000 * 60 * 60);
+
+            if (hoursLeft <= 24 && hoursLeft > 0) {
+                const notificationId = `event-24h-${event.id}`;
+                const alreadyShown = shownNotifs.includes(notificationId);
+                const exists = existingNotifs.some(n => n.id === notificationId);
+
+                if (!exists && !alreadyShown) {
+                    const newNotif = {
+                        id: notificationId,
+                        type: 'event',
+                        title: 'Скоро событие!',
+                        message: `"${event.title}" начнется через ${Math.floor(hoursLeft)} ч`,
+                        timestamp: new Date().toISOString(),
                         read: false,
                         eventId: event.id
                     };
                     const updated = [newNotif, ...existingNotifs];
                     saveNotifications(updated);
 
-                        const updated = [newNotif, ...notifications];
-                        saveNotifications(updated);
-                    }
+                    const updatedShown = [...shownNotifs, notificationId];
+                    localStorage.setItem('shownEventNotifications', JSON.stringify(updatedShown));
                 }
-            });
-        } catch (err) {
-            console.error('Ошибка проверки событий:', err);
-        }
+            }
+        });
+
+        cleanupShownNotifications();
     };
 
     const handleNewAdminReply = (event) => {
@@ -126,22 +131,16 @@ const NotificationBell = () => {
     };
 
     const cleanupShownNotifications = () => {
-        const shownEventNotifications = process.env.NODE_ENV === 'development'
-            ? sessionStorage.getItem('shownEventNotifications')
-            : null;
+        const shownEventNotifications = localStorage.getItem('shownEventNotifications');
         if (!shownEventNotifications) return;
 
         const shownNotifs = JSON.parse(shownEventNotifications);
         const now = new Date();
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-        const savedEvents = process.env.NODE_ENV === 'development'
-            ? sessionStorage.getItem('scheduledEvents')
-            : null;
+        const savedEvents = localStorage.getItem('scheduledEvents');
         if (!savedEvents) {
-            if (process.env.NODE_ENV === 'development') {
-                sessionStorage.setItem('shownEventNotifications', JSON.stringify([]));
-            }
+            localStorage.setItem('shownEventNotifications', JSON.stringify([]));
             return;
         }
 
@@ -155,22 +154,15 @@ const NotificationBell = () => {
             const event = events.find(e => e.id === parseInt(eventId));
             if (!event) return false;
 
-                const eventDate = new Date(`${event.date}T${event.time || '00:00'}`);
-                return eventDate > sevenDaysAgo;
-            });
+            const eventDate = new Date(`${event.date}T${event.time || '00:00'}`);
+            return eventDate > sevenDaysAgo;
+        });
 
-            if (cleanedNotifications.length !== notifications.length) {
-                saveNotifications(cleanedNotifications);
-            }
-        } catch (err) {
-            console.error('Ошибка очистки уведомлений:', err);
-        }
+        localStorage.setItem('shownEventNotifications', JSON.stringify(cleanedNotifs));
     };
 
-    const checkQuestionNotifications = async () => {
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
+    const checkQuestionNotifications = () => {
+        const demoRole = localStorage.getItem('demoRole');
 
         const isGeneralAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER';
         const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
@@ -178,10 +170,11 @@ const NotificationBell = () => {
         const isSuperAdmin = demoRole === 'SUPER_ADMIN';
         const isUser = demoRole === 'USER_0' || demoRole === 'USER_1' || demoRole === 'USER_2';
 
-        const existingNotifs = notifications;
+        const saved = localStorage.getItem('userNotifications');
+        let existingNotifs = saved ? JSON.parse(saved) : [];
 
-        try {
-            const allQuestions = await notificationApi.getUnansweredQuestions();
+        const allQuestionsKey = 'allQuestions';
+        const allQuestions = JSON.parse(localStorage.getItem(allQuestionsKey) || '[]');
 
         if (isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) {
             let myUnansweredQuestions = [];
@@ -232,7 +225,11 @@ const NotificationBell = () => {
         }
 
         if (isUser) {
+            const currentUser = localStorage.getItem('username') || demoRole;
             const currentRoleId = demoRole;
+
+            const shownContentKey = `shownContent_${currentRoleId}`;
+            const shownContent = JSON.parse(localStorage.getItem(shownContentKey) || '{"answers":[],"posts":[],"nutritionPosts":[],"events":[],"streams":[]}');
 
             const myAnsweredQuestions = allQuestions.filter(q =>
                 q.authorId === currentRoleId &&
@@ -243,8 +240,9 @@ const NotificationBell = () => {
             myAnsweredQuestions.forEach(q => {
                 const notifId = `answer_${q.id}`;
                 const exists = existingNotifs.some(n => n.id === notifId);
+                const alreadyShown = shownContent.answers.includes(q.id);
 
-                if (!exists) {
+                if (!exists && !alreadyShown) {
                     const modeLabel = q.mode === 'general' ? 'Общий' : q.mode === 'nutrition' ? 'Питание' : 'Вячеславу';
                     existingNotifs.unshift({
                         id: notifId,
@@ -256,51 +254,57 @@ const NotificationBell = () => {
                         questionId: q.id,
                         mode: q.mode
                     });
+
+                    shownContent.answers.push(q.id);
                 }
             });
 
             if (demoRole === 'USER_1' || demoRole === 'USER_2' || demoRole === 'VYACHESLAV') {
-                try {
-                    const newPosts = await notificationApi.getNewPosts();
-                    newPosts.forEach(post => {
-                        const notifId = `post_${post.id}`;
-                        const exists = existingNotifs.some(n => n.id === notifId);
+                const mainPosts = JSON.parse(localStorage.getItem('mainFeedPosts') || '[]');
+                mainPosts.forEach(post => {
+                    const alreadyShown = shownContent.posts.includes(post.id);
+                    const notifId = `post_${post.id}`;
+                    const exists = existingNotifs.some(n => n.id === notifId);
 
-                        if (!exists) {
-                            existingNotifs.unshift({
-                                id: notifId,
-                                type: 'new-post',
-                                title: 'Новая запись',
-                                message: post.title || 'Добавлена новая запись в ленту',
-                                timestamp: new Date().toISOString(),
-                                read: false
-                            });
-                        }
-                    });
+                    if (!exists && !alreadyShown) {
+                        existingNotifs.unshift({
+                            id: notifId,
+                            type: 'new-post',
+                            title: 'Новая запись',
+                            message: post.title || 'Добавлена новая запись в ленту',
+                            timestamp: new Date().toISOString(),
+                            read: false
+                        });
+                        shownContent.posts.push(post.id);
+                    }
+                });
 
-                    const newNutritionPosts = await notificationApi.getNewNutritionPosts();
-                    newNutritionPosts.forEach(post => {
-                        const notifId = `nutrition_post_${post.id}`;
-                        const exists = existingNotifs.some(n => n.id === notifId);
+                const nutritionPosts = JSON.parse(localStorage.getItem('nutritionFeedPosts') || '[]');
+                nutritionPosts.forEach(post => {
+                    const alreadyShown = shownContent.nutritionPosts.includes(post.id);
+                    const notifId = `nutrition_post_${post.id}`;
+                    const exists = existingNotifs.some(n => n.id === notifId);
 
-                        if (!exists) {
-                            existingNotifs.unshift({
-                                id: notifId,
-                                type: 'new-nutrition-post',
-                                title: 'Новая запись (Питание)',
-                                message: post.title || 'Добавлена новая запись в ленту питания',
-                                timestamp: new Date().toISOString(),
-                                read: false
-                            });
-                        }
-                    });
+                    if (!exists && !alreadyShown) {
+                        existingNotifs.unshift({
+                            id: notifId,
+                            type: 'new-nutrition-post',
+                            title: 'Новая запись (Питание)',
+                            message: post.title || 'Добавлена новая запись в ленту питания',
+                            timestamp: new Date().toISOString(),
+                            read: false
+                        });
+                        shownContent.nutritionPosts.push(post.id);
+                    }
+                });
 
-                    const newEvents = await notificationApi.getNewEvents();
-                    newEvents.forEach(event => {
-                        const notifId = `event_${event.id}`;
-                        const exists = existingNotifs.some(n => n.id === notifId);
+                const events = JSON.parse(localStorage.getItem('scheduledEvents') || '[]');
+                events.forEach(event => {
+                    const alreadyShown = shownContent.events.includes(event.id);
+                    const notifId = `event_${event.id}`;
+                    const exists = existingNotifs.some(n => n.id === notifId);
 
-                        if (!exists) {
+                    if (!exists && !alreadyShown) {
                         existingNotifs.unshift({
                             id: notifId,
                             type: 'new-event',
@@ -309,21 +313,18 @@ const NotificationBell = () => {
                             timestamp: new Date().toISOString(),
                             read: false
                         });
+                        shownContent.events.push(event.id);
                     }
                 });
-            } catch (err) {
-                console.error('Ошибка загрузки нового контента:', err);
             }
+
+            localStorage.setItem(shownContentKey, JSON.stringify(shownContent));
         }
 
-        // Сохраняем обновленные уведомления
-        if (existingNotifs.length !== notifications.length) {
+        if (JSON.stringify(existingNotifs) !== saved) {
             saveNotifications(existingNotifs);
         }
-    } catch (err) {
-        console.error('Ошибка проверки вопросов:', err);
-    }
-};
+    };
 
     const markAsRead = (id) => {
         const updated = notifications.map(n =>

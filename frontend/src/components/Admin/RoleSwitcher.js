@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './RoleSwitcher.css';
 import { ROLES, ROLE_LABELS, ROLE_ICONS } from '../../constants/roles';
 import { demoApi } from '../../services/api';
+import { getUserRoles } from '../../keycloak';
 
 const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'development';
 

@@ -7,7 +7,8 @@
           content="default-src 'self';
                    script-src 'self' 'unsafe-inline' https://auth.platform.local;
                    style-src 'self' 'unsafe-inline';
-                   connect-src 'self' wss://api.platform.local https://api.platform.local;
+                   connect-src 'self' http://localhost:8081 https://auth.platform.local wss://api.platform.local https://api.platform.local;
+                   frame-src 'self' https://auth.platform.local;
                    img-src 'self' data: https:;
                    font-src 'self' data:;">
     <title>Platform</title>
