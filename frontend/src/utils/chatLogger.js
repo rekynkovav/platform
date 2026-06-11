@@ -40,7 +40,7 @@ class ChatLogger {
             }
 
             // Также пишем в консоль для отладки
-            console.log('[ChatLogger] Content added:', logEntry);
+            // console.log('[ChatLogger] Content added:', logEntry);
 
         } catch (error) {
             console.error('[ChatLogger] Error logging content:', error);
@@ -152,7 +152,7 @@ class ChatLogger {
         if (process.env.NODE_ENV === 'development') {
             sessionStorage.removeItem(this.logKey);
         }
-        console.log('[ChatLogger] Logs cleared');
+        // console.log('[ChatLogger] Logs cleared');
     }
 
     /**
@@ -181,7 +181,7 @@ class ChatLogger {
         if (process.env.NODE_ENV === 'development') {
             sessionStorage.setItem('chat_logger_enabled', enabled.toString());
         }
-        console.log(`[ChatLogger] Logging ${enabled ? 'enabled' : 'disabled'}`);
+        // console.log(`[ChatLogger] Logging ${enabled ? 'enabled' : 'disabled'}`);
     }
 
     /**

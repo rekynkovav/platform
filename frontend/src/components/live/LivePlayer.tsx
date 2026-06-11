@@ -130,7 +130,7 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('[LivePlayer] HLS манифест загружен');
+        // console.log('[LivePlayer] HLS манифест загружен');
         setIsLoading(false);
         if (onReady) onReady();
 
@@ -141,12 +141,12 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
       });
 
       hls.on(Hls.Events.LEVEL_LOADED, (event, data) => {
-        console.log('[LivePlayer] Уровень качества загружен:', data.level);
+        // console.log('[LivePlayer] Уровень качества загружен:', data.level);
         updateAvailableQualities(hls.levels);
       });
 
       hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
-        console.log('[LivePlayer] Качество переключено:', data.level);
+        // console.log('[LivePlayer] Качество переключено:', data.level);
         if (hls.levels[data.level]) {
           const quality = getQualityFromLevel(hls.levels[data.level]);
           setCurrentQuality(quality);
@@ -227,7 +227,7 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
       }
       initHls(stream.url);
 
-      console.log(`[LivePlayer] Качество переключено на: ${quality}`);
+      // console.log(`[LivePlayer] Качество переключено на: ${quality}`);
     } catch (err) {
       console.error('[LivePlayer] Ошибка переключения качества:', err);
       setError(err instanceof Error ? err.message : 'Ошибка переключения качества');
@@ -311,8 +311,8 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
     const stream = getStream();
     if (!stream) return;
 
-    console.log('[LivePlayer] Инициализация плеера для трансляции:', broadcast.id);
-    console.log('[LivePlayer] URL потока:', stream.url);
+    // console.log('[LivePlayer] Инициализация плеера для трансляции:', broadcast.id);
+    // console.log('[LivePlayer] URL потока:', stream.url);
 
     initHls(stream.url);
 

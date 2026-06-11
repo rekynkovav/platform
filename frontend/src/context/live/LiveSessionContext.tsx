@@ -263,7 +263,7 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
         }),
 
         mockWebSocket.subscribe('SYSTEM_MESSAGE', (data) => {
-          console.log('[LiveSession] System message:', data);
+          // console.log('[LiveSession] System message:', data);
         })
       ];
 
@@ -302,7 +302,7 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
         mockLiveApi.simulateViewerJoin(broadcastId);
       }
 
-      console.log(`[LiveSession] Подключено к трансляции ${broadcastId}`);
+      // console.log(`[LiveSession] Подключено к трансляции ${broadcastId}`);
     } catch (error) {
       console.error('[LiveSession] Ошибка подключения к трансляции:', error);
       dispatch({ type: 'SET_WS_CONNECTION', payload: false });
@@ -322,7 +322,7 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
       // Отключаем WebSocket
       mockWebSocket.disconnect(state.broadcast.id);
 
-      console.log(`[LiveSession] Отключено от трансляции ${state.broadcast.id}`);
+      // console.log(`[LiveSession] Отключено от трансляции ${state.broadcast.id}`);
     }
 
     dispatch({ type: 'RESET_SESSION' });
@@ -390,7 +390,7 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
         dispatch({ type: 'SET_STATUS', payload: 'live' });
       }, 2000);
 
-      console.log('[LiveSession] Трансляция начата:', response.broadcast.id);
+      // console.log('[LiveSession] Трансляция начата:', response.broadcast.id);
 
     } catch (error) {
       console.error('[LiveSession] Ошибка начала трансляции:', error);
@@ -411,7 +411,7 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
         disconnectFromBroadcast();
       }, 3000);
 
-      console.log('[LiveSession] Трансляция остановлена:', state.broadcast.id);
+      // console.log('[LiveSession] Трансляция остановлена:', state.broadcast.id);
 
     } catch (error) {
       console.error('[LiveSession] Ошибка остановки трансляции:', error);

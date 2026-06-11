@@ -49,8 +49,8 @@ const EventsHub = () => {
     const currentUser = getUsername();
 
     // Отладка: выводим роль и статус админа
-    console.log('[EventsHub] demoRole:', demoRole);
-    console.log('[EventsHub] isAdmin:', isAdmin);
+    // console.log('[EventsHub] demoRole:', demoRole);
+    // console.log('[EventsHub] isAdmin:', isAdmin);
 
     // Загрузка аудио файлов из папки
     useEffect(() => {

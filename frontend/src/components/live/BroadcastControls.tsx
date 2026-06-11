@@ -144,7 +144,7 @@ export const BroadcastControls: React.FC<BroadcastControlsProps> = ({
     try {
       const stream = mediaService.switchQuality(broadcast.id, quality);
       setSelectedQuality(quality);
-      console.log(`[BroadcastControls] Качество переключено на: ${quality}`, stream);
+      // console.log(`[BroadcastControls] Качество переключено на: ${quality}`, stream);
     } catch (error) {
       console.error('[BroadcastControls] Ошибка переключения качества:', error);
     }

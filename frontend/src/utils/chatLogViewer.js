@@ -19,28 +19,28 @@ class ChatLogViewer {
     showStats() {
         const stats = chatLogger.getStats();
 
-        console.log('%c📊 СТАТИСТИКА ДОБАВЛЕНИЯ КОНТЕНТА В ЧАТ', 'font-size: 16px; font-weight: bold; color: #9333ea;');
-        console.log('='.repeat(50));
+        // console.log('%c📊 СТАТИСТИКА ДОБАВЛЕНИЯ КОНТЕНТА В ЧАТ', 'font-size: 16px; font-weight: bold; color: #9333ea;');
+        // console.log('='.repeat(50));
 
-        console.log(`📈 Всего записей: ${stats.total}`);
-        console.log(`⏰ За последние 24 часа: ${stats.last24Hours}`);
+        // console.log(`📈 Всего записей: ${stats.total}`);
+        // console.log(`⏰ За последние 24 часа: ${stats.last24Hours}`);
 
-        console.log('\n📋 По типу контента:');
+        // console.log('\n📋 По типу контента:');
         Object.entries(stats.byContentType).forEach(([type, count]) => {
-            console.log(`  ${this.getContentTypeIcon(type)} ${type}: ${count}`);
+            // console.log(`  ${this.getContentTypeIcon(type)} ${type}: ${count}`);
         });
 
-        console.log('\n💬 По типу чата:');
+        // console.log('\n💬 По типу чата:');
         Object.entries(stats.byChatType).forEach(([type, count]) => {
-            console.log(`  ${this.getChatTypeIcon(type)} ${type}: ${count}`);
+            // console.log(`  ${this.getChatTypeIcon(type)} ${type}: ${count}`);
         });
 
-        console.log('\n👤 По роли пользователя:');
+        // console.log('\n👤 По роли пользователя:');
         Object.entries(stats.byUserRole).forEach(([role, count]) => {
-            console.log(`  ${this.getUserRoleIcon(role)} ${role}: ${count}`);
+            // console.log(`  ${this.getUserRoleIcon(role)} ${role}: ${count}`);
         });
 
-        console.log('='.repeat(50));
+        // console.log('='.repeat(50));
     }
 
     /**
@@ -50,19 +50,19 @@ class ChatLogViewer {
         const logs = chatLogger.getLogs();
         const recentLogs = logs.slice(0, count);
 
-        console.log('%c📝 ПОСЛЕДНИЕ ЗАПИСИ ЛОГА', 'font-size: 16px; font-weight: bold; color: #9333ea;');
-        console.log('='.repeat(50));
+        // console.log('%c📝 ПОСЛЕДНИЕ ЗАПИСИ ЛОГА', 'font-size: 16px; font-weight: bold; color: #9333ea;');
+        // console.log('='.repeat(50));
 
         if (recentLogs.length === 0) {
-            console.log('📭 Логи отсутствуют');
+            // console.log('📭 Логи отсутствуют');
             return;
         }
 
         recentLogs.forEach((log, index) => {
-            console.log(`\n${index + 1}. ${this.formatLogEntry(log)}`);
+            // console.log(`\n${index + 1}. ${this.formatLogEntry(log)}`);
         });
 
-        console.log('='.repeat(50));
+        // console.log('='.repeat(50));
     }
 
     /**
@@ -71,20 +71,20 @@ class ChatLogViewer {
     showAllLogs() {
         const logs = chatLogger.getLogs();
 
-        console.log('%c📚 ВСЕ ЗАПИСИ ЛОГА', 'font-size: 16px; font-weight: bold; color: #9333ea;');
-        console.log(`Всего записей: ${logs.length}`);
-        console.log('='.repeat(50));
+        // console.log('%c📚 ВСЕ ЗАПИСИ ЛОГА', 'font-size: 16px; font-weight: bold; color: #9333ea;');
+        // console.log(`Всего записей: ${logs.length}`);
+        // console.log('='.repeat(50));
 
         if (logs.length === 0) {
-            console.log('📭 Логи отсутствуют');
+            // console.log('📭 Логи отсутствуют');
             return;
         }
 
         logs.forEach((log, index) => {
-            console.log(`\n${index + 1}. ${this.formatLogEntry(log)}`);
+            // console.log(`\n${index + 1}. ${this.formatLogEntry(log)}`);
         });
 
-        console.log('='.repeat(50));
+        // console.log('='.repeat(50));
     }
 
     /**
@@ -92,7 +92,7 @@ class ChatLogViewer {
      */
     exportLogs() {
         chatLogger.exportLogs();
-        console.log('%c💾 Логи экспортированы в файл', 'color: #28a745; font-weight: bold;');
+        // console.log('%c💾 Логи экспортированы в файл', 'color: #28a745; font-weight: bold;');
     }
 
     /**
@@ -101,7 +101,7 @@ class ChatLogViewer {
     clearLogs() {
         if (confirm('Очистить все логи? Это действие нельзя отменить.')) {
             chatLogger.clearLogs();
-            console.log('%c🗑️ Логи очищены', 'color: #dc3545; font-weight: bold;');
+            // console.log('%c🗑️ Логи очищены', 'color: #dc3545; font-weight: bold;');
         }
     }
 
@@ -111,7 +111,7 @@ class ChatLogViewer {
     toggleLogging() {
         const enabled = !chatLogger.isEnabled();
         chatLogger.setEnabled(enabled);
-        console.log(`%c${enabled ? '✅' : '❌'} Логирование ${enabled ? 'включено' : 'выключено'}`,
+        // console.log(`%c${enabled ? '✅' : '❌'} Логирование ${enabled ? 'включено' : 'выключено'}`,
                    `color: ${enabled ? '#28a745' : '#dc3545'}; font-weight: bold;`);
     }
 
@@ -205,16 +205,16 @@ class ChatLogViewer {
      * Показать справку по командам
      */
     showHelp() {
-        console.log('%c🆘 СПРАВКА ПО КОМАНДАМ ЛОГГЕРА', 'font-size: 16px; font-weight: bold; color: #9333ea;');
-        console.log('='.repeat(50));
-        console.log('📊 chatLogViewer.showStats()      - Показать статистику');
-        console.log('📝 chatLogViewer.showRecentLogs() - Показать последние 10 записей');
-        console.log('📚 chatLogViewer.showAllLogs()    - Показать все записи');
-        console.log('💾 chatLogViewer.exportLogs()     - Экспортировать логи в файл');
-        console.log('🗑️ chatLogViewer.clearLogs()      - Очистить все логи');
-        console.log('🔧 chatLogViewer.toggleLogging()  - Включить/выключить логирование');
-        console.log('🆘 chatLogViewer.showHelp()       - Показать эту справку');
-        console.log('='.repeat(50));
+        // console.log('%c🆘 СПРАВКА ПО КОМАНДАМ ЛОГГЕРА', 'font-size: 16px; font-weight: bold; color: #9333ea;');
+        // console.log('='.repeat(50));
+        // console.log('📊 chatLogViewer.showStats()      - Показать статистику');
+        // console.log('📝 chatLogViewer.showRecentLogs() - Показать последние 10 записей');
+        // console.log('📚 chatLogViewer.showAllLogs()    - Показать все записи');
+        // console.log('💾 chatLogViewer.exportLogs()     - Экспортировать логи в файл');
+        // console.log('🗑️ chatLogViewer.clearLogs()      - Очистить все логи');
+        // console.log('🔧 chatLogViewer.toggleLogging()  - Включить/выключить логирование');
+        // console.log('🆘 chatLogViewer.showHelp()       - Показать эту справку');
+        // console.log('='.repeat(50));
     }
 }
 

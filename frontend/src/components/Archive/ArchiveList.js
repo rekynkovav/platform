@@ -66,10 +66,10 @@ const ArchiveList = () => {
     const [error, setError] = useState(null);
 
     // Отладка
-    console.log('[ArchiveList] demoRole:', demoRole);
-    console.log('[ArchiveList] isAdmin:', isAdmin);
-    console.log('[ArchiveList] canEdit:', canEdit);
-    console.log('[ArchiveList] canDownload:', canDownload);
+    // console.log('[ArchiveList] demoRole:', demoRole);
+    // console.log('[ArchiveList] isAdmin:', isAdmin);
+    // console.log('[ArchiveList] canEdit:', canEdit);
+    // console.log('[ArchiveList] canDownload:', canDownload);
 
     useEffect(() => {
         loadBroadcasts();

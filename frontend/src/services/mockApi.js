@@ -6,13 +6,13 @@ const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
 export const mockAuth = {
     init: async () => {
         await delay(500);
-        console.log('✅ Мок-авторизация: успешный вход');
+        // console.log('✅ Мок-авторизация: успешный вход');
         return true;
     },
     getUsername: () => mockUser.username,
     getUserRoles: () => mockUser.roles,
     logout: () => {
-        console.log('🚪 Мок-выход из системы');
+        // console.log('🚪 Мок-выход из системы');
         window.location.reload();
     }
 };
