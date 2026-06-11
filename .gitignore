@@ -1,80 +1,61 @@
-HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# Testing
+coverage/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# Production
 build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+dist/
 
-### VS Code ###
-.vscode/
-f r o n t e n d / p u b l i c / a u d i o / * . m p 3 
-
-# === GODMODE additions — Security & AI ===
-# Secrets
+# Environment
 .env
 .env.local
-.env.*.local
-.env.docker
-*.key
-*.pem
-*.pfx
-.p12
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Qwen Code
-.qwen/trustedFolders.json
-.qwen/tmp/
-.qwen/logs/
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Prompt Injection Protection
-.cursorrules
-.vscode/tasks.json
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Yandex Cloud secrets
-terraform.tfvars
-*.auto.tfvars
-.terraform/
+# OS
+.DS_Store
+Thumbs.db
 
-# WebRTC recordings
-recordings/
-*.webm
-*.mkv
- 
-node_modules/
-.cache/
-frontend/node_modules/.cache/
-# AI Free module (independent repo)
-ai-free/
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+
+# Cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Build artifacts
+target/
+*.class
+*.jar
+
+# Docker
+.docker/
+
+# Aider
 .aider*
-.env
-.env
-.env
-.env
-.env
-.env
-.env
-.env
-.env
+.opencode/
+
+# Maven
+.mvn/
