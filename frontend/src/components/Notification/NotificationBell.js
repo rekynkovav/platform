@@ -126,8 +126,11 @@ const NotificationBell = () => {
             questionId
         };
 
-        const updated = [newNotif, ...notifications];
-        saveNotifications(updated);
+        setNotifications(prev => {
+            const updated = [newNotif, ...prev];
+            saveNotifications(updated);
+            return updated;
+        });
     };
 
     const cleanupShownNotifications = () => {
@@ -162,7 +165,7 @@ const NotificationBell = () => {
     };
 
     const checkQuestionNotifications = () => {
-        const demoRole = localStorage.getItem('demoRole');
+        const demoRole = sessionStorage.getItem('demoRole');
 
         const isGeneralAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER';
         const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
@@ -225,7 +228,7 @@ const NotificationBell = () => {
         }
 
         if (isUser) {
-            const currentUser = localStorage.getItem('username') || demoRole;
+            const currentUser = sessionStorage.getItem('username') || demoRole;
             const currentRoleId = demoRole;
 
             const shownContentKey = `shownContent_${currentRoleId}`;

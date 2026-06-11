@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { VariableSizeList as List } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { getUsername, getUserId } from '../../keycloak';
 import { chatApi } from '../../services/api';

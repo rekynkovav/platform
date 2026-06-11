@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getToken, updateToken, isTokenExpired, logout } from '../keycloak';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081/api';
+const API_URL = process.env.REACT_APP_API_URL || 'https://api.platform.local/api';
 const USE_MOCK = process.env.REACT_APP_USE_MOCK_AUTH === 'true';
 
 class ApiClient {
@@ -33,12 +33,14 @@ class ApiClient {
         // Response interceptor — обработка ошибок
         this.client.interceptors.response.use(
             (response) => response.data,
-            (error) => {
+            async (error) => {
                 if (error.response?.status === 401) {
                     logout(); // Перенаправляет на страницу логина Keycloak
                 }
                 if (error.response?.status === 429) {
-                    console.warn('Rate limit exceeded');
+                    const retryAfter = error.response.headers['retry-after'] || 5;
+                    await new Promise(r => setTimeout(r, retryAfter * 1000));
+                    return this.client.request(error.config);
                 }
                 return Promise.reject(error);
             }
@@ -136,8 +138,8 @@ export const dashboardApi = {
 };
 
 export const feedApi = {
-    getMainFeed: () => api.get('/feed/main'),
-    getNutritionFeed: () => api.get('/feed/nutrition'),
+    getMainFeed: (page = 0, size = 20) => api.get('/feed/main', { page, size }),
+    getNutritionFeed: (page = 0, size = 20) => api.get('/feed/nutrition', { page, size }),
     createPost: (data) => api.post('/feed/posts', data),
     updatePost: (id, data) => api.put(`/feed/posts/${id}`, data),
     deletePost: (id) => api.delete(`/feed/posts/${id}`)
@@ -166,6 +168,7 @@ export const eventsApi = {
 export const feedbackApi = {
     getAll: () => api.get('/events/materials/feedback'),
     create: (data) => api.post('/events/materials', { ...data, sectionId: 'feedback', type: 'text' }),
+    submitFeedback: (data) => api.post('/events/materials', { ...data, sectionId: 'feedback', type: 'text' }),
     delete: (id) => api.delete(`/events/materials/${id}`)
 };
 

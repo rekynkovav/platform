@@ -47,20 +47,17 @@ const ArchiveList = () => {
     // Состояние для меню подтверждения завершения трансляции
     const [showEndConfirm, setShowEndConfirm] = useState(false);
 
-    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-        ? (async () => {
-            try {
-                const role = await demoApi.getDemoRole();
-                return role || null;
-            } catch (err) {
-                console.error('Failed to load demo role:', err);
-                return sessionStorage.getItem('demoRole') || null;
-            }
-        })()
-        : null;
-    const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
-    const canEdit = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
-    const canDownload = demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV'; // Только SUPER_ADMIN и VYACHESLAV могут скачивать
+    const [demoRole, setDemoRole] = useState(null);
+
+    useEffect(() => {
+        if (process.env.REACT_APP_ENVIRONMENT === 'development') {
+            demoApi.getDemoRole().then(role => setDemoRole(role || null));
+        }
+    }, []);
+
+    const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'SUPER_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'VYACHESLAV';
+    const canEdit = isAdmin || demoRole === 'CONSULTANT_SPORT' || demoRole === 'CONSULTANT_PITANIE';
+    const canDownload = isAdmin;
 
     // Состояние для загрузки файлов
     const [downloadingFileId, setDownloadingFileId] = useState(null);
@@ -1129,7 +1126,6 @@ const ArchiveList = () => {
                                         >
                                             📺 Смотреть
                                         </button>
-                                    )}
                                     )}
                                 </div>
                             </div>

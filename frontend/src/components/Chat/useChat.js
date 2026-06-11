@@ -117,6 +117,7 @@ export const useChat = (chatRoom, config = {}) => {
     const loadMessagesFromStorage = useCallback((room) => {
         if (process.env.NODE_ENV !== 'development') {
             setMessages([]);
+            setLoading(false);
             return;
         }
 

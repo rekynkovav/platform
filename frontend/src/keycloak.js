@@ -1,7 +1,12 @@
 import Keycloak from 'keycloak-js';
 
+const DEBUG = process.env.NODE_ENV === 'development';
+const log = (...args) => { if (DEBUG) console.log('[KC]', ...args); };
+const warn = (...args) => { if (DEBUG) console.warn('[KC]', ...args); };
+const error = (...args) => console.error('[KC]', ...args);
+
 const keycloakConfig = {
-    url: process.env.REACT_APP_KEYCLOAK_URL || 'http://localhost:8080/auth',
+    url: process.env.REACT_APP_KEYCLOAK_URL || 'https://auth.platform.local/auth',
     realm: 'platform',
     clientId: 'platform-frontend'
 };
@@ -15,23 +20,23 @@ let username = '';
 let tokenRefreshIntervalId = null;
 
 export const initKeycloak = async () => {
-    console.log('[KC] initKeycloak called, isInitialized:', isInitialized);
-    console.log('[KC] Current URL:', window.location.href);
-    console.log('[KC] Config:', keycloakConfig);
+    log('initKeycloak called, isInitialized:', isInitialized);
+    log('Current URL:', window.location.href);
+    log('Config:', keycloakConfig);
 
     if (isInitialized) {
-        console.log('[KC] Already initialized, returning:', keycloakInstance?.authenticated);
+        log('Already initialized, returning:', keycloakInstance?.authenticated);
         return keycloakInstance?.authenticated || false;
     }
 
     keycloakInstance = new Keycloak(keycloakConfig);
-    console.log('[KC] New Keycloak instance created');
+    log('New Keycloak instance created');
 
     // Monkey-patch: intercept login() to force correct redirectUri
     const originalLogin = keycloakInstance.login.bind(keycloakInstance);
     keycloakInstance.login = (options) => {
-        console.log('[KC] login() called with options:', options);
-        console.log('[KC] Using redirectUri:', REDIRECT_URI);
+        log('login() called with options:', options);
+        log('Using redirectUri:', REDIRECT_URI);
         return originalLogin({
             ...(options || {}),
             redirectUri: REDIRECT_URI
@@ -39,7 +44,7 @@ export const initKeycloak = async () => {
     };
 
     try {
-        console.log('[KC] Calling init() with onLoad: login-required');
+        log('Calling init() with onLoad: login-required');
         const authenticated = await keycloakInstance.init({
             onLoad: 'login-required',
             redirectUri: REDIRECT_URI,
@@ -47,10 +52,10 @@ export const initKeycloak = async () => {
             checkLoginIframe: false
         });
 
-        console.log('[KC] init() returned:', authenticated);
-        console.log('[KC] keycloak.authenticated:', keycloakInstance.authenticated);
-        console.log('[KC] keycloak.token:', keycloakInstance.token ? 'present' : 'null');
-        console.log('[KC] keycloak.tokenParsed:', keycloakInstance.tokenParsed);
+        log('init() returned:', authenticated);
+        log('keycloak.authenticated:', keycloakInstance.authenticated);
+        log('keycloak.token:', keycloakInstance.token ? 'present' : 'null');
+        log('keycloak.tokenParsed:', keycloakInstance.tokenParsed);
 
         if (authenticated) {
             const token = keycloakInstance.tokenParsed;
@@ -58,7 +63,7 @@ export const initKeycloak = async () => {
                 userRoles = token.realm_access.roles;
             }
             username = token?.preferred_username || token?.email || 'User';
-            console.log('[KC] Authenticated! User:', username, 'Roles:', userRoles);
+            log('Authenticated! User:', username, 'Roles:', userRoles);
 
             if (tokenRefreshIntervalId) {
                 clearInterval(tokenRefreshIntervalId);
@@ -66,16 +71,46 @@ export const initKeycloak = async () => {
 
             tokenRefreshIntervalId = setInterval(() => {
                 keycloakInstance.updateToken(30).catch(err => {
-                    console.error('[KC] Failed to refresh token:', err);
+                    error('Failed to refresh token:', err);
                 });
             }, 60000);
 
-            keycloakInstance.onTokenExpired = () => {
-                console.warn('[KC] Token expired, redirecting to login');
+            keycloakInstance.onAuthRefreshError = () => {
+                error('Auth refresh error - session may be invalid');
                 logout();
             };
+
+            keycloakInstance.onTokenExpired = () => {
+                warn('Token expired, attempting refresh');
+                keycloakInstance?.updateToken(30)
+                    .then((refreshed) => {
+                        if (!refreshed) {
+                            warn('Could not refresh, logging out');
+                            logout();
+                        } else {
+                            log('Token refreshed successfully');
+                            // Re-extract roles
+                            const newRoles = keycloakInstance?.tokenParsed?.realm_access?.roles || [];
+                            userRoles = newRoles;
+                            username = keycloakInstance?.tokenParsed?.preferred_username || username;
+                        }
+                    })
+                    .catch((err) => {
+                        const isNetworkError = err?.message?.includes('Failed to fetch') ||
+                                               err?.message?.includes('NetworkError') ||
+                                               err?.message?.includes('timeout') ||
+                                               err?.name === 'TypeError';
+                        if (isNetworkError) {
+                            warn('Network error during token refresh, will retry on next interval');
+                            // Don't logout - interval will retry
+                        } else {
+                            error('Auth error during token refresh:', err);
+                            logout();
+                        }
+                    });
+            };
         } else {
-            console.log('[KC] NOT authenticated - will show login screen');
+            log('NOT authenticated - will show login screen');
         }
 
         // Clean URL from auth params after callback
@@ -83,39 +118,45 @@ export const initKeycloak = async () => {
                               window.location.search.includes('state=') ||
                               window.location.hash.includes('code=') ||
                               window.location.hash.includes('state=');
-        console.log('[KC] Has auth params in URL:', hasAuthParams);
+        log('Has auth params in URL:', hasAuthParams);
         if (hasAuthParams) {
-            console.log('[KC] Cleaning URL with replaceState');
+            log('Cleaning URL with replaceState');
             window.history.replaceState({}, document.title, window.location.pathname);
         }
 
         isInitialized = true;
         return authenticated;
-    } catch (error) {
-        console.error('[KC] init() FAILED:', error);
-        console.error('[KC] Error message:', error.message);
-        console.error('[KC] Error stack:', error.stack);
-        isInitialized = true;
+    } catch (err) {
+        error('init() FAILED:', err.message);
+        keycloakInstance = null; // discard broken instance
+        // Do NOT set isInitialized = true, allow retry
         return false;
     }
 };
 
 export const login = () => {
-    console.log('[KC] login() exported called');
+    log('login() exported called');
     keycloakInstance?.login({ redirectUri: REDIRECT_URI });
 };
 
 export const logout = () => {
-    console.log('[KC] logout() called');
     if (tokenRefreshIntervalId) {
         clearInterval(tokenRefreshIntervalId);
         tokenRefreshIntervalId = null;
     }
+    // Reset in-memory state
+    userRoles = [];
+    username = '';
+    const kc = keycloakInstance;
+    isInitialized = false;
+    keycloakInstance = null;
+    // Clear storage
     if (process.env.NODE_ENV === 'development') {
         localStorage.clear();
     }
     sessionStorage.clear();
-    keycloakInstance?.logout({ redirectUri: window.location.origin });
+    // Redirect to Keycloak logout
+    kc?.logout({ redirectUri: window.location.origin });
 };
 
 export const getToken = () => keycloakInstance?.token;
@@ -134,10 +175,10 @@ export const updateToken = async () => {
     if (keycloakInstance) {
         try {
             return await keycloakInstance.updateToken(30);
-        } catch (error) {
-            console.error('[KC] Failed to update token:', error);
-            if (error instanceof Error && error.message.includes('expired')) {
-                console.warn('[KC] Token expired, attempting to re-login');
+        } catch (err) {
+            error('Failed to update token:', err);
+            if (err instanceof Error && err.message.includes('expired')) {
+                warn('Token expired, attempting to re-login');
                 login();
             }
             return false;

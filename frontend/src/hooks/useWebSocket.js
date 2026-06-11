@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { getToken } from '../keycloak';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081/api';
 const MAX_RETRIES = 10;
@@ -30,7 +31,13 @@ const useWebSocket = (channel, onMessage) => {
                 wsRef.current.close();
             }
 
-            const ws = new WebSocket(url);
+            const token = getToken();
+            if (!token) {
+                console.error('WebSocket: no auth token available');
+                return;
+            }
+            const authUrl = `${url}?token=${encodeURIComponent(token)}`;
+            const ws = new WebSocket(authUrl);
             wsRef.current = ws;
 
             ws.onopen = () => {

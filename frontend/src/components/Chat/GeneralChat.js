@@ -149,8 +149,8 @@ const GeneralChat = () => {
                         Load older messages
                     </button>
                 )}
-                {messages.map(msg => (
-                    <div key={msg.id || Math.random()} className={`message ${msg.author === username ? 'own' : 'other'}`}>
+                {messages.map((msg, index) => (
+                    <div key={msg.id || `${msg.createdAt}-${index}`} className={`message ${msg.author === username ? 'own' : 'other'}`}>
                         <div className="message-author">{msg.author}</div>
                         <div className="message-content">{msg.content}</div>
                         <div className="message-time">
