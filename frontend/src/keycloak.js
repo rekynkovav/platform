@@ -13,6 +13,7 @@ const keycloakConfig = {
 
 const REDIRECT_URI = window.location.origin + '/';
 
+/** @type {import("keycloak-js").default | null} */
 let keycloakInstance = null;
 let isInitialized = false;
 let userRoles = [];
