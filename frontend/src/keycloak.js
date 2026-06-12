@@ -1,3 +1,20 @@
+/**
+ * Keycloak Authentication Module
+ *
+ * Provides a singleton wrapper around the Keycloak JS adapter for the platform.
+ * Manages the full auth lifecycle — initialization, login, logout, token refresh,
+ * role extraction, and session state.
+ *
+ * @module keycloak
+ *
+ * Key responsibilities:
+ *  - Initializes the Keycloak client with PKCE (S256) on app mount
+ *  - Extracts realm roles and username from the parsed JWT
+ *  - Maintains automatic token refresh every 60 seconds
+ *  - Handles auth errors (network failures, expired tokens, refresh errors)
+ *  - Cleans OAuth callback parameters from the URL after login
+ *  - Exposes helper functions for permission checks (hasRole, hasAnyRole, hasAllRoles)
+ */
 import Keycloak from 'keycloak-js';
 
 const DEBUG = process.env.NODE_ENV === 'development';
@@ -20,6 +37,18 @@ let userRoles = [];
 let username = '';
 let tokenRefreshIntervalId = null;
 
+/**
+ * Initializes the Keycloak client and authenticates the user.
+ * - Creates a new Keycloak instance on first call (singleton)
+ * - Monkey-patches login() to enforce the correct redirectUri
+ * - Uses PKCE S256, disables checkLoginIframe (avoids CSP iframe errors)
+ * - On success: extracts realm roles and username, starts periodic token refresh
+ * - On failure: discards the broken instance without setting isInitialized (allows retry)
+ *
+ * @async
+ * @function initKeycloak
+ * @returns {Promise<boolean>} true if the user has an active session, false otherwise
+ */
 export const initKeycloak = async () => {
     log('initKeycloak called, isInitialized:', isInitialized);
     log('Current URL:', window.location.href);
@@ -135,11 +164,21 @@ export const initKeycloak = async () => {
     }
 };
 
+/**
+ * Redirects the browser to the Keycloak login page.
+ * @function login
+ */
 export const login = () => {
     log('login() exported called');
     keycloakInstance?.login({ redirectUri: REDIRECT_URI });
 };
 
+/**
+ * Logs the user out and clears all local/session storage.
+ * - Clears the token refresh interval
+ * - Resets in-memory state (userRoles, username, keycloakInstance)
+ * - Redirects to Keycloak's logout endpoint
+ */
 export const logout = () => {
     if (tokenRefreshIntervalId) {
         clearInterval(tokenRefreshIntervalId);
@@ -172,6 +211,12 @@ export const hasRole = (role) => userRoles.includes(role);
 export const hasAnyRole = (roles) => roles.some(role => userRoles.includes(role));
 export const hasAllRoles = (roles) => roles.every(role => userRoles.includes(role));
 
+/**
+ * Attempts to refresh the Keycloak token, re-logging in if it has expired.
+ * @async
+ * @function updateToken
+ * @returns {Promise<boolean>} true if the token was refreshed successfully, false otherwise
+ */
 export const updateToken = async () => {
     if (keycloakInstance) {
         try {

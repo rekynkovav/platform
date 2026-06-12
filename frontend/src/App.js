@@ -18,6 +18,24 @@ import { AudioPlayerProvider } from './context/AudioPlayerContext';
 import './App.css';
 import ScheduledEvents from "./components/Scheduled/ScheduledEvents";
 
+/**
+ * App — root application component.
+ *
+ * Orchestrates the entire frontend experience:
+ * - Initializes Keycloak authentication on mount
+ * - Manages top-level navigation tabs and route rendering
+ * - Wraps children in an AudioPlayerProvider for global audio state
+ * - Renders the login screen when unauthenticated, the main app when authenticated
+ *
+ * State:
+ * @property {boolean} authenticated — whether the user has an active Keycloak session
+ * @property {boolean} loading — true while Keycloak initialization is in flight
+ * @property {string} activeTab — the currently selected navigation tab ID
+ * @property {string[]} userRoles — list of realm roles from the Keycloak token
+ * @property {string} username — display name of the authenticated user
+ * @property {boolean} showAccessDenied — controls the "access denied" popup
+ * @property {{x: number, y: number}} accessDeniedPosition — screen coordinates for the popup
+ */
 function App() {
     const [authenticated, setAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -48,14 +66,26 @@ function App() {
             });
     }, []);
 
+    /**
+     * Initiates a Keycloak logout and clears local session storage.
+     */
     const handleLogout = () => {
         logout();
     };
 
+    /**
+     * Triggers a Keycloak login redirect.
+     */
     const handleLogin = () => {
         keycloakLogin();
     };
 
+    /**
+     * Shows a temporary "access denied" tooltip at the given screen coordinates.
+     * Automatically hides after 2 seconds.
+     * @param {number} x - screen X position
+     * @param {number} y - screen Y position
+     */
     const showAccessDeniedMessage = (x, y) => {
         setShowAccessDenied(false);
         if (accessDeniedTimerRef.current) {
@@ -72,14 +102,25 @@ function App() {
         }, 10);
     };
 
+    /**
+     * Resets the active tab to "main" when the logo is clicked.
+     */
     const handleLogoClick = (e) => {
         setActiveTab('main');
     };
 
+    /**
+     * Switches to the "scheduled" tab when a global event notification is clicked.
+     */
     const handleEventClick = () => {
         setActiveTab('scheduled');
     };
 
+    /**
+     * Updates the active tab in response to navigation bar clicks.
+     * @param {string} tabId - the ID of the tab to switch to
+     * @param {Event} event - the click event
+     */
     const handleTabChange = (tabId, event) => {
         setActiveTab(tabId);
     };

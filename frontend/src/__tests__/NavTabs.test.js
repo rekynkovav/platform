@@ -92,4 +92,78 @@ describe('NavTabs', () => {
         fireEvent.click(profileTab);
         expect(window.location.pathname).toBe('/profile');
     });
+
+    it('renders dashboard tab for MODERATOR_ADMIN', () => {
+        usePermissions.mockReturnValue({
+            canViewAdmin: jest.fn().mockReturnValue(true),
+            canStartBroadcast: jest.fn().mockReturnValue(false),
+            hasLevel: jest.fn().mockReturnValue(true),
+        });
+
+        render(
+            <MemoryRouter initialEntries={['/']}>
+                <NavTabs />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByText('Дашборд')).toBeInTheDocument();
+        expect(screen.getByText('Админка')).toBeInTheDocument();
+    });
+
+    it('renders broadcast tab when canStartBroadcast is true', () => {
+        usePermissions.mockReturnValue({
+            canViewAdmin: jest.fn().mockReturnValue(false),
+            canStartBroadcast: jest.fn().mockReturnValue(true),
+            hasLevel: jest.fn().mockReturnValue(false),
+        });
+
+        render(
+            <MemoryRouter initialEntries={['/']}>
+                <NavTabs />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByText('Трансляции')).toBeInTheDocument();
+    });
+
+    it('shows correct active class on initial route', () => {
+        usePermissions.mockReturnValue({
+            canViewAdmin: jest.fn().mockReturnValue(false),
+            canStartBroadcast: jest.fn().mockReturnValue(false),
+            hasLevel: jest.fn().mockReturnValue(false),
+        });
+
+        render(
+            <MemoryRouter initialEntries={['/profile']}>
+                <NavTabs />
+            </MemoryRouter>
+        );
+
+        const profileTab = screen.getByText('Профиль');
+        expect(profileTab.classList.contains('active')).toBe(true);
+        expect(screen.getByText('Главная').classList.contains('active')).toBe(false);
+    });
+
+    it('renders all tabs for admin with broadcast permission', () => {
+        usePermissions.mockReturnValue({
+            canViewAdmin: jest.fn().mockReturnValue(true),
+            canStartBroadcast: jest.fn().mockReturnValue(true),
+            hasLevel: jest.fn().mockReturnValue(true),
+        });
+
+        render(
+            <MemoryRouter initialEntries={['/']}>
+                <NavTabs />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByText('Главная')).toBeInTheDocument();
+        expect(screen.getByText('События')).toBeInTheDocument();
+        expect(screen.getByText('Чат')).toBeInTheDocument();
+        expect(screen.getByText('Вопросы')).toBeInTheDocument();
+        expect(screen.getByText('Профиль')).toBeInTheDocument();
+        expect(screen.getByText('Дашборд')).toBeInTheDocument();
+        expect(screen.getByText('Трансляции')).toBeInTheDocument();
+        expect(screen.getByText('Админка')).toBeInTheDocument();
+    });
 });

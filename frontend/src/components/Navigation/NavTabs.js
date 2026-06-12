@@ -1,6 +1,23 @@
 import React, { useState } from 'react';
 import './NavTabs.css';
 
+/**
+ * NavTabs — horizontal navigation bar with support for split (dropdown) tabs.
+ *
+ * Renders the main set of navigation tabs for the platform:
+ * - "Лента Новостей" (News Feed) — splits into "Питание" / "Новости" on hover
+ * - "Трансляции" (Broadcasts)
+ * - "События" (Events)
+ * - "Навигация" (Dashboard)
+ * - "Чат" (Chat) — splits into "Основной" / "Питание" on hover
+ * - "Помощь" (Help)
+ *
+ * @param {object} props
+ * @param {string} props.activeTab — currently active tab ID
+ * @param {(tabId: string, event: Event) => void} props.onTabChange — callback fired when a tab is clicked
+ *
+ * @component
+ */
 const NavTabs = ({ activeTab, onTabChange }) => {
     const [hoveredTab, setHoveredTab] = useState(null);
 
@@ -13,6 +30,14 @@ const NavTabs = ({ activeTab, onTabChange }) => {
         { id: 'help', label: 'Помощь' }
     ];
 
+    /**
+     * Renders the split (sub-tab) UI for tabs that have nested options.
+     * Currently supports two split types:
+     * - 'feed': renders "Питание" and "Новости" sub-tabs
+     * - 'chat': renders "Основной" and "Питание" sub-tabs
+     * @param {object} tab - the tab configuration object with a splitType field
+     * @returns {JSX.Element|null} the split tab UI, or null if no split
+     */
     const renderSplitTab = (tab) => {
         if (tab.splitType === 'feed') {
             return (

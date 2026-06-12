@@ -7,6 +7,19 @@ import usePostAudioControls from '../../hooks/usePostAudioControls';
 import fallbackPosts from '../../constants/fallbackPosts';
 import './MainFeed.css';
 
+/**
+ * MainFeed — the primary news feed component for the "Лента Новостей" tab.
+ *
+ * Displays a paginated, scrollable list of posts (text, audio, video) with full CRUD
+ * for admins. Features include:
+ * - Paginated loading from the feed API with fallback data on network failure
+ * - Audio recording and inline playback with seek, volume, and speed controls
+ * - Video embedding
+ * - Admin-only post creation, editing, and deletion
+ * - Super-admin file download capability
+ *
+ * @component
+ */
 const MainFeed = () => {
     const [posts, setPosts] = useState([]);
     const [newPost, setNewPost] = useState({ type: 'text', title: '', content: '', url: '' });
@@ -80,7 +93,13 @@ const MainFeed = () => {
         };
     }, []);
 
-    // Загрузка постов с пагинацией
+    /**
+     * Loads feed posts from the API with pagination.
+     * On initial load (reset=true) it fetches the first page; otherwise appends the next page.
+     * Falls back to hardcoded data (fallbackPosts) if the API is unreachable.
+     * @async
+     * @param {boolean} [reset=false] - if true, reloads from page 0
+     */
     const loadPosts = useCallback(async (reset = false) => {
         try {
             if (reset) {
@@ -192,6 +211,11 @@ const MainFeed = () => {
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
+    /**
+     * Publishes a new post via the API and prepends it to the feed list.
+     * Validates that the title and content (for text posts) are present before submitting.
+     * @async
+     */
     const handlePublishPost = async () => {
         if (!newPost.title || (!newPost.content && newPost.type === 'text')) {
             alert('Заполните заголовок и содержание');
@@ -229,11 +253,20 @@ const MainFeed = () => {
         }
     };
 
+    /**
+     * Confirms post deletion by showing the ConfirmModal.
+     * @param {object} post - the post to delete
+     */
     const confirmDeletePost = (post) => {
         setPostToDelete(post);
         setShowDeleteConfirm(true);
     };
 
+    /**
+     * Executes the deletion of a post after confirmation.
+     * Also stops any active audio playback if the deleted post was playing.
+     * @async
+     */
     const executeDeletePost = async () => {
         if (!postToDelete) return;
 
@@ -265,6 +298,10 @@ const MainFeed = () => {
         setPostToDelete(null);
     };
 
+    /**
+     * Opens the edit form for a given post, pre-populating fields with its current values.
+     * @param {object} post - the post to edit
+     */
     const handleEditPost = (post) => {
         if (!isAdmin) {
             alert('Только администратор может редактировать записи');
@@ -281,6 +318,11 @@ const MainFeed = () => {
         setShowEditForm(true);
     };
 
+    /**
+     * Saves edits to an existing post via the API and updates the local state.
+     * Validates required fields before submitting.
+     * @async
+     */
     const handleSaveEditedPost = async () => {
         if (!newPost.title || (!newPost.content && newPost.type === 'text')) {
             alert('Заполните заголовок и содержание');

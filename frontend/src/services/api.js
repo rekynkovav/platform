@@ -1,9 +1,28 @@
+/**
+ * API Client Module
+ *
+ * Provides a centralized HTTP client with automatic JWT authentication,
+ * token refresh, and error handling. Exports domain-specific API groups
+ * for all backend services: broadcasts, chat, payments, users, media,
+ * admin, dashboard, feed, events, feedback, notifications, and demo.
+ *
+ * @module api
+ */
 import axios from 'axios';
 import { getToken, updateToken, isTokenExpired, logout } from '../keycloak';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://api.platform.local/api';
 const USE_MOCK = process.env.REACT_APP_USE_MOCK_AUTH === 'true';
 
+/**
+ * Core HTTP client wrapping axios with Keycloak JWT authentication.
+ *
+ * Features:
+ * - Request interceptor: automatically attaches Bearer JWT, refreshing the token if expired
+ * - Response interceptor: unwraps response data, handles 401 (logout) and 429 (rate-limit retry)
+ *
+ * @class ApiClient
+ */
 class ApiClient {
     constructor() {
         this.client = axios.create({
@@ -47,22 +66,52 @@ class ApiClient {
         );
     }
 
+    /**
+     * Performs a GET request with optional query parameters.
+     * @param {string} url - the endpoint path
+     * @param {object} [params] - query parameters
+     * @returns {Promise<object>} the response data
+     */
     get(url, params) {
         return this.client.get(url, { params });
     }
 
+    /**
+     * Performs a POST request with a JSON body.
+     * @param {string} url - the endpoint path
+     * @param {object} data - the request payload
+     * @returns {Promise<object>} the response data
+     */
     post(url, data) {
         return this.client.post(url, data);
     }
 
+    /**
+     * Performs a PUT request with a JSON body.
+     * @param {string} url - the endpoint path
+     * @param {object} data - the request payload
+     * @returns {Promise<object>} the response data
+     */
     put(url, data) {
         return this.client.put(url, data);
     }
 
+    /**
+     * Performs a DELETE request.
+     * @param {string} url - the endpoint path
+     * @returns {Promise<object>} the response data
+     */
     delete(url) {
         return this.client.delete(url);
     }
 
+    /**
+     * Uploads a file via POST with multipart/form-data, supporting progress tracking.
+     * @param {string} url - the endpoint path
+     * @param {File} file - the file to upload
+     * @param {function} [onProgress] - callback receiving a percentage (0-100)
+     * @returns {Promise<object>} the response data
+     */
     upload(url, file, onProgress) {
         const formData = new FormData();
         formData.append('file', file);
@@ -82,6 +131,10 @@ class ApiClient {
 export const api = new ApiClient();
 
 // API endpoints
+/**
+ * API endpoints for live broadcast management.
+ * @namespace broadcastApi
+ */
 export const broadcastApi = {
     getActive: () => api.get('/broadcast/active'),
     getById: (id) => api.get(`/broadcast/${id}`),
@@ -99,6 +152,10 @@ export const chatApi = {
     getUsers: (roomSlug) => api.get(`/chat/${roomSlug}/users`),
     getQuestions: (mode) => api.get(`/chat/questions/${mode}`),
     sendQuestion: (mode, data) => api.post(`/chat/questions/${mode}`, data),
+    editMessage: (roomSlug, msgId, data) =>
+        api.put(`/chat/${roomSlug}/messages/${msgId}`, data),
+    deleteMessage: (roomSlug, msgId) =>
+        api.delete(`/chat/${roomSlug}/messages/${msgId}`),
     getQuestionsDto: (mode) => api.get(`/chat/questions-dto/${mode}`),
     sendQuestionDto: (mode, data) => api.post(`/chat/questions-dto/${mode}`, data),
     answerQuestionDto: (questionId, data) => api.post(`/chat/questions-dto/${questionId}/answer`, data),

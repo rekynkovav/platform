@@ -503,7 +503,7 @@ export const useChat = (chatRoom, config = {}) => {
     }, [currentUserAuthor, currentRoom, storageKeyPrefix]);
 
     // Редактирование сообщения
-    const editMessage = useCallback((msgId, newContent) => {
+    const editMessage = useCallback(async (msgId, newContent) => {
         if (!newContent.trim()) return;
 
         // Логирование редактирования
@@ -520,8 +520,13 @@ export const useChat = (chatRoom, config = {}) => {
         }
 
         if (useApi) {
-            // TODO: API для редактирования
-            console.warn('Edit via API not implemented yet');
+            try {
+                await chatApi.editMessage(currentRoom, msgId, { content: newContent.trim() });
+            } catch (error) {
+                console.error('Failed to edit message:', error);
+                setError('Не удалось отредактировать сообщение. Проверьте подключение к интернету.');
+                return;
+            }
         }
 
         setMessages(prev => {
@@ -541,7 +546,7 @@ export const useChat = (chatRoom, config = {}) => {
     }, [currentRoom, useApi, storageKeyPrefix]);
 
     // Удаление сообщения
-    const deleteMessage = useCallback((msgId) => {
+    const deleteMessage = useCallback(async (msgId) => {
         if (!window.confirm('Удалить это сообщение?')) return false;
 
         // Логирование удаления
@@ -554,8 +559,13 @@ export const useChat = (chatRoom, config = {}) => {
         chatLogger.logMessageDelete(chatType, currentRoom, demoRole, msgId);
 
         if (useApi) {
-            // TODO: API для удаления
-            console.warn('Delete via API not implemented yet');
+            try {
+                await chatApi.deleteMessage(currentRoom, msgId);
+            } catch (error) {
+                console.error('Failed to delete message:', error);
+                setError('Не удалось удалить сообщение. Проверьте подключение к интернету.');
+                return false;
+            }
         }
 
         setMessages(prev => {
