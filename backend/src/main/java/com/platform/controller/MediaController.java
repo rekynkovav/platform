@@ -2,7 +2,7 @@ package com.platform.controller;
 
 import com.platform.model.MediaFile;
 import com.platform.service.SecureMediaService;
-// import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -27,7 +27,7 @@ public class MediaController {
 
     @PostMapping("/upload")
     @PreAuthorize("isAuthenticated()")
-    // @RateLimiting(name = "media-limit")
+    @RateLimiting(name = "media-limit")
     public ResponseEntity<MediaFile> uploadMedia(
             @RequestParam("file") MultipartFile file,
             @RequestParam("type") String type,
@@ -39,7 +39,7 @@ public class MediaController {
     }
 
     @GetMapping("/stream/{fileId}")
-    // @RateLimiting(name = "media-limit")
+    @RateLimiting(name = "media-limit")
     public ResponseEntity<Map<String, Object>> getStreamUrl(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt,
@@ -55,7 +55,7 @@ public class MediaController {
     }
 
     @GetMapping("/key/{fileId}")
-    // @RateLimiting(name = "media-limit")
+    @RateLimiting(name = "media-limit")
     public ResponseEntity<byte[]> getEncryptionKey(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt,
@@ -71,7 +71,7 @@ public class MediaController {
     }
 
     @GetMapping("/download/{fileId}")
-    // @RateLimiting(name = "media-limit")
+    @RateLimiting(name = "media-limit")
     public ResponseEntity<byte[]> downloadFile(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt,
@@ -88,7 +88,7 @@ public class MediaController {
     }
 
     @GetMapping("/{fileId}")
-    // @RateLimiting(name = "media-limit")
+    @RateLimiting(name = "media-limit")
     public ResponseEntity<MediaFile> getMediaInfo(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -98,7 +98,7 @@ public class MediaController {
     }
 
     @GetMapping("/my-files")
-    // @RateLimiting(name = "media-limit")
+    @RateLimiting(name = "media-limit")
     public ResponseEntity<List<MediaFile>> getMyFiles(
             @AuthenticationPrincipal Jwt jwt) {
 
@@ -108,7 +108,7 @@ public class MediaController {
     }
 
     @GetMapping("/hls/{fileId}/playlist.m3u8")
-    // @RateLimiting(name = "media-limit")
+    @RateLimiting(name = "media-limit")
     public ResponseEntity<String> getHLSPlaylist(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt,
@@ -129,7 +129,7 @@ public class MediaController {
     }
 
     @DeleteMapping("/{fileId}")
-    // @RateLimiting(name = "media-limit")
+    @RateLimiting(name = "media-limit")
     public ResponseEntity<Void> deleteFile(
             @PathVariable String fileId,
             @AuthenticationPrincipal Jwt jwt) {
