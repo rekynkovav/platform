@@ -110,7 +110,7 @@ export class MockLiveApi {
           return;
         }
 
-        const updatedBroadcast: LiveBroadcast = {
+        const updatedBroadcast: any = {
           ...broadcast,
           ...updates,
           updatedAt: new Date().toISOString()
@@ -129,7 +129,7 @@ export class MockLiveApi {
           }
         }
 
-        this.broadcasts.set(broadcastId, updatedBroadcast);
+        
         this.saveToStorage();
 
         // Обновляем в WebSocket сервисе
@@ -288,13 +288,13 @@ export class MockLiveApi {
           return;
         }
 
-        const updatedBroadcast: LiveBroadcast = {
+        const updatedBroadcast: any = {
           ...broadcast,
           eventId,
           updatedAt: new Date().toISOString()
         };
 
-        this.broadcasts.set(broadcastId, updatedBroadcast);
+        
         this.saveToStorage();
 
         console.log('[MockLiveApi] Трансляция привязана к событию:', broadcastId, eventId);
@@ -459,7 +459,7 @@ export class MockLiveApi {
       const newMaxViewers = Math.max(broadcast.maxViewers, newViewerCount);
 
       this.updateBroadcast(broadcastId, {
-        viewerCount: newViewerCount,
+        viewerCount: newViewerCount as any,
         maxViewers: newMaxViewers
       }).catch(console.error);
     }
@@ -470,7 +470,7 @@ export class MockLiveApi {
     if (broadcast) {
       const newViewerCount = Math.max(0, broadcast.viewerCount - count);
       this.updateBroadcast(broadcastId, {
-        viewerCount: newViewerCount
+        viewerCount: newViewerCount as any,
       }).catch(console.error);
     }
   }

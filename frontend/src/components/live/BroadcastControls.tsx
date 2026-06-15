@@ -15,7 +15,7 @@ import {
   formatBitrate
 } from '../../utils/live/helpers';
 
-interface BroadcastControlsProps {
+export interface BroadcastControlsProps {
   broadcast: LiveBroadcast;
   onUpdate?: (broadcast: LiveBroadcast) => void;
   onStatusChange?: (status: BroadcastStatus) => void;

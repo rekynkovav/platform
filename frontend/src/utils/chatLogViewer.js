@@ -112,7 +112,7 @@ class ChatLogViewer {
         const enabled = !chatLogger.isEnabled();
         chatLogger.setEnabled(enabled);
         // console.log(`%c${enabled ? '✅' : '❌'} Логирование ${enabled ? 'включено' : 'выключено'}`,
-                   `color: ${enabled ? '#28a745' : '#dc3545'}; font-weight: bold;`);
+        //                   `color: ${enabled ? '#28a745' : '#dc3545'}; font-weight: bold;`);
     }
 
     /**

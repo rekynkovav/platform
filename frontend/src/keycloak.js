@@ -18,7 +18,7 @@
 import Keycloak from 'keycloak-js';
 
 const DEBUG = process.env.NODE_ENV === 'development';
-const log = (...args) => { if (DEBUG) // console.log('[KC]', ...args); };
+const log = (...args) => { if (DEBUG) { console.log('[KC]', ...args); } };
 const warn = (...args) => { if (DEBUG) console.warn('[KC]', ...args); };
 const error = (...args) => console.error('[KC]', ...args);
 

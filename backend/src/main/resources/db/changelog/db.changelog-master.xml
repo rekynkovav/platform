@@ -87,6 +87,16 @@
         <sqlFile path="db/changelog/v13/01-fix-notifications-schema.sql" splitStatements="false"/>
     </changeSet>
 
+    <!-- V14: Dashboard menu items — persistent admin content storage -->
+    <changeSet id="v14-create-dashboard-menu-items" author="platform" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="dashboard_menu_items"/>
+            </not>
+        </preConditions>
+        <sqlFile path="db/changelog/v14/01-create-dashboard-menu-items.sql" splitStatements="false"/>
+    </changeSet>
+
     <!-- Модули (ЗАКОММЕНТИРОВАНО: дублируют v3, раскомментировать только если v3 удален) -->
     <!-- <include file="db/changelog/db.changelog-media.yaml"/> -->
     <!-- <include file="db/changelog/db.changelog-payments.yaml"/> -->

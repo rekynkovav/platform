@@ -1,7 +1,10 @@
 // Утилиты для live компонентов
 // Вспомогательные функции, валидаторы, генераторы
 
-import { LivePlayerProps, LiveChatProps, BroadcastControlsProps, LiveBroadcastViewProps } from './index';
+import { LivePlayerProps } from './LivePlayer';
+import { LiveChatProps } from './LiveChat';
+import { BroadcastControlsProps } from './BroadcastControls';
+import { LiveBroadcastViewProps } from './index';
 import { LiveBroadcast, BroadcastStatus, StreamQuality } from '../../services/live/types';
 
 // ==================== СТИЛИ ====================
@@ -300,7 +303,7 @@ export const getStatusText = (status: BroadcastStatus): string => {
  */
 export const canControlBroadcast = (broadcast: LiveBroadcast, isAdmin: boolean): boolean => {
   if (!broadcast) return false;
-  return isAdmin || broadcast.settings.allowModeratorControl;
+  return isAdmin || (broadcast.settings as any)?.allowModeratorControl;
 };
 
 /**
@@ -433,7 +436,11 @@ export const generateDemoBroadcast = (overrides: Partial<LiveBroadcast> = {}): L
     title: 'Демо трансляция: Live Streaming System',
     description: 'Тестовая трансляция для демонстрации возможностей live streaming системы',
     status: 'live',
+    streamKey: 'demo-stream-key',
+    ingestUrl: 'rtmp://demo-server/live/demo',
+    playbackUrl: '/demo/live-stream-720p.m3u8',
     streamType: 'video',
+    createdBy: 'demo-admin',
     viewerCount: Math.floor(Math.random() * 100) + 50,
     maxViewers: 1000,
     startedAt: new Date(Date.now() - 3600000).toISOString(), // 1 час назад

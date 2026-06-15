@@ -16,7 +16,7 @@ import {
   getRecommendedQuality
 } from '../../utils/live/helpers';
 
-interface LivePlayerProps {
+export interface LivePlayerProps {
   broadcast: LiveBroadcast;
   autoPlay?: boolean;
   muted?: boolean;
@@ -186,7 +186,7 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
   }, [autoPlay, muted, onError, onReady]);
 
   // Обновление доступных качеств
-  const updateAvailableQualities = useCallback((levels: Hls.Level[]) => {
+  const updateAvailableQualities = useCallback((levels: any[]) => {
     if (!levels || levels.length === 0) {
       const defaultQualities: StreamQuality[] = ['1080p', '720p', '480p', '360p', 'auto'];
       setAvailableQualities(defaultQualities);
@@ -206,7 +206,7 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
   }, []);
 
   // Получение качества из уровня HLS
-  const getQualityFromLevel = useCallback((level: Hls.Level): StreamQuality => {
+  const getQualityFromLevel = useCallback((level: any): StreamQuality => {
     if (level.height >= 1080) return '1080p';
     if (level.height >= 720) return '720p';
     if (level.height >= 480) return '480p';

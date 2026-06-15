@@ -105,7 +105,7 @@ export function useLiveChat(broadcastId?: string) {
 
     // Подсчет по типам
     const questionsCount = allMessages.filter(m => m.type === 'question').length;
-    const reactionsCount = Object.values(liveSession.reactions).reduce((a, b) => a + b, 0);
+    const reactionsCount = Object.values(liveSession.reactions as Record<string, number>).reduce((a: number, b: number) => a + b, 0);
 
     setStats({
       totalMessages: allMessages.length,
@@ -329,7 +329,7 @@ export function useLiveReactions(broadcastId?: string) {
 
   // Обновление популярных реакций
   useEffect(() => {
-    const reactionsArray = Object.entries(liveSession.reactions)
+    const reactionsArray = Object.entries(liveSession.reactions as Record<string, number>)
       .map(([emoji, count]) => ({ emoji, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10); // Топ-10
@@ -375,7 +375,7 @@ export function useLiveReactions(broadcastId?: string) {
     // Данные
     reactions: liveSession.reactions,
     popularReactions,
-    totalReactions: Object.values(liveSession.reactions).reduce((a, b) => a + b, 0),
+    totalReactions: Object.values(liveSession.reactions as Record<string, number>).reduce((a: number, b: number) => a + b, 0),
 
     // Действия
     addReaction,

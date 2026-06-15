@@ -48,6 +48,9 @@ export interface LiveBroadcast {
     isReactionsEnabled: boolean;
     isRecording: boolean;
     isPublic: boolean;
+    allowModeratorControl?: boolean;
+    maxViewers?: number;
+    qualityOptions?: string[];
     allowedRoles?: string[];  // Роли с доступом
   };
 
@@ -56,6 +59,14 @@ export interface LiveBroadcast {
   createdBy: string;          // ID пользователя
   createdAt: string;          // ISO timestamp
   updatedAt?: string;         // ISO timestamp
+
+  // Demo metadata (not persisted)
+  metadata?: {
+    tags?: string[];
+    category?: string;
+    language?: string;
+    thumbnail?: string;
+  };
 }
 
 export interface LiveChatMessage {
@@ -186,6 +197,8 @@ export interface UpdateBroadcastRequest {
   title?: string;
   description?: string;
   settings?: Partial<LiveBroadcast['settings']>;
+  viewerCount?: number;
+  maxViewers?: number;
 }
 
 // Утилитарные типы

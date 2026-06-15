@@ -236,7 +236,7 @@ export class MockWebSocketService {
         ingestUrl: 'rtmp://demo-server/live/demo-002',
         playbackUrl: '/demo/audio-stream.m3u8',
         streamType: 'audio',
-        status: 'scheduled',
+        status: 'idle',
         viewerCount: 0,
         maxViewers: 0,
         startedAt: twoHoursLater.toISOString(),

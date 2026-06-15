@@ -13,7 +13,7 @@ import {
   isValidChatMessage
 } from '../../utils/live/helpers';
 
-interface LiveChatProps {
+export interface LiveChatProps {
   broadcastId: string;
   maxHeight?: string;
   showReactions?: boolean;
@@ -183,7 +183,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     const roleColor = getRoleColor(message.userRole);
     const roleText = getRoleText(message.userRole);
     const isQuestion = message.type === 'question';
-    const isAnswered = message.metadata?.answered;
+    const isAnswered = (message.metadata as any)?.answered;
     const isPinned = message.metadata?.pinned;
     const isSelected = selectedMessage === message.id;
 
@@ -589,7 +589,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
         <div className="chat-stats">
           <div className="stat-item">Сообщений: {allMessages.length}</div>
           <div className="stat-item">Вопросов: {totalQuestions}</div>
-          <div className="stat-item">Реакций: {Object.values(reactions).reduce((a, b) => a + b, 0)}</div>
+          <div className="stat-item">Реакций: {Object.values(reactions as Record<string, number>).reduce((a: number, b: number) => a + b, 0)}</div>
           <div className="stat-item">Пользователей: {getActiveUsers().length}</div>
         </div>
       )}

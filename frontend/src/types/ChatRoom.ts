@@ -33,6 +33,14 @@ export interface ChatMessage {
   roomSlug?: string;
   pending?: boolean;
   edited?: boolean;
+  avatarUrl?: string;
+  author?: string;
+  timestamp?: string;
+  fileUrl?: string;
+  fileType?: string;
+  type?: string;
+  isSystem?: boolean;
+  isOwn?: boolean;
 }
 
 export interface ChatRoomPermission {
