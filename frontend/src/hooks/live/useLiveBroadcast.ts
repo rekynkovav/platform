@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { LiveBroadcast, BroadcastStatus } from '../../services/live/types';
-import { mockLiveApi } from '../../services/live/mockApi';
+import { liveApi } from '../../services/live';
 import { useLiveSession } from '../../context/live/LiveSessionContext';
 
 export function useLiveBroadcast(broadcastId?: string) {
@@ -26,7 +26,7 @@ export function useLiveBroadcast(broadcastId?: string) {
     setError(null);
 
     try {
-      const data = await mockLiveApi.getBroadcast(id);
+      const data = await liveApi.getBroadcast(id);
       setBroadcast(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки трансляции');
@@ -71,7 +71,7 @@ export function useLiveBroadcast(broadcastId?: string) {
   // Начало трансляции
   const startBroadcast = useCallback(async (title: string, description?: string) => {
     try {
-      const response = await mockLiveApi.startBroadcast({
+      const response = await liveApi.startBroadcast({
         title,
         description,
         streamType: 'video',
@@ -97,7 +97,7 @@ export function useLiveBroadcast(broadcastId?: string) {
     if (!broadcastId) return;
 
     try {
-      await mockLiveApi.stopBroadcast(broadcastId);
+      await liveApi.stopBroadcast(broadcastId);
       await updateStatus('ended');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка остановки трансляции');
@@ -110,7 +110,7 @@ export function useLiveBroadcast(broadcastId?: string) {
     if (!broadcastId) return;
 
     try {
-      const updated = await mockLiveApi.updateBroadcast(broadcastId, updates);
+      const updated = await liveApi.updateBroadcast(broadcastId, updates);
       setBroadcast(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка обновления трансляции');
@@ -192,7 +192,7 @@ export function useLiveBroadcasts(filter?: {
     setError(null);
 
     try {
-      const allBroadcasts = await mockLiveApi.getAllBroadcasts();
+      const allBroadcasts = await liveApi.getAllBroadcasts();
 
       // Применяем фильтры
       let filtered = allBroadcasts;
@@ -222,7 +222,7 @@ export function useLiveBroadcasts(filter?: {
   // Загрузка активных трансляций
   const loadActiveBroadcasts = useCallback(async () => {
     try {
-      const active = await mockLiveApi.getActiveBroadcasts();
+      const active = await liveApi.getActiveBroadcasts();
       setBroadcasts(active);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки активных трансляций');
@@ -272,7 +272,7 @@ export function useBroadcastStats(broadcastId?: string) {
     setError(null);
 
     try {
-      const data = await mockLiveApi.getBroadcastStats(id);
+      const data = await liveApi.getBroadcastStats(id);
       setStats(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки статистики');
@@ -286,7 +286,7 @@ export function useBroadcastStats(broadcastId?: string) {
     if (!id) return;
 
     try {
-      const data = await mockLiveApi.getViewerStats(id);
+      const data = await liveApi.getViewerStats(id);
       return data;
     } catch (err) {
       console.error('[useBroadcastStats] Ошибка загрузки статистики зрителей:', err);
@@ -325,7 +325,7 @@ export function useBroadcastAvailability(broadcastId?: string) {
 
     try {
       // Проверяем существование трансляции
-      await mockLiveApi.getBroadcast(id);
+      await liveApi.getBroadcast(id);
       setAvailable(true);
       return true;
     } catch {

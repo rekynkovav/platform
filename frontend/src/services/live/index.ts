@@ -7,8 +7,8 @@ export * from './types';
 // Real services (replacing mocks)
 export { realWebSocket as liveWebSocket } from './realWebSocket';
 export { realLiveApi as liveApi } from './realApi';
-// Media service: mockMediaService is kept until hls.js integration is complete
-export { mockMediaService as mediaService } from './mockMedia';
+// Media service: realMediaService now uses actual HLS playback
+export { realMediaService as mediaService } from './realMedia';
 
 // Also export mocks for backward compatibility
 export { mockWebSocket } from './mockWebSocket';

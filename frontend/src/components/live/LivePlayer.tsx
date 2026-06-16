@@ -57,11 +57,11 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
   });
 
   // Получение потока
-  const getStream = useCallback(() => {
+  const getStream = useCallback(async () => {
     if (!broadcast) return null;
 
     try {
-      return mediaService.getStream(
+      return await mediaService.getStream(
         broadcast.id,
         broadcast.streamType,
         currentQuality
@@ -308,13 +308,12 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
   useEffect(() => {
     if (!broadcast) return;
 
-    const stream = getStream();
-    if (!stream) return;
-
-    // console.log('[LivePlayer] Инициализация плеера для трансляции:', broadcast.id);
-    // console.log('[LivePlayer] URL потока:', stream.url);
-
-    initHls(stream.url);
+    const loadStream = async () => {
+      const stream = await getStream();
+      if (!stream) return;
+      initHls(stream.url);
+    };
+    loadStream();
 
     // Получаем доступные качества
     const qualities = mediaService.getAvailableQualities(broadcast.streamType);

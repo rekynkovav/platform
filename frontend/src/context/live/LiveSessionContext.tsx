@@ -9,8 +9,8 @@ import {
   BroadcastStatus,
   WSEventType
 } from '../../services/live/types';
-import { mockWebSocket } from '../../services/live/mockWebSocket';
-import { mockLiveApi } from '../../services/live/mockApi';
+import { liveWebSocket } from '../../services/live';
+import { liveApi } from '../../services/live';
 
 // Типы действий
 type LiveSessionAction =
@@ -232,7 +232,7 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
     const setupWebSocketSubscriptions = () => {
       // Подписка на события WebSocket
       const subscriptions = [
-        mockWebSocket.subscribe('VIEWER_COUNT_UPDATED', (data) => {
+        liveWebSocket.subscribe('VIEWER_COUNT_UPDATED', (data) => {
           if (state.broadcast?.id === data.broadcastId) {
             dispatch({
               type: 'SET_VIEWER_COUNT',
@@ -241,13 +241,13 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
           }
         }),
 
-        mockWebSocket.subscribe('CHAT_MESSAGE', (message: LiveChatMessage) => {
+        liveWebSocket.subscribe('CHAT_MESSAGE', (message: LiveChatMessage) => {
           if (state.broadcast?.id === message.broadcastId) {
             dispatch({ type: 'ADD_CHAT_MESSAGE', payload: message });
           }
         }),
 
-        mockWebSocket.subscribe('REACTION_ADDED', (data) => {
+        liveWebSocket.subscribe('REACTION_ADDED', (data) => {
           if (state.broadcast?.id === data.broadcastId) {
             dispatch({
               type: 'ADD_REACTION',
@@ -256,13 +256,13 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
           }
         }),
 
-        mockWebSocket.subscribe('BROADCAST_STATUS_CHANGED', (broadcast: LiveBroadcast) => {
+        liveWebSocket.subscribe('BROADCAST_STATUS_CHANGED', (broadcast: LiveBroadcast) => {
           if (state.broadcast?.id === broadcast.id) {
             dispatch({ type: 'SET_BROADCAST', payload: broadcast });
           }
         }),
 
-        mockWebSocket.subscribe('SYSTEM_MESSAGE', (data) => {
+        liveWebSocket.subscribe('SYSTEM_MESSAGE', (data) => {
           // console.log('[LiveSession] System message:', data);
         })
       ];
@@ -286,21 +286,17 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
       dispatch({ type: 'SET_RECONNECTING', payload: true });
 
       // Загружаем данные трансляции
-      const broadcast = await mockLiveApi.getBroadcast(broadcastId);
+      const broadcast = await liveApi.getBroadcast(broadcastId);
       dispatch({ type: 'SET_BROADCAST', payload: broadcast });
 
       // Загружаем историю чата
-      const chatMessages = await mockLiveApi.getChatMessages(broadcastId);
+      const chatMessages = await liveApi.getChatMessages(broadcastId);
       dispatch({ type: 'SET_CHAT_MESSAGES', payload: chatMessages });
 
       // Подключаем WebSocket
-      const connected = await mockWebSocket.connect(broadcastId);
+      const connected = await liveWebSocket.connect(broadcastId);
       dispatch({ type: 'SET_WS_CONNECTION', payload: connected });
 
-      // Имитируем присоединение зрителя
-      if (broadcast.status === 'live') {
-        mockLiveApi.simulateViewerJoin(broadcastId);
-      }
 
       // console.log(`[LiveSession] Подключено к трансляции ${broadcastId}`);
     } catch (error) {
@@ -314,13 +310,9 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
   // Отключение от трансляции
   const disconnectFromBroadcast = useCallback(() => {
     if (state.broadcast) {
-      // Имитируем уход зрителя
-      if (state.broadcast.status === 'live') {
-        mockLiveApi.simulateViewerLeave(state.broadcast.id);
-      }
 
       // Отключаем WebSocket
-      mockWebSocket.disconnect(state.broadcast.id);
+      liveWebSocket.disconnect(state.broadcast.id);
 
       // console.log(`[LiveSession] Отключено от трансляции ${state.broadcast.id}`);
     }
@@ -334,10 +326,10 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
 
     try {
       // Отправляем через API
-      const message = await mockLiveApi.sendChatMessage(state.broadcast.id, content, type);
+      const message = await liveApi.sendChatMessage(state.broadcast.id, content, type);
 
       // Также отправляем через WebSocket (имитация)
-      mockWebSocket.send('CHAT_MESSAGE', {
+      liveWebSocket.send('CHAT_MESSAGE', {
         content,
         type
       }, state.broadcast.id);
@@ -355,8 +347,8 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
     if (!state.broadcast) return;
 
     try {
-      await mockLiveApi.sendReaction(state.broadcast.id, emoji);
-      mockWebSocket.send('REACTION_ADDED', { emoji }, state.broadcast.id);
+      await liveApi.sendReaction(state.broadcast.id, emoji);
+      liveWebSocket.send('REACTION_ADDED', { emoji }, state.broadcast.id);
 
       // Немедленно обновляем локальное состояние
       dispatch({ type: 'ADD_REACTION', payload: { emoji, count: 1 } });
@@ -369,7 +361,7 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
   // Начало трансляции (для админов)
   const startBroadcast = useCallback(async (title: string, description?: string) => {
     try {
-      const response = await mockLiveApi.startBroadcast({
+      const response = await liveApi.startBroadcast({
         title,
         description,
         streamType: 'video',
@@ -386,7 +378,7 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
 
       // Меняем статус на "live" после небольшой задержки (имитация подготовки)
       setTimeout(async () => {
-        await mockLiveApi.updateBroadcast(response.broadcast.id, { status: 'live' });
+        await liveApi.updateBroadcast(response.broadcast.id, { status: 'live' });
         dispatch({ type: 'SET_STATUS', payload: 'live' });
       }, 2000);
 
@@ -403,7 +395,7 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
     if (!state.broadcast) return;
 
     try {
-      await mockLiveApi.stopBroadcast(state.broadcast.id);
+      await liveApi.stopBroadcast(state.broadcast.id);
       dispatch({ type: 'SET_STATUS', payload: 'ended' });
 
       // Отключаемся через 3 секунды
@@ -423,7 +415,7 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
     if (!state.broadcast) return;
 
     try {
-      await mockLiveApi.updateBroadcast(state.broadcast.id, { status });
+      await liveApi.updateBroadcast(state.broadcast.id, { status });
       dispatch({ type: 'SET_STATUS', payload: status });
     } catch (error) {
       console.error('[LiveSession] Ошибка обновления статуса:', error);
