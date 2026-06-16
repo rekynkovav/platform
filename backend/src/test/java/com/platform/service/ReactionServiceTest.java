@@ -16,6 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,7 +62,7 @@ class ReactionServiceTest {
                 .header("alg", "none")
                 .subject("user-1")
                 .claim("preferred_username", "testuser")
-                .claim("realm_access.roles", "USER")
+                .claim("realm_access", Map.of("roles", List.of("USER")))
                 .build();
     }
 

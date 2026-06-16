@@ -1,23 +1,34 @@
 package com.platform.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 @ExtendWith(MockitoExtension.class)
 class QRCodeServiceTest {
 
     @InjectMocks
     private QRCodeService qrCodeService;
 
-    // ==================== generateQRCodeBase64 ====================
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(qrCodeService, "recipientName", "БФАДД");
+        ReflectionTestUtils.setField(qrCodeService, "account", "40703810512000002359");
+        ReflectionTestUtils.setField(qrCodeService, "bank", "ПАО Сбербанк");
+        ReflectionTestUtils.setField(qrCodeService, "bik", "041909644");
+        ReflectionTestUtils.setField(qrCodeService, "corrAccount", "30101810400000000225");
+        ReflectionTestUtils.setField(qrCodeService, "inn", "9715470089");
+        ReflectionTestUtils.setField(qrCodeService, "kpp", "771501001");
+    }
 
+    // ==================== generateQRCodeBase64 ====================
     @Test
     void generateQRCodeBase64_ValidData_ReturnsNonEmptyBase64() {
         String result = qrCodeService.generateQRCodeBase64("https://example.com");
@@ -43,7 +54,6 @@ class QRCodeServiceTest {
     }
 
     // ==================== generatePaymentQRData ====================
-
     @Test
     void generatePaymentQRData_ReturnsCorrectFormat() {
         BigDecimal amount = new BigDecimal("10000");

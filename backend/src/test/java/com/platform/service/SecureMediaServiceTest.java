@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -69,25 +70,25 @@ class SecureMediaServiceTest {
         userJwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", userId)
-                .claim("realm_access.roles", "USER_0")
+                .claim("realm_access", Map.of("roles", List.of("USER_0")))
                 .build();
 
         adminJwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", adminId)
-                .claim("realm_access.roles", "MODERATOR_ADMIN")
+                .claim("realm_access", Map.of("roles", List.of("MODERATOR_ADMIN")))
                 .build();
 
         superAdminJwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", adminId)
-                .claim("realm_access.roles", "SUPER_ADMIN")
+                .claim("realm_access", Map.of("roles", List.of("SUPER_ADMIN")))
                 .build();
 
         premiumJwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", userId)
-                .claim("realm_access.roles", "USER_2")
+                .claim("realm_access", Map.of("roles", List.of("USER_2")))
                 .build();
 
         lenient().when(request.getHeader("User-Agent")).thenReturn("TestAgent");
@@ -127,7 +128,7 @@ class SecureMediaServiceTest {
         Jwt otherJwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", otherUserId)
-                .claim("realm_access.roles", "USER_0")
+                .claim("realm_access", Map.of("roles", List.of("USER_0")))
                 .build();
 
         when(mediaFileRepository.findById(fileId)).thenReturn(Optional.of(mediaFile));
@@ -146,7 +147,7 @@ class SecureMediaServiceTest {
         Jwt otherJwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", otherUserId)
-                .claim("realm_access.roles", "USER_0")
+                .claim("realm_access", Map.of("roles", List.of("USER_0")))
                 .build();
 
         when(mediaFileRepository.findById(fileId)).thenReturn(Optional.of(mediaFile));
@@ -198,7 +199,7 @@ class SecureMediaServiceTest {
         Jwt otherJwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", otherUserId)
-                .claim("realm_access.roles", "USER_0")
+                .claim("realm_access", Map.of("roles", List.of("USER_0")))
                 .build();
 
         when(mediaFileRepository.findById(fileId)).thenReturn(Optional.of(mediaFile));
@@ -235,7 +236,7 @@ class SecureMediaServiceTest {
         Jwt otherJwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", otherUserId)
-                .claim("realm_access.roles", "USER_0")
+                .claim("realm_access", Map.of("roles", List.of("USER_0")))
                 .build();
 
         when(mediaFileRepository.findById(fileId)).thenReturn(Optional.of(mediaFile));

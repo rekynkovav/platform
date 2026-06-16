@@ -39,8 +39,8 @@ class MetricsObjectMapperConfigTest {
         JacksonConfig config = new JacksonConfig();
         ObjectMapper mapper = config.objectMapper();
 
-        // Verify JavaTimeModule is registered by serializing LocalDateTime
-        java.time.LocalDateTime now = java.time.LocalDateTime.of(2026, 6, 1, 10, 30);
+        // Verify JavaTimeModule is registered by serializing OffsetDateTime
+        java.time.OffsetDateTime now = java.time.OffsetDateTime.of(2026, 6, 1, 10, 30, 0, 0, java.time.ZoneOffset.UTC);
         String json = mapper.writeValueAsString(now);
 
         assertNotNull(json);

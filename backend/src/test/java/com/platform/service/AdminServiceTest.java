@@ -22,6 +22,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -59,23 +60,22 @@ class AdminServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        // RoleUtils expects realm_access.roles as flat string claim
         superAdminJwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", UUID.randomUUID().toString())
-                .claim("realm_access.roles", "SUPER_ADMIN")
+                .claim("realm_access", Map.of("roles", List.of("SUPER_ADMIN")))
                 .build();
 
         moderatorJwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", UUID.randomUUID().toString())
-                .claim("realm_access.roles", "MODERATOR_ADMIN")
+                .claim("realm_access", Map.of("roles", List.of("MODERATOR_ADMIN")))
                 .build();
 
         regularUserJwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", UUID.randomUUID().toString())
-                .claim("realm_access.roles", "USER_0")
+                .claim("realm_access", Map.of("roles", List.of("USER_0")))
                 .build();
     }
 

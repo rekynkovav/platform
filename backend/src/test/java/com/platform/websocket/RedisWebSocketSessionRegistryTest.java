@@ -130,13 +130,13 @@ class RedisWebSocketSessionRegistryTest {
 
     @Test
     void getOnlineCount_ReturnsKeyCount() {
-        when(redisTemplate.keys("ws:session:*")).thenReturn(Set.of("ws:session:s1", "ws:session:s2", "ws:session:s3"));
+        when(setOps.size("ws:sessions:all")).thenReturn(3L);
         assertEquals(3, registry.getOnlineCount());
     }
 
     @Test
     void getOnlineCount_NullKeys_ReturnsZero() {
-        when(redisTemplate.keys("ws:session:*")).thenReturn(null);
+        when(setOps.size("ws:sessions:all")).thenReturn(null);
         assertEquals(0, registry.getOnlineCount());
     }
 }

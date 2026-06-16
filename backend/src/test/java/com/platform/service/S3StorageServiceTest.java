@@ -1,14 +1,19 @@
 package com.platform.service;
 
+import com.amazonaws.SdkClientException;
+import com.amazonaws.services.s3.AmazonS3;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class S3StorageServiceTest {
 
     private S3StorageService s3StorageService;
+    private AmazonS3 mockS3Client;
 
     @BeforeEach
     void setUp() {
@@ -16,13 +21,17 @@ class S3StorageServiceTest {
         ReflectionTestUtils.setField(s3StorageService, "accessKey", "test-access-key");
         ReflectionTestUtils.setField(s3StorageService, "secretKey", "test-secret-key");
         ReflectionTestUtils.setField(s3StorageService, "bucket", "test-bucket");
-        // Use an invalid endpoint to guarantee connection failure
         ReflectionTestUtils.setField(s3StorageService, "endpoint", "http://localhost:19999");
         ReflectionTestUtils.setField(s3StorageService, "region", "ru-central1");
+
+        // Inject a mock S3 client that throws on all calls
+        mockS3Client = mock(AmazonS3.class, invocation -> {
+            throw new SdkClientException("No S3 connection");
+        });
+        ReflectionTestUtils.setField(s3StorageService, "s3Client", mockS3Client);
     }
 
     // ==================== upload (byte[]) - no real S3 ====================
-
     @Test
     void upload_NoS3Connection_ThrowsException() {
         byte[] data = "test".getBytes();
@@ -32,7 +41,6 @@ class S3StorageServiceTest {
     }
 
     // ==================== download - no real S3 ====================
-
     @Test
     void download_NoS3Connection_ThrowsException() {
         assertThrows(Exception.class, () ->
@@ -40,7 +48,6 @@ class S3StorageServiceTest {
     }
 
     // ==================== delete - no real S3 ====================
-
     @Test
     void delete_NoS3Connection_ReturnsFalse() {
         // delete catches exceptions and returns false
@@ -48,38 +55,25 @@ class S3StorageServiceTest {
     }
 
     // ==================== exists - no real S3 ====================
-
     @Test
     void exists_NoS3Connection_ReturnsFalse() {
         assertFalse(s3StorageService.exists("nonexistent/file.txt"));
     }
 
     // ==================== generatePresignedUrl - no real S3 ====================
-
     @Test
     void generatePresignedUrl_NoS3Connection_ThrowsException() {
-        // generatePresignedUrl may succeed locally (URL generation doesn't always need network)
-        // but with invalid credentials/endpoint it should throw or return null
-        try {
-            String url = s3StorageService.generatePresignedUrl("file.txt", 3600);
-            // If it doesn't throw, the URL should at least be non-null
-            // This test verifies the method handles missing S3 gracefully
-            assertNotNull(url);
-        } catch (Exception e) {
-            // Expected: some implementations throw when client can't be created
-            assertTrue(true);
-        }
+        assertThrows(Exception.class, () ->
+                s3StorageService.generatePresignedUrl("file.txt", 3600));
     }
 
     // ==================== verifyUpload - no real S3 ====================
-
     @Test
     void verifyUpload_NoS3Connection_ReturnsFalse() {
         assertFalse(s3StorageService.verifyUpload("file.txt", 1024));
     }
 
     // ==================== isValidMediaFile - no real S3 ====================
-
     @Test
     void isValidMediaFile_NoS3Connection_ReturnsFalse() {
         assertFalse(s3StorageService.isValidMediaFile("video.mp4"));

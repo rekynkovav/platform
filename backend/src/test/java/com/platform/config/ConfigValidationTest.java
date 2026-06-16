@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 class ConfigValidationTest {
 
     // ==================== EnvValidator ====================
@@ -15,8 +14,6 @@ class ConfigValidationTest {
         ReflectionTestUtils.setField(validator, "dbUrl", "jdbc:postgresql://localhost/test");
         ReflectionTestUtils.setField(validator, "dbUser", "user");
         ReflectionTestUtils.setField(validator, "dbPassword", "pass");
-        ReflectionTestUtils.setField(validator, "redisHost", "localhost");
-        ReflectionTestUtils.setField(validator, "redisPort", 6379);
 
         assertDoesNotThrow(validator::validate);
     }
@@ -27,20 +24,16 @@ class ConfigValidationTest {
         ReflectionTestUtils.setField(validator, "dbUrl", "");
         ReflectionTestUtils.setField(validator, "dbUser", "user");
         ReflectionTestUtils.setField(validator, "dbPassword", "pass");
-        ReflectionTestUtils.setField(validator, "redisHost", "localhost");
-        ReflectionTestUtils.setField(validator, "redisPort", 6379);
 
         assertThrows(IllegalStateException.class, validator::validate);
     }
 
     @Test
-    void envValidator_MissingRedisHost_ThrowsIllegalState() {
+    void envValidator_BlankDbUser_ThrowsIllegalState() {
         EnvValidator validator = new EnvValidator();
         ReflectionTestUtils.setField(validator, "dbUrl", "jdbc:postgresql://localhost/test");
-        ReflectionTestUtils.setField(validator, "dbUser", "user");
+        ReflectionTestUtils.setField(validator, "dbUser", null);
         ReflectionTestUtils.setField(validator, "dbPassword", "pass");
-        ReflectionTestUtils.setField(validator, "redisHost", null);
-        ReflectionTestUtils.setField(validator, "redisPort", 6379);
 
         assertThrows(IllegalStateException.class, validator::validate);
     }
@@ -51,8 +44,6 @@ class ConfigValidationTest {
         ReflectionTestUtils.setField(validator, "dbUrl", "jdbc:postgresql://localhost/test");
         ReflectionTestUtils.setField(validator, "dbUser", "user");
         ReflectionTestUtils.setField(validator, "dbPassword", "   ");
-        ReflectionTestUtils.setField(validator, "redisHost", "localhost");
-        ReflectionTestUtils.setField(validator, "redisPort", 6379);
 
         assertThrows(IllegalStateException.class, validator::validate);
     }

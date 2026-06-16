@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
 import java.util.Map;
 import java.util.HashMap;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -19,85 +18,95 @@ class RoleUtilsTest {
         String result = RoleUtils.getUserRole(jwt);
 
         // Assert
-        assertEquals("ROLE_USER_0", result);
+        assertEquals("USER_0", result);
     }
 
     @Test
     void getUserRole_WithEmptyRolesClaim_ReturnsDefaultRole() {
         // Arrange
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getClaimAsString("realm_access.roles")).thenReturn(null);
+        Map<String, Object> realmAccess = new HashMap<>();
+        realmAccess.put("roles", java.util.List.of());
+        when(jwt.getClaim("realm_access")).thenReturn(realmAccess);
 
         // Act
         String result = RoleUtils.getUserRole(jwt);
 
         // Assert
-        assertEquals("ROLE_USER_0", result);
+        assertEquals("USER_0", result);
     }
 
     @Test
     void getUserRole_WithSingleRole_ReturnsFirstRole() {
         // Arrange
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getClaimAsString("realm_access.roles")).thenReturn("ROLE_USER_1");
+        Map<String, Object> realmAccess = new HashMap<>();
+        realmAccess.put("roles", java.util.List.of("USER_1"));
+        when(jwt.getClaim("realm_access")).thenReturn(realmAccess);
 
         // Act
         String result = RoleUtils.getUserRole(jwt);
 
         // Assert
-        assertEquals("ROLE_USER_1", result);
+        assertEquals("USER_1", result);
     }
 
     @Test
-    void getUserRole_WithMultipleRoles_ReturnsFirstRole() {
+    void getUserRole_WithMultipleRoles_ReturnsHighestPriorityRole() {
         // Arrange
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getClaimAsString("realm_access.roles")).thenReturn("ROLE_USER_2,ROLE_CONSULTANT_PITANIE,ROLE_MODERATOR_ADMIN");
+        Map<String, Object> realmAccess = new HashMap<>();
+        realmAccess.put("roles", java.util.List.of("USER_2", "CONSULTANT_PITANIE", "MODERATOR_ADMIN"));
+        when(jwt.getClaim("realm_access")).thenReturn(realmAccess);
 
         // Act
         String result = RoleUtils.getUserRole(jwt);
 
         // Assert
-        assertEquals("ROLE_USER_2", result);
+        assertEquals("MODERATOR_ADMIN", result);
     }
 
     @Test
-    void getUserRole_WithSpacesInRoles_ReturnsTrimmedRole() {
+    void getUserRole_WithRolesInMap_ReturnsHighestPriorityRole() {
         // Arrange
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getClaimAsString("realm_access.roles")).thenReturn("  ROLE_VYACHESLAV  ,  ROLE_SUPER_ADMIN  ");
+        Map<String, Object> realmAccess = new HashMap<>();
+        realmAccess.put("roles", java.util.List.of("VYACHESLAV", "SUPER_ADMIN"));
+        when(jwt.getClaim("realm_access")).thenReturn(realmAccess);
 
         // Act
         String result = RoleUtils.getUserRole(jwt);
 
         // Assert
-        assertEquals("ROLE_VYACHESLAV", result);
+        assertEquals("SUPER_ADMIN", result);
     }
 
     @Test
-    void getUserRole_WithEmptyString_ReturnsDefaultRole() {
+    void getUserRole_WithNullRealmAccess_ReturnsDefaultRole() {
         // Arrange
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getClaimAsString("realm_access.roles")).thenReturn("");
+        when(jwt.getClaim("realm_access")).thenReturn(null);
 
         // Act
         String result = RoleUtils.getUserRole(jwt);
 
         // Assert
-        assertEquals("ROLE_USER_0", result);
+        assertEquals("USER_0", result);
     }
 
     @Test
-    void getUserRole_WithOnlyCommas_ReturnsDefaultRole() {
+    void getUserRole_WithNoRolesKey_ReturnsDefaultRole() {
         // Arrange
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getClaimAsString("realm_access.roles")).thenReturn(",,");
+        Map<String, Object> realmAccess = new HashMap<>();
+        // no "roles" key
+        when(jwt.getClaim("realm_access")).thenReturn(realmAccess);
 
         // Act
         String result = RoleUtils.getUserRole(jwt);
 
         // Assert
-        assertEquals("ROLE_USER_0", result);
+        assertEquals("USER_0", result);
     }
 
     @Test

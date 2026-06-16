@@ -17,7 +17,7 @@ class EncryptionServiceTest {
     @BeforeEach
     void setUp() {
         encryptionService = new EncryptionService();
-        ReflectionTestUtils.setField(encryptionService, "algorithm", "AES/CBC/PKCS5Padding");
+        ReflectionTestUtils.setField(encryptionService, "masterKey", "test-master-key-123456789012345678");
     }
 
     // ==================== generateIV ====================
@@ -27,8 +27,9 @@ class EncryptionServiceTest {
         String iv = encryptionService.generateIV();
 
         assertNotNull(iv);
-        byte[] decoded = Base64.getDecoder().decode(iv);
-        assertEquals(16, decoded.length);
+        assertTrue(iv.startsWith("02|"), "IV should start with version prefix 02|");
+        byte[] decoded = Base64.getDecoder().decode(iv.substring(3));
+        assertEquals(12, decoded.length);
     }
 
     @Test
@@ -128,7 +129,7 @@ class EncryptionServiceTest {
     @Test
     void getCipher_EncryptMode_ReturnsInitializedCipher() throws Exception {
         byte[] key = new byte[16];
-        String iv = "0123456789abcdef"; // exactly 16 chars for raw IV bytes
+        String iv = Base64.getEncoder().encodeToString(new byte[16]); // base64-encoded 16-byte IV for CBC
 
         Cipher cipher = encryptionService.getCipher(Cipher.ENCRYPT_MODE, key, iv);
 

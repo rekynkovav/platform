@@ -67,7 +67,7 @@ class ContactServiceTest {
     void getUserContacts_NoSearch_ReturnsAllContacts() {
         when(contactRepository.findByUserIdOrderByContactNameAsc(userId))
                 .thenReturn(List.of(contact));
-        when(userRepository.findById(contactUserUuid)).thenReturn(Optional.of(contactUser));
+        when(userRepository.findAllById(anySet())).thenReturn(List.of(contactUser));
 
         List<ContactDto> result = contactService.getUserContacts(userId, null);
 
@@ -79,7 +79,7 @@ class ContactServiceTest {
     void getUserContacts_WithSearch_ReturnsFiltered() {
         when(contactRepository.findByUserIdAndContactNameContainingIgnoreCase(userId, "friend"))
                 .thenReturn(List.of(contact));
-        when(userRepository.findById(contactUserUuid)).thenReturn(Optional.of(contactUser));
+        when(userRepository.findAllById(anySet())).thenReturn(List.of(contactUser));
 
         List<ContactDto> result = contactService.getUserContacts(userId, "friend");
 
@@ -101,7 +101,7 @@ class ContactServiceTest {
         contactUser.setLastActiveAt(LocalDateTime.now().minusMinutes(2));
         when(contactRepository.findByUserIdOrderByContactNameAsc(userId))
                 .thenReturn(List.of(contact));
-        when(userRepository.findById(contactUserUuid)).thenReturn(Optional.of(contactUser));
+        when(userRepository.findAllById(anySet())).thenReturn(List.of(contactUser));
 
         List<ContactDto> result = contactService.getUserContacts(userId, null);
 
@@ -113,7 +113,7 @@ class ContactServiceTest {
         contactUser.setLastActiveAt(LocalDateTime.now().minusHours(1));
         when(contactRepository.findByUserIdOrderByContactNameAsc(userId))
                 .thenReturn(List.of(contact));
-        when(userRepository.findById(contactUserUuid)).thenReturn(Optional.of(contactUser));
+        when(userRepository.findAllById(anySet())).thenReturn(List.of(contactUser));
 
         List<ContactDto> result = contactService.getUserContacts(userId, null);
 
@@ -125,7 +125,7 @@ class ContactServiceTest {
         contactUser.setLastActiveAt(null);
         when(contactRepository.findByUserIdOrderByContactNameAsc(userId))
                 .thenReturn(List.of(contact));
-        when(userRepository.findById(contactUserUuid)).thenReturn(Optional.of(contactUser));
+        when(userRepository.findAllById(anySet())).thenReturn(List.of(contactUser));
 
         List<ContactDto> result = contactService.getUserContacts(userId, null);
 
@@ -136,7 +136,7 @@ class ContactServiceTest {
     void getUserContacts_IncludesAvatarUrl() {
         when(contactRepository.findByUserIdOrderByContactNameAsc(userId))
                 .thenReturn(List.of(contact));
-        when(userRepository.findById(contactUserUuid)).thenReturn(Optional.of(contactUser));
+        when(userRepository.findAllById(anySet())).thenReturn(List.of(contactUser));
 
         List<ContactDto> result = contactService.getUserContacts(userId, null);
 

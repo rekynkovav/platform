@@ -58,11 +58,11 @@ public class RoleUtils {
     }
 
     public static boolean isAdmin(String role) {
-        return ADMIN_ROLES.contains(role);
+        return role != null && ADMIN_ROLES.contains(role);
     }
 
     public static boolean isSuperAdmin(String role) {
-        return SUPER_ADMIN_ROLES.contains(role);
+        return role != null && SUPER_ADMIN_ROLES.contains(role);
     }
 
     @SuppressWarnings("unchecked")

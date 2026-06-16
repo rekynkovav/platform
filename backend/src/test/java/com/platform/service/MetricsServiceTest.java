@@ -74,23 +74,23 @@ class MetricsServiceTest {
     // ==================== WebSocket counters ====================
 
     @Test
-    void incrementWebSocketConnections_IncreasesCounter() {
+    void incrementWebSocketConnections_IncreasesGauge() {
         metricsService.incrementWebSocketConnections();
 
-        Counter counter = registry.find("websocket.connections.total").counter();
-        assertNotNull(counter);
-        assertEquals(1.0, counter.count());
+        var gauge = registry.find("websocket.connections.active").gauge();
+        assertNotNull(gauge);
+        assertEquals(1.0, gauge.value());
     }
 
     @Test
-    void decrementWebSocketConnections_DecreasesCounter() {
+    void decrementWebSocketConnections_DecreasesGauge() {
         metricsService.incrementWebSocketConnections();
         metricsService.incrementWebSocketConnections();
         metricsService.decrementWebSocketConnections();
 
-        Counter counter = registry.find("websocket.connections.total").counter();
-        assertNotNull(counter);
-        assertEquals(1.0, counter.count());
+        var gauge = registry.find("websocket.connections.active").gauge();
+        assertNotNull(gauge);
+        assertEquals(1.0, gauge.value());
     }
 
     @Test

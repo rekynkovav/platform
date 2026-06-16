@@ -73,7 +73,7 @@ class PostServiceTest {
                 .build();
 
         when(postRepository.findFeed(any(PageRequest.class))).thenReturn(List.of(post));
-        when(reactionRepository.existsByPostIdAndUserIdAndType(anyString(), anyString(), eq("like"))).thenReturn(false);
+        when(reactionRepository.findPostIdsByPostIdInAndUserIdAndType(anyList(), eq(userId), eq("like"))).thenReturn(List.of());
         when(commentService.getRecentComments(anyString(), anyInt())).thenReturn(List.of());
 
         List<PostDto> feed = postService.getFeed(userId, null, PageRequest.of(0, 10));
@@ -99,7 +99,7 @@ class PostServiceTest {
                 .build();
 
         when(postRepository.findFeedByCategory(eq("nutrition"), any(PageRequest.class))).thenReturn(List.of(post));
-        when(reactionRepository.existsByPostIdAndUserIdAndType(anyString(), anyString(), eq("like"))).thenReturn(true);
+        when(reactionRepository.findPostIdsByPostIdInAndUserIdAndType(anyList(), eq(userId), eq("like"))).thenReturn(List.of("post-2"));
         when(commentService.getRecentComments(anyString(), anyInt())).thenReturn(List.of());
 
         List<PostDto> feed = postService.getFeedByCategory("nutrition", userId, null, PageRequest.of(0, 10));

@@ -59,21 +59,21 @@ class EventServiceTest {
                 .header("alg", "none")
                 .subject("user-1")
                 .claim("preferred_username", "creator")
-                .claim("realm_access.roles", "USER")
+                .claim("realm_access", Map.of("roles", List.of("USER")))
                 .build();
 
         adminJwt = Jwt.withTokenValue("token")
                 .header("alg", "none")
                 .subject("admin-1")
                 .claim("preferred_username", "admin")
-                .claim("realm_access.roles", "SUPER_ADMIN")
+                .claim("realm_access", Map.of("roles", List.of("SUPER_ADMIN")))
                 .build();
 
         otherJwt = Jwt.withTokenValue("token")
                 .header("alg", "none")
                 .subject("user-2")
                 .claim("preferred_username", "other")
-                .claim("realm_access.roles", "USER")
+                .claim("realm_access", Map.of("roles", List.of("USER")))
                 .build();
     }
 

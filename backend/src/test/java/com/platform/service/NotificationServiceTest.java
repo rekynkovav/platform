@@ -11,6 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 
 import java.time.Instant;
 import java.util.List;
@@ -27,6 +29,8 @@ class NotificationServiceTest {
 
     @Mock private NotificationRepository notificationRepository;
     @Mock private ChatWebSocketHandler webSocketHandler;
+    @Mock private CacheManager cacheManager;
+    @Mock private Cache cache;
 
     @InjectMocks
     private NotificationService notificationService;
@@ -37,6 +41,7 @@ class NotificationServiceTest {
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID().toString();
+        org.mockito.Mockito.lenient().when(cacheManager.getCache(anyString())).thenReturn(cache);
         notification = Notification.builder()
                 .id(1L)
                 .userId(userId)
@@ -138,7 +143,8 @@ class NotificationServiceTest {
     void markAsRead_NotFound_DoesNothing() {
         when(notificationRepository.findById(999L)).thenReturn(Optional.empty());
 
-        notificationService.markAsRead("999");
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () ->
+                notificationService.markAsRead("999"));
 
         verify(notificationRepository, never()).save(any());
     }
@@ -180,29 +186,18 @@ class NotificationServiceTest {
 
     @Test
     void markAllAsRead_MarksAllUnreadAsRead() {
-        Notification n1 = Notification.builder().id(1L).userId(userId).read(false).build();
-        Notification n2 = Notification.builder().id(2L).userId(userId).read(false).build();
-
-        when(notificationRepository.findByUserIdAndReadFalse(userId))
-                .thenReturn(List.of(n1, n2));
-        when(notificationRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-
         notificationService.markAllAsRead(userId);
 
-        assertThat(n1.getRead()).isTrue();
-        assertThat(n2.getRead()).isTrue();
-        verify(notificationRepository).saveAll(List.of(n1, n2));
+        verify(notificationRepository).markAllAsReadByUserId(userId);
+        verify(cacheManager).getCache("unreadNotifications");
+        verify(cacheManager).getCache("allNotifications");
     }
 
     @Test
     void markAllAsRead_NoUnread_SavesEmptyList() {
-        when(notificationRepository.findByUserIdAndReadFalse(userId))
-                .thenReturn(List.of());
-        when(notificationRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-
         notificationService.markAllAsRead(userId);
 
-        verify(notificationRepository).saveAll(List.of());
+        verify(notificationRepository).markAllAsReadByUserId(userId);
     }
 
     // ==================== notifyAboutNewQuestionMessage ====================

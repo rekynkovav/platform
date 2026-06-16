@@ -12,11 +12,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -31,6 +33,10 @@ class LiveBroadcastServiceTest {
 
     @Mock
     private BroadcastArchiveService archiveService;
+
+    @Mock
+    @Qualifier("taskExecutor")
+    private Executor taskExecutor;
 
     @InjectMocks
     private LiveBroadcastService broadcastService;

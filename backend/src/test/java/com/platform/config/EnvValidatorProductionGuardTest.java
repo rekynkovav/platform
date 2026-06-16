@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 class EnvValidatorProductionGuardTest {
 
     // ==================== EnvValidator ====================
@@ -12,11 +11,9 @@ class EnvValidatorProductionGuardTest {
     @Test
     void envValidator_AllVarsPresent_DoesNotThrow() {
         EnvValidator validator = new EnvValidator();
-        ReflectionTestUtils.setField(validator, "dbUrl", "jdbc:postgresql://localhost:5432/db");
+        ReflectionTestUtils.setField(validator, "dbUrl", "jdbc:postgresql://localhost/db");
         ReflectionTestUtils.setField(validator, "dbUser", "user");
         ReflectionTestUtils.setField(validator, "dbPassword", "pass");
-        ReflectionTestUtils.setField(validator, "redisHost", "localhost");
-        ReflectionTestUtils.setField(validator, "redisPort", 6379);
 
         assertDoesNotThrow(validator::validate);
     }
@@ -27,7 +24,6 @@ class EnvValidatorProductionGuardTest {
         ReflectionTestUtils.setField(validator, "dbUrl", "");
         ReflectionTestUtils.setField(validator, "dbUser", "user");
         ReflectionTestUtils.setField(validator, "dbPassword", "pass");
-        ReflectionTestUtils.setField(validator, "redisHost", "localhost");
 
         assertThrows(IllegalStateException.class, validator::validate);
     }
@@ -38,18 +34,16 @@ class EnvValidatorProductionGuardTest {
         ReflectionTestUtils.setField(validator, "dbUrl", "jdbc:postgresql://localhost/db");
         ReflectionTestUtils.setField(validator, "dbUser", null);
         ReflectionTestUtils.setField(validator, "dbPassword", "pass");
-        ReflectionTestUtils.setField(validator, "redisHost", "localhost");
 
         assertThrows(IllegalStateException.class, validator::validate);
     }
 
     @Test
-    void envValidator_BlankRedisHost_ThrowsIllegalStateException() {
+    void envValidator_BlankDbUser_ThrowsIllegalStateException() {
         EnvValidator validator = new EnvValidator();
         ReflectionTestUtils.setField(validator, "dbUrl", "jdbc:postgresql://localhost/db");
-        ReflectionTestUtils.setField(validator, "dbUser", "user");
+        ReflectionTestUtils.setField(validator, "dbUser", "   ");
         ReflectionTestUtils.setField(validator, "dbPassword", "pass");
-        ReflectionTestUtils.setField(validator, "redisHost", "   ");
 
         assertThrows(IllegalStateException.class, validator::validate);
     }
@@ -60,7 +54,6 @@ class EnvValidatorProductionGuardTest {
         ReflectionTestUtils.setField(validator, "dbUrl", "jdbc:postgresql://localhost/db");
         ReflectionTestUtils.setField(validator, "dbUser", "user");
         ReflectionTestUtils.setField(validator, "dbPassword", "");
-        ReflectionTestUtils.setField(validator, "redisHost", "localhost");
 
         assertThrows(IllegalStateException.class, validator::validate);
     }

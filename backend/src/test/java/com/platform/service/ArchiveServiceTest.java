@@ -62,28 +62,28 @@ class ArchiveServiceTest {
                 .header("alg", "none")
                 .subject("admin-1")
                 .claim("preferred_username", "admin")
-                .claim("realm_access.roles", "MODERATOR_ADMIN")
+                .claim("realm_access", Map.of("roles", List.of("MODERATOR_ADMIN")))
                 .build();
 
         superAdminJwt = Jwt.withTokenValue("token")
                 .header("alg", "none")
                 .subject("super-1")
                 .claim("preferred_username", "superadmin")
-                .claim("realm_access.roles", "SUPER_ADMIN")
+                .claim("realm_access", Map.of("roles", List.of("SUPER_ADMIN")))
                 .build();
 
         userJwt = Jwt.withTokenValue("token")
                 .header("alg", "none")
                 .subject("user-1")
                 .claim("preferred_username", "user")
-                .claim("realm_access.roles", "USER")
+                .claim("realm_access", Map.of("roles", List.of("USER")))
                 .build();
 
         moderatorJwt = Jwt.withTokenValue("token")
                 .header("alg", "none")
                 .subject("mod-1")
                 .claim("preferred_username", "moderator")
-                .claim("realm_access.roles", "MODERATOR_ADMIN")
+                .claim("realm_access", Map.of("roles", List.of("MODERATOR_ADMIN")))
                 .build();
     }
 

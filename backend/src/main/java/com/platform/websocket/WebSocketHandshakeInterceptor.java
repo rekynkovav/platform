@@ -27,17 +27,30 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                    WebSocketHandler wsHandler, Map<String, Object> attributes) {
-
         HttpHeaders headers = request.getHeaders();
         List<String> authHeaders = headers.get("Authorization");
 
         String token = null;
-
         if (authHeaders != null && !authHeaders.isEmpty()) {
             String authHeader = authHeaders.get(0);
             if (authHeader.startsWith("Bearer ")) {
                 token = authHeader.substring(7);
                 log.debug("Token extracted from Authorization header");
+            }
+        }
+
+        // Fallback: check query parameter for token (common for WebSocket connections)
+        if (token == null) {
+            String query = request.getURI().getQuery();
+            if (query != null) {
+                for (String param : query.split("&")) {
+                    String[] kv = param.split("=", 2);
+                    if (kv.length == 2 && "token".equals(kv[0])) {
+                        token = kv[1];
+                        log.debug("Token extracted from query parameter");
+                        break;
+                    }
+                }
             }
         }
 
@@ -49,7 +62,7 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
         try {
             Jwt jwt = jwtDecoder.decode(token);
             attributes.put("userId", jwt.getSubject());
-
+            attributes.put("token", token);
             attributes.put("userRole", RoleUtils.getUserRole(jwt));
 
             log.debug("WebSocket authenticated: userId={}", jwt.getSubject());

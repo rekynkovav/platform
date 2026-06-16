@@ -20,6 +20,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,7 +66,7 @@ class CommentServiceTest {
                 .header("alg", "none")
                 .subject("user-1")
                 .claim("preferred_username", "testuser")
-                .claim("realm_access.roles", "USER")
+                .claim("realm_access", Map.of("roles", List.of("USER")))
                 .build();
     }
 
@@ -173,7 +174,7 @@ class CommentServiceTest {
                 .header("alg", "none")
                 .subject("admin-1")
                 .claim("preferred_username", "admin")
-                .claim("realm_access.roles", "MODERATOR_ADMIN")
+                .claim("realm_access", Map.of("roles", List.of("MODERATOR_ADMIN")))
                 .build();
 
         when(commentRepository.findById("comment-1")).thenReturn(Optional.of(testComment));
@@ -192,7 +193,7 @@ class CommentServiceTest {
                 .header("alg", "none")
                 .subject("user-2")
                 .claim("preferred_username", "other")
-                .claim("realm_access.roles", "USER")
+                .claim("realm_access", Map.of("roles", List.of("USER")))
                 .build();
 
         when(commentRepository.findById("comment-1")).thenReturn(Optional.of(testComment));

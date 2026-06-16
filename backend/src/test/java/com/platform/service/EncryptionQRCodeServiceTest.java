@@ -18,15 +18,16 @@ class EncryptionQRCodeServiceTest {
     @BeforeEach
     void setUp() {
         encryptionService = new EncryptionService();
-        ReflectionTestUtils.setField(encryptionService, "algorithm", "AES/CBC/PKCS5Padding");
+        ReflectionTestUtils.setField(encryptionService, "masterKey", "test-master-key-123456789012345678");
     }
 
     @Test
     void encryption_GenerateIV_ReturnsBase64String() {
         String iv = encryptionService.generateIV();
         assertNotNull(iv);
-        byte[] decoded = Base64.getDecoder().decode(iv);
-        assertEquals(16, decoded.length);
+        assertTrue(iv.startsWith("02|"), "IV should start with version prefix 02|");
+        byte[] decoded = Base64.getDecoder().decode(iv.substring(3));
+        assertEquals(12, decoded.length);
     }
 
     @Test
@@ -104,6 +105,13 @@ class EncryptionQRCodeServiceTest {
     @Test
     void qrCode_GeneratePaymentQRData_ContainsRequiredFields() {
         QRCodeService service = new QRCodeService();
+        ReflectionTestUtils.setField(service, "recipientName", "ИП Иванов");
+        ReflectionTestUtils.setField(service, "account", "40703810512000002359");
+        ReflectionTestUtils.setField(service, "bank", "ПАО Сбербанк");
+        ReflectionTestUtils.setField(service, "bik", "041909644");
+        ReflectionTestUtils.setField(service, "corrAccount", "30101810400000000225");
+        ReflectionTestUtils.setField(service, "inn", "9715470089");
+        ReflectionTestUtils.setField(service, "kpp", "773601001");
         String qrData = service.generatePaymentQRData(
                 new BigDecimal("990.00"), "pay-123", "john");
 
@@ -119,6 +127,13 @@ class EncryptionQRCodeServiceTest {
     @Test
     void qrCode_GeneratePaymentQRData_DifferentAmounts() {
         QRCodeService service = new QRCodeService();
+        ReflectionTestUtils.setField(service, "recipientName", "Test");
+        ReflectionTestUtils.setField(service, "account", "ACC");
+        ReflectionTestUtils.setField(service, "bank", "Bank");
+        ReflectionTestUtils.setField(service, "bik", "BIK");
+        ReflectionTestUtils.setField(service, "corrAccount", "CORR");
+        ReflectionTestUtils.setField(service, "inn", "INN");
+        ReflectionTestUtils.setField(service, "kpp", "KPP");
         String qr1 = service.generatePaymentQRData(new BigDecimal("100.00"), "p1", "u1");
         String qr2 = service.generatePaymentQRData(new BigDecimal("500.50"), "p2", "u2");
 

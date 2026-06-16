@@ -28,6 +28,7 @@ class WebSocketConfigTest {
         when(chatRegistration.setAllowedOrigins(anyString(), anyString(), anyString())).thenReturn(chatRegistration);
 
         when(registry.addHandler(eq(broadcastHandler), eq("/ws/broadcast/{broadcastId}/stats"))).thenReturn(broadcastRegistration);
+        when(broadcastRegistration.addInterceptors(any())).thenReturn(broadcastRegistration);
         when(broadcastRegistration.setAllowedOrigins(anyString(), anyString(), anyString())).thenReturn(broadcastRegistration);
 
         assertDoesNotThrow(() -> config.registerWebSocketHandlers(registry));
