@@ -5,6 +5,7 @@ import com.platform.model.dto.AdminStatsDto;
 import com.platform.model.dto.PaymentDto;
 import com.platform.model.dto.UserDto;
 import com.platform.service.AdminService;
+import com.platform.service.DashboardMenuService;
 import com.platform.service.PaymentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -111,7 +112,8 @@ class AdminDashboardPaymentControllerTest {
 
     @Test
     void dashboardGetMenu_ReturnsEmptyList() {
-        DashboardController controller = new DashboardController();
+        DashboardMenuService menuService = mock(DashboardMenuService.class);
+        DashboardController controller = new DashboardController(menuService);
 
         ResponseEntity<List<Map<String, Object>>> response = controller.getMenuData(jwt);
 
@@ -121,7 +123,8 @@ class AdminDashboardPaymentControllerTest {
 
     @Test
     void dashboardSaveMenu_ReturnsSavedWithCount() {
-        DashboardController controller = new DashboardController();
+        DashboardMenuService menuService = mock(DashboardMenuService.class);
+        DashboardController controller = new DashboardController(menuService);
         List<Map<String, Object>> menuData = List.of(Map.of("label", "Users"), Map.of("label", "Posts"));
 
         ResponseEntity<Map<String, Object>> response = controller.saveMenuData(menuData, jwt);

@@ -18,7 +18,7 @@ export { mockMediaService } from './mockMedia';
 // Types for TypeScript
 export type { RealWebSocketService as LiveWebSocketService } from './realWebSocket';
 export type { RealLiveApi as LiveApiService } from './realApi';
-export type { MockMediaService as MediaService } from './mockMedia';
+export type { RealMediaService as MediaService } from './realMedia';
 
 // Config
 export const LIVE_CONFIG = {

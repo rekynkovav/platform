@@ -56,7 +56,7 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
     networkActivity: false
   });
 
-  // Получение потока
+  // Получение потока — quality NOT in deps (HLS handles quality via currentLevel)
   const getStream = useCallback(async () => {
     if (!broadcast) return null;
 
@@ -64,14 +64,14 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
       return await mediaService.getStream(
         broadcast.id,
         broadcast.streamType,
-        currentQuality
+        'auto'  // Always fetch base stream; quality switching via hls.currentLevel
       );
     } catch (err) {
       console.error('[LivePlayer] Ошибка получения потока:', err);
       setError(err instanceof Error ? err.message : 'Ошибка получения потока');
       return null;
     }
-  }, [broadcast, currentQuality]);
+  }, [broadcast]);
 
   // Инициализация HLS
   const initHls = useCallback((streamUrl: string) => {
@@ -213,26 +213,27 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
     return '360p';
   }, []);
 
-  // Переключение качества
+  // Переключение качества — через hls.currentLevel (без rebuild)
   const switchQuality = useCallback((quality: StreamQuality) => {
     if (!hlsRef.current || quality === currentQuality) return;
 
     try {
-      const stream = mediaService.switchQuality(broadcast.id, quality);
-      setCurrentQuality(quality);
-
-      // Перезагружаем HLS с новым потоком
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
+      if (quality === 'auto') {
+        hlsRef.current.currentLevel = -1;  // auto ABR
+      } else {
+        // Map quality string to height
+        const targetHeight = quality === '1080p' ? 1080 : quality === '720p' ? 720 : quality === '480p' ? 480 : 360;
+        const idx = hlsRef.current.levels.findIndex((l: any) => l.height >= targetHeight);
+        if (idx >= 0) {
+          hlsRef.current.currentLevel = idx;
+        }
       }
-      initHls(stream.url);
-
-      // console.log(`[LivePlayer] Качество переключено на: ${quality}`);
+      setCurrentQuality(quality);
     } catch (err) {
       console.error('[LivePlayer] Ошибка переключения качества:', err);
       setError(err instanceof Error ? err.message : 'Ошибка переключения качества');
     }
-  }, [broadcast.id, currentQuality, initHls]);
+  }, [broadcast.id, currentQuality]);
 
   // Автоматическое переключение качества на основе ширины экрана
   const autoSwitchQuality = useCallback(() => {
@@ -337,8 +338,7 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
 
       resizeObserver.disconnect();
       clearInterval(statsInterval);
-
-      mediaService.stopAllStreams(broadcast.id);
+      // NOTE: LivePlayer is sole HLS owner — no mediaService.stopAllStreams needed
     };
   }, [broadcast, getStream, initHls, autoSwitchQuality, updateStats]);
 

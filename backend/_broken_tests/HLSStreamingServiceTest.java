@@ -2,24 +2,26 @@ package com.platform.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
 class HLSStreamingServiceTest {
-
     private HLSStreamingService hlsService;
     private EncryptionService encryptionService;
     private StorageService storageService;
+    private FFmpegExecutor ffmpegExecutor;
 
     @BeforeEach
     void setUp() {
         encryptionService = mock(EncryptionService.class);
         storageService = mock(StorageService.class);
-        hlsService = new HLSStreamingService(encryptionService, storageService);
+        ffmpegExecutor = mock(FFmpegExecutor.class);
+        hlsService = new HLSStreamingService(encryptionService, storageService, ffmpegExecutor);
         ReflectionTestUtils.setField(hlsService, "segmentDuration", 6);
         ReflectionTestUtils.setField(hlsService, "tempPath", "/tmp/hls-test");
     }

@@ -95,36 +95,7 @@ export class RealWebSocketService {
 
       const ws = new WebSocket(wsUrl);
 
-      ws.onopen = () => {
-        console.log(`[RealWS] Connected to broadcast ${broadcastId}`);
-        this.connections.set(broadcastId, ws);
-        this.reconnectAttempts.set(broadcastId, 0);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          this.handleMessage(broadcastId, data);
-        } catch (err) {
-          console.warn('[RealWS] Failed to parse message:', event.data);
-        }
-      };
-
-      ws.onclose = (event) => {
-        console.log(`[RealWS] Disconnected from ${broadcastId} (code: ${event.code})`);
-        this.connections.delete(broadcastId);
-
-        // Only reconnect if not intentionally closed
-        if (!this.closed && event.code !== 1000) {
-          this.scheduleReconnect(broadcastId);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error(`[RealWS] Error on ${broadcastId}:`, error);
-      };
-
-      // Wait for connection to open (or fail)
+      // ALL handlers assigned ONCE inside Promise — no duplicate overwrite
       return new Promise<boolean>((resolve) => {
         const timeout = setTimeout(() => {
           ws.close();
@@ -137,6 +108,23 @@ export class RealWebSocketService {
           this.connections.set(broadcastId, ws);
           this.reconnectAttempts.set(broadcastId, 0);
           resolve(true);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            this.handleMessage(broadcastId, data);
+          } catch (err) {
+            console.warn('[RealWS] Failed to parse message:', event.data);
+          }
+        };
+
+        ws.onclose = (event) => {
+          console.log(`[RealWS] Disconnected from ${broadcastId} (code: ${event.code})`);
+          this.connections.delete(broadcastId);
+          if (!this.closed && event.code !== 1000) {
+            this.scheduleReconnect(broadcastId);
+          }
         };
 
         ws.onerror = () => {

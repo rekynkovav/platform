@@ -7,12 +7,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WatermarkServiceTest {
+    class WatermarkServiceTest {
+        private WatermarkService service;
+        private FFmpegExecutor ffmpegExecutor;
 
-    private WatermarkService service;
-
-    @BeforeEach
-    void setUp() {
-        service = new WatermarkService();
+        @BeforeEach
+        void setUp() {
+            ffmpegExecutor = mock(FFmpegExecutor.class);
+            service = new WatermarkService(ffmpegExecutor);
         ReflectionTestUtils.setField(service, "fontPath", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
         ReflectionTestUtils.setField(service, "tempPath", "/tmp/watermarks");
     }

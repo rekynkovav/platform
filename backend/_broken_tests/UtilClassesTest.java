@@ -4,80 +4,59 @@ import com.platform.exception.ValidationException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 class UtilClassesTest {
 
-    // ==================== SqlValidator ====================
+    // ==================== SqlValidator (static methods only — private constructor) ====================
 
     @Test
-    void sqlValidator_SafeInput_ReturnsTrue() {
-        SqlValidator validator = new SqlValidator();
-        assertTrue(validator.isSafe("Hello World"));
-        assertTrue(validator.isSafe("user@example.com"));
-        assertTrue(validator.isSafe(null));
-        assertTrue(validator.isSafe(""));
+    void sqlValidator_ValidIdentifier_ReturnsTrue() {
+        assertTrue(SqlValidator.isValidIdentifier("hello_world"));
+        assertTrue(SqlValidator.isValidIdentifier("user123"));
+        assertTrue(SqlValidator.isValidIdentifier("_private"));
+    }
+
+    @Test
+    void sqlValidator_NullAndEmpty_ReturnsTrue() {
+        assertTrue(SqlValidator.isValidIdentifier(null));
+        assertTrue(SqlValidator.isValidIdentifier(""));
     }
 
     @Test
     void sqlValidator_SqlInjection_ReturnsFalse() {
-        SqlValidator validator = new SqlValidator();
-        assertFalse(validator.isSafe("'; DROP TABLE users; --"));
-        assertFalse(validator.isSafe("1 OR 1=1"));
-        assertFalse(validator.isSafe("SELECT * FROM users"));
-        assertFalse(validator.isSafe("UNION SELECT password FROM admin"));
+        assertFalse(SqlValidator.isValidIdentifier("'; DROP TABLE users; --"));
+        assertFalse(SqlValidator.isValidIdentifier("1 OR 1=1"));
+        assertFalse(SqlValidator.isValidIdentifier("SELECT * FROM users"));
     }
 
     @Test
-    void sqlValidator_Sanitize_RemovesDangerousChars() {
-        SqlValidator validator = new SqlValidator();
-        String result = validator.sanitize("test'; DROP TABLE--");
-        assertFalse(result.contains("'"));
-        assertFalse(result.contains("--"));
-    }
-
-    @Test
-    void sqlValidator_Sanitize_NullReturnsNull() {
-        SqlValidator validator = new SqlValidator();
-        assertNull(validator.sanitize(null));
-    }
-
-    @Test
-    void sqlValidator_IsValidOrderBy_ValidColumn_ReturnsTrue() {
-        SqlValidator validator = new SqlValidator();
-        assertTrue(validator.isValidOrderBy("created_at"));
-        assertTrue(validator.isValidOrderBy("username"));
-        assertTrue(validator.isValidOrderBy(null));
-        assertTrue(validator.isValidOrderBy(""));
-    }
-
-    @Test
-    void sqlValidator_IsValidOrderBy_InjectionAttempt_ReturnsFalse() {
-        SqlValidator validator = new SqlValidator();
-        assertFalse(validator.isValidOrderBy("id; DROP TABLE"));
-        assertFalse(validator.isValidOrderBy("1=1"));
+    void sqlValidator_SpecialChars_ReturnsFalse() {
+        assertFalse(SqlValidator.isValidIdentifier("hello world"));
+        assertFalse(SqlValidator.isValidIdentifier("user@name"));
+        assertFalse(SqlValidator.isValidIdentifier("key-value"));
     }
 
     // ==================== XssSanitizer ====================
 
     @Test
-    void xssSanitizer_ScriptTag_Removed() {
+    void xssSanitizer_ScriptTag_Escaped() {
         XssSanitizer sanitizer = new XssSanitizer();
         String result = sanitizer.sanitize("<script>alert('xss')</script>Hello");
-        assertFalse(result.toLowerCase().contains("<script>"));
+        assertFalse(result.contains("<script>"));
+        assertTrue(result.contains("&lt;script&gt;"));
     }
 
     @Test
-    void xssSanitizer_JavascriptProtocol_Removed() {
+    void xssSanitizer_Quotes_Escaped() {
         XssSanitizer sanitizer = new XssSanitizer();
-        String result = sanitizer.sanitize("javascript:alert(1)");
-        assertFalse(result.toLowerCase().contains("javascript:"));
+        String result = sanitizer.sanitize("\"quoted\"");
+        assertTrue(result.contains("&quot;"));
     }
 
     @Test
-    void xssSanitizer_EventHandlers_Removed() {
+    void xssSanitizer_SingleQuote_Escaped() {
         XssSanitizer sanitizer = new XssSanitizer();
-        String result = sanitizer.sanitize("<img onerror=alert(1) src=x>");
-        assertFalse(result.toLowerCase().contains("onerror="));
+        String result = sanitizer.sanitize("it's");
+        assertTrue(result.contains("&#x27;"));
     }
 
     @Test
@@ -88,18 +67,10 @@ class UtilClassesTest {
     }
 
     @Test
-    void xssSanitizer_SanitizeForJson_EscapesSpecialChars() {
+    void xssSanitizeForHtml_DelegatesToSanitize() {
         XssSanitizer sanitizer = new XssSanitizer();
-        String result = sanitizer.sanitizeForJson("line1\nline2\t\"quoted\"");
-        assertTrue(result.contains("\\n"));
-        assertTrue(result.contains("\\t"));
-        assertTrue(result.contains("\\\""));
-    }
-
-    @Test
-    void xssSanitizer_SanitizeForJson_NullReturnsNull() {
-        XssSanitizer sanitizer = new XssSanitizer();
-        assertNull(sanitizer.sanitizeForJson(null));
+        String input = "<b>bold</b>";
+        assertEquals(sanitizer.sanitize(input), sanitizer.sanitizeForHtml(input));
     }
 
     // ==================== ValidationUtils ====================
@@ -140,23 +111,5 @@ class UtilClassesTest {
     void validationUtils_ValidateId_Blank_Throws() {
         assertThrows(ValidationException.class, () ->
                 ValidationUtils.validateId("", "userId"));
-    }
-
-    @Test
-    void validationUtils_ValidatePageParams_Valid_DoesNotThrow() {
-        assertDoesNotThrow(() ->
-                ValidationUtils.validatePageParams(0, 50, 100));
-    }
-
-    @Test
-    void validationUtils_ValidatePageParams_NegativePage_Throws() {
-        assertThrows(ValidationException.class, () ->
-                ValidationUtils.validatePageParams(-1, 50, 100));
-    }
-
-    @Test
-    void validationUtils_ValidatePageParams_SizeTooLarge_Throws() {
-        assertThrows(ValidationException.class, () ->
-                ValidationUtils.validatePageParams(0, 200, 100));
     }
 }

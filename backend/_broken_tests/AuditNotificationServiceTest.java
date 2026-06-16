@@ -72,13 +72,15 @@ class AuditNotificationServiceTest {
 
     private NotificationRepository notificationRepository;
     private ChatWebSocketHandler webSocketHandler;
+    private org.springframework.cache.CacheManager cacheManager;
     private NotificationService notificationService;
 
     @BeforeEach
     void setUp() {
         notificationRepository = mock(NotificationRepository.class);
         webSocketHandler = mock(ChatWebSocketHandler.class);
-        notificationService = new NotificationService(notificationRepository, webSocketHandler);
+        cacheManager = mock(org.springframework.cache.CacheManager.class);
+        notificationService = new NotificationService(notificationRepository, webSocketHandler, cacheManager);
     }
 
     @Test
