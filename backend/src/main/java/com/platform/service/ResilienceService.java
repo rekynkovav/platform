@@ -80,6 +80,18 @@ public class ResilienceService {
         ).toCompletableFuture();
     }
 
+    // Метод для выполнения с Circuit Breaker и Fallback
+    public <T> T executeWithFallback(String circuitBreakerName, Supplier<T> primary, Supplier<T> fallback) {
+        CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(circuitBreakerName);
+        Supplier<T> decoratedSupplier = CircuitBreaker.decorateSupplier(circuitBreaker, primary);
+        try {
+            return decoratedSupplier.get();
+        } catch (Exception e) {
+            log.warn("Primary supplier failed for circuit breaker {}, using fallback", circuitBreakerName, e);
+            return fallback.get();
+        }
+    }
+
     // Метод для выполнения с Bulkhead
     public <T> T executeWithBulkhead(String bulkheadName, Supplier<T> supplier) {
         Bulkhead bulkhead = bulkheadRegistry.bulkhead(bulkheadName);
