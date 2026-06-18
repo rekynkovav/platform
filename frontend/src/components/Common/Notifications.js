@@ -2,6 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { chatApi, eventsApi, postsApi } from '../../services/api';
 import './Notifications.css';
 
+/**
+ * Notifications — notification center dropdown with unread count, mark-as-read, and delete.
+ *
+ * Displays a bell icon with badge count that opens a dropdown list of notifications.
+ * Supports multiple notification types (chat, event, post, system, warning, success)
+ * with auto-refresh every 30 seconds. Click-outside detection closes the dropdown.
+ *
+ * @returns {JSX.Element} The notification bell button with dropdown panel
+ */
 const Notifications = () => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -162,9 +171,14 @@ const Notifications = () => {
 
         // Обработка действия
         switch (notification.action?.type) {
-            case 'navigate':
-                window.location.href = notification.action.path;
+            case 'navigate': {
+                // Validate path to prevent open redirect attacks
+                const actionPath = notification.action.path;
+                if (actionPath && actionPath.startsWith('/') && !actionPath.includes('://')) {
+                    window.location.href = actionPath;
+                }
                 break;
+            }
             case 'dismiss':
                 deleteNotification(notification.id);
                 break;

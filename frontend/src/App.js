@@ -1,22 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { initKeycloak, getUsername, getUserRoles, logout, login as keycloakLogin } from './keycloak';
 import NavTabs from './components/Navigation/NavTabs';
-import MainFeed from './components/Feed/MainFeed';
-import NutritionFeed from './components/Feed/NutritionFeed';
-import Dashboard from './components/Dashboard/Dashboard';
-import EventsHub from './components/Events/EventsHub';
-import ArchiveList from './components/Archive/ArchiveList';
-import LiveBroadcastView from './components/live/LiveBroadcastViewSimple';
-import GeneralChat from './components/Chat/GeneralChat';
-import NutritionChat from './components/Chat/NutritionChat';
-import Questions from './components/Help/Questions';
 import GlobalEventNotification from './components/Notification/GlobalEventNotification';
 import NotificationBell from './components/Notification/NotificationBell';
 import RoleSwitcher from './components/Admin/RoleSwitcher';
-import UserProfile from './components/UserProfile/UserProfile';
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import './App.css';
-import ScheduledEvents from "./components/Scheduled/ScheduledEvents";
+
+// --- Lazy-loaded page components (code splitting) ---
+const MainFeed = React.lazy(() => import('./components/Feed/MainFeed'));
+const NutritionFeed = React.lazy(() => import('./components/Feed/NutritionFeed'));
+const Dashboard = React.lazy(() => import('./components/Dashboard/Dashboard'));
+const EventsHub = React.lazy(() => import('./components/Events/EventsHub'));
+const ArchiveList = React.lazy(() => import('./components/Archive/ArchiveList'));
+const LiveBroadcastView = React.lazy(() => import('./components/live/LiveBroadcastViewSimple'));
+const GeneralChat = React.lazy(() => import('./components/Chat/GeneralChat'));
+const NutritionChat = React.lazy(() => import('./components/Chat/NutritionChat'));
+const Questions = React.lazy(() => import('./components/Help/Questions'));
+const UserProfile = React.lazy(() => import('./components/UserProfile/UserProfile'));
+const ScheduledEvents = React.lazy(() => import('./components/Scheduled/ScheduledEvents'));
 
 /**
  * App — root application component.
@@ -218,7 +221,11 @@ function App() {
                         Доступ ограничен
                     </div>
                 )}
-                {renderContent()}
+                <ErrorBoundary key={activeTab}>
+                    <Suspense fallback={<div className="loading-screen">Загрузка...</div>}>
+                        {renderContent()}
+                    </Suspense>
+                </ErrorBoundary>
             </main>
 
             <GlobalEventNotification onEventClick={handleEventClick} />
