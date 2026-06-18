@@ -1,9 +1,9 @@
 #!/bin/bash
 BACKUP_DIR="/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-DB_NAME="platform"
-DB_USER="platform"
-DB_PASS="platform123"
+DB_NAME="platform_db"
+DB_USER="platform_user"
+DB_PASS="platform_pass_2026"
 
 mkdir -p $BACKUP_DIR
 

@@ -1,3 +1,17 @@
+/**
+ * Initial seed data for 18 platform sections.
+ *
+ * Each section contains exactly 5 mock entries with: id (number), title,
+ * description, mediaUrl, mediaType ('audio'|'video'), and createdAt.
+ *
+ * Sections: Broadcasts, BroadcastsGuests, Exercises, Recommendations,
+ * Hardening, About, Newbies, HeartVoice, Reflection, Interviews,
+ * Participants, Motivation, Reviews, Music, Movies, Literature,
+ * AboutTimoshenko, Challenge.
+ *
+ * @module Dashboard/initialData
+ */
+
 // Сокращённые начальные данные для 18 разделов (по 5 записей каждый)
 
 export const initialBroadcasts = [

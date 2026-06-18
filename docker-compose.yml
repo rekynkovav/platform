@@ -272,7 +272,7 @@ services:
     restart: unless-stopped
 
   backup:
-    image: postgres:15
+    image: postgres:16-alpine
     container_name: platform-backup
     volumes:
       - ./backups:/backups
@@ -281,9 +281,8 @@ services:
       - PGPASSWORD=platform_pass_2026
     command: >
       sh -c "chmod +x /backup.sh &&
-             /usr/sbin/crond -b -l 8 &&
-             echo '0 2 * * * /backup.sh' > /etc/crontabs/root &&
-             tail -f /dev/null"
+             echo '0 2 * * * /backup.sh' | crontab - &&
+             crond -f -l 8"
     networks:
       - platform_network
     depends_on:

@@ -1,5 +1,17 @@
-// Live streaming components — barrel export
-// Only exports files that actually exist and compile
+/**
+ * Live streaming components — barrel export.
+ *
+ * Provides a single import point for all live broadcast UI components,
+ * their prop types, and convenience re-exports of services/hooks.
+ *
+ * Components:
+ * - {@link LivePlayer} — HLS/DASH video player with quality switching
+ * - {@link LiveChat} — Real-time chat with reactions and Q&A
+ * - {@link BroadcastControls} — Admin/moderator broadcast management
+ * - {@link LiveBroadcastView} — Combined view with player, chat, and controls
+ *
+ * @module components/live
+ */
 
 // Components
 export { LivePlayer } from './LivePlayer';
@@ -14,6 +26,10 @@ export type { BroadcastControlsProps } from './BroadcastControls';
 
 // BroadcastView props (used by utils.ts)
 import { LiveBroadcast } from '../../services/live/types';
+
+/**
+ * Props for the combined LiveBroadcastView component.
+ */
 export interface LiveBroadcastViewProps {
   broadcastId?: string;
   broadcast: LiveBroadcast | null;
