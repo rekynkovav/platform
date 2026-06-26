@@ -2,6 +2,7 @@ package com.platform.controller;
 
 import com.platform.model.dto.ArchiveDto;
 import com.platform.service.ArchiveService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -41,6 +42,7 @@ public class ArchiveController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "archive-limit")
     public ResponseEntity<ArchiveDto> createArchive(
             @Valid @RequestBody ArchiveDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -50,6 +52,7 @@ public class ArchiveController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "archive-limit")
     public ResponseEntity<ArchiveDto> updateArchive(
             @PathVariable String id,
             @Valid @RequestBody ArchiveDto.UpdateRequest request,
@@ -59,7 +62,8 @@ public class ArchiveController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV', 'DEVELOPER')")
+    @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "archive-limit")
     public ResponseEntity<Void> deleteArchive(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {

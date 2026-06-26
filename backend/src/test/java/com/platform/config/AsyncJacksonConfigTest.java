@@ -106,7 +106,9 @@ class AsyncJacksonConfigTest {
         JacksonConfig config = new JacksonConfig();
         ObjectMapper mapper = config.objectMapper();
         java.time.LocalDateTime now = java.time.LocalDateTime.of(2026, 6, 1, 12, 0, 0);
-        // The custom date format in JacksonConfig uses 'Z' (timezone offset) which LocalDateTime doesn't support
-        assertThrows(Exception.class, () -> mapper.writeValueAsString(now));
+        // Format 'ss' (without Z) works for LocalDateTime — no exception expected
+        String result = mapper.writeValueAsString(now);
+        assertNotNull(result);
+        assertTrue(result.contains("2026"));
     }
 }

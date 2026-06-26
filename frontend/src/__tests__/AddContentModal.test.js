@@ -22,12 +22,14 @@ describe('AddContentModal', () => {
         handleStopRecording: jest.fn(),
         handleFileUpload: jest.fn(),
         handleSaveContent: jest.fn(),
-        formatRecordingTime: jest.fn(() => '00:00'),
+        formatRecordingTime: jest.fn().mockReturnValue('00:00'),
         resetRecording: jest.fn(),
     };
 
     beforeEach(() => {
         jest.clearAllMocks();
+        // Re-set mockReturnValue after clearAllMocks clears it
+        defaultProps.formatRecordingTime.mockReturnValue('00:00');
     });
 
     it('renders nothing when isOpen is false', () => {
@@ -89,7 +91,7 @@ describe('AddContentModal', () => {
     it('shows video button for movies menu', () => {
         render(<AddContentModal {...defaultProps} selectedMenuId="movies" />);
         expect(screen.getByText('Видео')).toBeInTheDocument();
-        expect(screen.getByText('🎤 Записать голос')).not.toBeInTheDocument();
+        expect(screen.queryByText('🎤 Записать голос')).not.toBeInTheDocument();
     });
 
     it('shows all media types for other menus', () => {
@@ -100,7 +102,7 @@ describe('AddContentModal', () => {
     });
 
     it('shows recording indicator when isRecording is true', () => {
-        render(<AddContentModal {...defaultProps} isRecording={true} recordingTime={65} />);
+        render(<AddContentModal {...defaultProps} selectedMenuId="broadcasts" isRecording={true} recordingTime={65} />);
         expect(screen.getByText('⏹️ Остановить')).toBeInTheDocument();
         expect(screen.getByText('00:00')).toBeInTheDocument();
     });

@@ -5,8 +5,16 @@ export const usePermissions = () => {
     const roles = getUserRoles();
     const SYSTEM_ROLES = ['offline_access', 'uma_authorization', 'default-roles-platform'];
     const appRoles = roles.filter(r => !SYSTEM_ROLES.includes(r));
-    const highestRole = appRoles.length > 0 ? appRoles[0] : ROLES.USER_0;
-    const level = ROLE_LEVELS[highestRole] || 1;
+    // Find highest role by ROLE_LEVELS (not by array index)
+    let highestRole = ROLES.USER_0;
+    let highestLevel = 0;
+    for (const [roleName, roleLevel] of Object.entries(ROLE_LEVELS)) {
+        if (appRoles.includes(roleName) && roleLevel > highestLevel) {
+            highestLevel = roleLevel;
+            highestRole = roleName;
+        }
+    }
+    const level = highestLevel || 1;
 
     const hasRole = (requiredRole) => {
         return roles.includes(requiredRole);

@@ -18,6 +18,7 @@ export { LivePlayer } from './LivePlayer';
 export { LiveChat } from './LiveChat';
 export { BroadcastControls } from './BroadcastControls';
 export { default as LiveBroadcastView } from './LiveBroadcastViewSimple';
+export { default as LivePage } from './LivePage';
 
 // Component prop types
 export type { LivePlayerProps } from './LivePlayer';

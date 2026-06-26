@@ -1,12 +1,25 @@
 // components/Archive/ArchiveList.js (Трансляции)
 import React, { useState, useEffect } from 'react';
 import './ArchiveList.css';
+import { usePermissions } from '../../hooks/usePermissions';
+import { getUserId } from '../../keycloak';
 import { mediaApi, broadcastApi, demoApi } from '../../services/api';
 import LiveBroadcastView from '../live/LiveBroadcastViewSimple';
 import EnhancedLiveBroadcastView from '../live/EnhancedLiveBroadcastView';
 import NetworkSpeedTest from '../live/NetworkSpeedTest';
 import DeviceTest from '../live/DeviceTest';
 
+/**
+ * ArchiveList — broadcast management and live streaming dashboard.
+ *
+ * Manages the full lifecycle of broadcasts: listing existing broadcasts, creating
+ * new ones (audio or video), editing, deleting, and starting live streams.
+ * Integrates pre-broadcast diagnostics (network speed test, device test) and
+ * displays live broadcast views (simple and enhanced). Supports admin CRUD
+ * operations with confirmation modals.
+ *
+ * @returns {JSX.Element} The broadcasts list with create/edit forms, diagnostics, and live views
+ */
 const ArchiveList = () => {
     const [broadcasts, setBroadcasts] = useState([]);
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -47,16 +60,9 @@ const ArchiveList = () => {
     // Состояние для меню подтверждения завершения трансляции
     const [showEndConfirm, setShowEndConfirm] = useState(false);
 
-    const [demoRole, setDemoRole] = useState(null);
-
-    useEffect(() => {
-        if (process.env.REACT_APP_ENVIRONMENT === 'development') {
-            demoApi.getDemoRole().then(role => setDemoRole(role || null));
-        }
-    }, []);
-
-    const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'SUPER_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'VYACHESLAV';
-    const canEdit = isAdmin || demoRole === 'CONSULTANT_SPORT' || demoRole === 'CONSULTANT_PITANIE';
+    const { hasLevel, hasRole, hasAnyRole, isConsultant } = usePermissions();
+    const isAdmin = hasLevel(6);
+    const canEdit = isAdmin || isConsultant();
     const canDownload = isAdmin;
 
     // Состояние для загрузки файлов
@@ -66,10 +72,6 @@ const ArchiveList = () => {
     const [error, setError] = useState(null);
 
     // Отладка
-    // console.log('[ArchiveList] demoRole:', demoRole);
-    // console.log('[ArchiveList] isAdmin:', isAdmin);
-    // console.log('[ArchiveList] canEdit:', canEdit);
-    // console.log('[ArchiveList] canDownload:', canDownload);
 
     useEffect(() => {
         loadBroadcasts();
@@ -118,17 +120,7 @@ const ArchiveList = () => {
             return;
         }
 
-        const userId = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? (async () => {
-                try {
-                    const role = await demoApi.getDemoRole();
-                    return role || 'USER_0';
-                } catch (err) {
-                    console.error('Failed to load demo role:', err);
-                    return sessionStorage.getItem('demoRole') || 'USER_0';
-                }
-            })()
-            : null;
+        const userId = getUserId() || 'USER_0';
         const key = `${broadcastId}_${userId}`;
 
         try {
@@ -219,10 +211,10 @@ const ArchiveList = () => {
 
     // Функция для проверки прав на редактирование
     const canEditBroadcast = (broadcast) => {
-        const currentUserId = demoRole;
+        const currentUserId = getUserId();
 
         // SUPER_ADMIN может редактировать все
-        if (demoRole === 'SUPER_ADMIN') {
+        if (hasAnyRole(['SUPER_ADMIN', 'VYACHESLAV'])) {
             if (broadcast.status === 'live') return false; // Нельзя редактировать live трансляцию
             if (broadcast.status === 'ended') return false; // Нельзя редактировать завершенную трансляцию
             return true;
@@ -240,10 +232,10 @@ const ArchiveList = () => {
 
     // Функция для проверки прав на кнопки "Настройки" и "Начать Live"
     const canManageBroadcast = (broadcast) => {
-        const currentUserId = demoRole;
+        const currentUserId = getUserId();
 
         // SUPER_ADMIN может управлять всеми трансляциями
-        if (demoRole === 'SUPER_ADMIN') {
+        if (hasAnyRole(['SUPER_ADMIN', 'VYACHESLAV'])) {
             return true;
         }
 
@@ -480,7 +472,7 @@ const ArchiveList = () => {
             fileId: `translation-${Date.now()}`, // Генерируем уникальный ID файла
             mediaUrl: `/api/media/stream/translation-${Date.now()}`, // URL для стриминга
             createdAt: new Date().toISOString(),
-            ownerId: demoRole // Привязываем к текущему пользователю
+            ownerId: getUserId() // Привязываем к текущему пользователю
         };
 
         const updated = [...broadcasts, broadcast];

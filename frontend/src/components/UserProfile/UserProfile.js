@@ -4,6 +4,15 @@ import { getUsername, getUserRoles } from '../../keycloak';
 import InfoModal from '../common/InfoModal';
 import './UserProfile.css';
 
+/**
+ * UserProfile — user profile page displaying personal info, payment history, and subscription status.
+ *
+ * Fetches user data and payment history from the backend API, displays profile
+ * information with edit capability, QR code for payments, and subscription
+ * details. Includes an InfoModal for displaying contextual messages.
+ *
+ * @returns {JSX.Element} The user profile page with info cards, payment history, and edit form
+ */
 const UserProfile = () => {
     const [user, setUser] = useState(null);
     const [payments, setPayments] = useState([]);
@@ -61,10 +70,8 @@ const UserProfile = () => {
         try {
             const data = await paymentApi.getUserPayments();
             setPayments(data || []);
-            setError(null);
         } catch (error) {
             console.error('Failed to load payments:', error);
-            setError('Не удалось загрузить данные о платежах');
         }
     };
 
@@ -105,7 +112,28 @@ const UserProfile = () => {
     };
 
     if (loading) return <div className="loading">Loading...</div>;
-    if (!user) return <div className="error">User not found</div>;
+    if (error && !user) return (
+        <div className="user-profile">
+            <div className="error-message">
+                <span className="error-icon">⚠️</span>
+                <span>{error}</span>
+                <button className="error-close" onClick={clearError}>×</button>
+            </div>
+            <div className="profile-header">
+                <h2>Личный кабинет</h2>
+                <p style={{color: 'var(--text-secondary)', marginTop: 8}}>
+                    Не удалось загрузить данные профиля. Попробуйте обновить страницу.
+                </p>
+                <button
+                    onClick={() => { clearError(); loadUserData(); loadPayments(); }}
+                    style={{marginTop: 16, padding: '10px 24px', borderRadius: 8, border: 'none', background: 'var(--accent, #0d6efd)', color: 'white', cursor: 'pointer', fontWeight: 600}}
+                >
+                    Повторить
+                </button>
+            </div>
+        </div>
+    );
+    if (!user) return <div className="loading">Загрузка...</div>;
 
     return (
         <div className="user-profile">

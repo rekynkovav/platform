@@ -143,12 +143,13 @@ describe('UserProfile', () => {
         });
     });
 
-    it('shows "User not found" when API load fails', async () => {
+    it('shows error page with retry button when API load fails', async () => {
         userApi.getMe.mockRejectedValue(new Error('Network error'));
         render(<UserProfile />);
 
         await waitFor(() => {
-            expect(screen.getByText('User not found')).toBeInTheDocument();
+            expect(screen.getByText('Личный кабинет')).toBeInTheDocument();
+            expect(screen.getByText('Повторить')).toBeInTheDocument();
         });
     });
 });

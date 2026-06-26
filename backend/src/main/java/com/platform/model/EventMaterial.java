@@ -31,6 +31,7 @@ public class EventMaterial {
     private UUID id;
 
     @Version
+    @Builder.Default
     private Long version = 0L;
 
     /** Идентификатор раздела: about, important, interviews, beginners, reflections, participants, music, motivation, movies, results, challenge */

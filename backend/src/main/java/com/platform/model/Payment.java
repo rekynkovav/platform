@@ -72,6 +72,7 @@ public class Payment {
 
     @Version
     @Column(name = "version", nullable = false)
+    @Builder.Default
     private Long version = 0L;
 
     public enum PaymentStatus {

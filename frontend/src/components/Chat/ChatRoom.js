@@ -3,6 +3,30 @@ import { mediaApi } from '../../services/api';
 import MediaRenderer from './MediaRenderer';
 import './Chat.css';
 
+/**
+ * ChatRoom — displays a list of chat messages with support for sending, editing,
+ * deleting messages, file attachments, voice recording, and room switching.
+ *
+ * @param {Array} messages - Array of message objects to display
+ * @param {string} currentUserAuthor - Username of the current user (used to highlight own messages)
+ * @param {string} currentRoom - ID of the currently active chat room
+ * @param {boolean} canSwitch - Whether the user can switch between chat rooms
+ * @param {Array} availableRooms - List of available rooms with { id, label } objects
+ * @param {Object} [roomTitles={}] - Mapping of room IDs to display titles
+ * @param {(roomId: string) => void} onRoomChange - Callback when the user switches rooms
+ * @param {(messageData: string | object) => Promise<void>} onSendMessage - Callback to send a text or media message
+ * @param {(msgId: string, content: string) => Promise<void>} [onEditMessage] - Callback to edit an existing message
+ * @param {(msgId: string) => Promise<void>} [onDeleteMessage] - Callback to delete a message
+ * @param {(file: File) => Promise<string>} [onFileUpload] - Callback to upload a file and return its mediaId
+ * @param {() => Promise<void>} [onStartRecording] - Callback to start voice recording
+ * @param {() => void} [onStopRecording] - Callback to stop voice recording
+ * @param {boolean} [isRecording] - Whether voice recording is currently active
+ * @param {number} [recordingTime] - Current recording duration in seconds
+ * @param {string} [error] - External error message to display
+ * @param {() => void} [onClearError] - Callback to dismiss error messages
+ * @param {boolean} [uploading=false] - Whether a file upload is in progress
+ * @returns {JSX.Element} The rendered chat room interface
+ */
 const ChatRoom = ({
     messages,
     currentUserAuthor,

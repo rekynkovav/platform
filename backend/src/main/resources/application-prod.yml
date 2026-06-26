@@ -86,6 +86,9 @@ management:
     tags:
       application: platform
       environment: prod
+  tracing:
+    sampling:
+      probability: 0.1
 
 app:
   media:

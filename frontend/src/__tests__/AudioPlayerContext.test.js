@@ -45,12 +45,21 @@ const TestComponent = () => {
 
 // Мок для HTMLMediaElement
 beforeEach(() => {
-    // Создаём мок для audio и video элементов
-    window.HTMLMediaElement.prototype.play = jest.fn().mockResolvedValue();
-    window.HTMLMediaElement.prototype.pause = jest.fn();
+    // play() mock: dispatches 'play' event asynchronously after listeners are set up
+    window.HTMLMediaElement.prototype.play = jest.fn().mockImplementation(function() {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                this.dispatchEvent(new Event('play'));
+                resolve();
+            }, 0);
+        });
+    });
+    // pause() mock: dispatches 'pause' event synchronously
+    window.HTMLMediaElement.prototype.pause = jest.fn().mockImplementation(function() {
+        this.dispatchEvent(new Event('pause'));
+    });
     window.HTMLMediaElement.prototype.load = jest.fn();
-    window.HTMLMediaElement.prototype.addEventListeners = jest.fn();
-    window.HTMLMediaElement.prototype.removeEventListener = jest.fn();
+    window.HTMLMediaElement.prototype.removeAttribute = jest.fn();
     // Устанавливаем начальные значения
     Object.defineProperty(window.HTMLMediaElement.prototype, 'currentTime', {
         writable: true,
@@ -67,6 +76,10 @@ beforeEach(() => {
     Object.defineProperty(window.HTMLMediaElement.prototype, 'playbackRate', {
         writable: true,
         value: 1.0,
+    });
+    Object.defineProperty(window.HTMLMediaElement.prototype, 'src', {
+        writable: true,
+        value: '',
     });
 });
 
@@ -87,41 +100,57 @@ describe('AudioPlayerContext', () => {
         expect(screen.getByTestId('error').textContent).toBe('no error');
     });
 
-    it('playTrack sets currentTrack and starts playing', () => {
+    it('playTrack sets currentTrack and starts playing', async () => {
         render(
             <AudioPlayerProvider>
                 <TestComponent />
             </AudioPlayerProvider>
         );
 
-        fireEvent.click(screen.getByTestId('playTrack'));
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('playTrack'));
+        });
+        // Flush setTimeout in play() mock that dispatches 'play' event
+        await act(async () => {
+            await new Promise(resolve => setTimeout(resolve, 10));
+        });
 
         expect(screen.getByTestId('currentTrack').textContent).toBe('Test Track');
         expect(screen.getByTestId('isPlaying').textContent).toBe('playing');
     });
 
-    it('pauseTrack pauses playback', () => {
+    it('pauseTrack pauses playback', async () => {
         render(
             <AudioPlayerProvider>
                 <TestComponent />
             </AudioPlayerProvider>
         );
 
-        fireEvent.click(screen.getByTestId('playTrack'));
-        fireEvent.click(screen.getByTestId('pauseTrack'));
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('playTrack'));
+        });
+
+        act(() => {
+            fireEvent.click(screen.getByTestId('pauseTrack'));
+        });
 
         expect(screen.getByTestId('isPlaying').textContent).toBe('paused');
     });
 
-    it('stopTrack clears track and resets state', () => {
+    it('stopTrack clears track and resets state', async () => {
         render(
             <AudioPlayerProvider>
                 <TestComponent />
             </AudioPlayerProvider>
         );
 
-        fireEvent.click(screen.getByTestId('playTrack'));
-        fireEvent.click(screen.getByTestId('stopTrack'));
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('playTrack'));
+        });
+
+        act(() => {
+            fireEvent.click(screen.getByTestId('stopTrack'));
+        });
 
         expect(screen.getByTestId('currentTrack').textContent).toBe('none');
         expect(screen.getByTestId('isPlaying').textContent).toBe('paused');
@@ -130,20 +159,26 @@ describe('AudioPlayerContext', () => {
         expect(screen.getByTestId('error').textContent).toBe('no error');
     });
 
-    it('togglePlayPause toggles between play and pause', () => {
+    it('togglePlayPause toggles between play and pause', async () => {
         render(
             <AudioPlayerProvider>
                 <TestComponent />
             </AudioPlayerProvider>
         );
 
-        fireEvent.click(screen.getByTestId('playTrack'));
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('playTrack'));
+        });
         expect(screen.getByTestId('isPlaying').textContent).toBe('playing');
 
-        fireEvent.click(screen.getByTestId('togglePlayPause'));
+        act(() => {
+            fireEvent.click(screen.getByTestId('togglePlayPause'));
+        });
         expect(screen.getByTestId('isPlaying').textContent).toBe('paused');
 
-        fireEvent.click(screen.getByTestId('togglePlayPause'));
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('togglePlayPause'));
+        });
         expect(screen.getByTestId('isPlaying').textContent).toBe('playing');
     });
 
@@ -169,15 +204,20 @@ describe('AudioPlayerContext', () => {
         expect(screen.getByTestId('playbackRate').textContent).toBe('1.5');
     });
 
-    it('seek updates currentTime', () => {
+    it('seek updates currentTime', async () => {
         render(
             <AudioPlayerProvider>
                 <TestComponent />
             </AudioPlayerProvider>
         );
 
-        fireEvent.click(screen.getByTestId('playTrack'));
-        fireEvent.click(screen.getByTestId('seek'));
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('playTrack'));
+        });
+
+        act(() => {
+            fireEvent.click(screen.getByTestId('seek'));
+        });
 
         expect(screen.getByTestId('currentTime').textContent).toBe('30');
     });
@@ -192,9 +232,11 @@ describe('AudioPlayerContext', () => {
         expect(screen.getByTestId('formatTime').textContent).toBe('2:05');
     });
 
-    it('handles media error and sets error state', () => {
+    it('handles media error and sets error state', async () => {
         // Мок для play, который выбрасывает ошибку
-        window.HTMLMediaElement.prototype.play = jest.fn().mockRejectedValue(new Error('Playback failed'));
+        window.HTMLMediaElement.prototype.play = jest.fn().mockImplementation(function() {
+            return Promise.reject(new Error('Playback failed'));
+        });
 
         render(
             <AudioPlayerProvider>
@@ -202,7 +244,9 @@ describe('AudioPlayerContext', () => {
             </AudioPlayerProvider>
         );
 
-        fireEvent.click(screen.getByTestId('playTrack'));
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('playTrack'));
+        });
 
         // После неудачного play должен установиться error
         expect(screen.getByTestId('error').textContent).toBe('Не удалось воспроизвести медиа');

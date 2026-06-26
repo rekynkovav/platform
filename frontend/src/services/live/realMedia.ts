@@ -160,12 +160,10 @@ export class RealMediaService {
 // Methods for backward compatibility with mock interface
 simulateNetworkIssues(_broadcastId: string, _severity: 'low' | 'medium' | 'high'): void {
   // No-op in real mode — network issues are handled by actual network conditions
-  console.log('RealMediaService: simulateNetworkIssues is a no-op in production mode');
 }
 
 restoreNetwork(_broadcastId: string): void {
   // No-op in real mode
-  console.log('RealMediaService: restoreNetwork is a no-op in production mode');
 }
 
 reset(): void {

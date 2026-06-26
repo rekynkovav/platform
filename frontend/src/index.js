@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App';
 import { ThemeProvider } from './hooks/useTheme';
@@ -10,7 +11,9 @@ root.render(
     <ThemeProvider>
         <ErrorBoundary>
             <Suspense fallback={null}>
-                <App />
+                <BrowserRouter>
+                    <App />
+                </BrowserRouter>
             </Suspense>
         </ErrorBoundary>
     </ThemeProvider>

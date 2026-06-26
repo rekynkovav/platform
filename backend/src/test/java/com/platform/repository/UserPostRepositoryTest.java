@@ -36,7 +36,7 @@ class UserPostRepositoryTest {
 
     @Test
     void userRepository_FindByUsername_ReturnsUser() {
-        User user = User.builder().username("testuser").email("test@test.com").role("USER").build();
+        User user = User.builder().id(UUID.randomUUID()).username("testuser").email("test@test.com").role("USER").build();
         userRepository.save(user);
 
         Optional<User> found = userRepository.findByUsername("testuser");
@@ -52,7 +52,7 @@ class UserPostRepositoryTest {
 
     @Test
     void userRepository_ExistsByUsername_Works() {
-        User user = User.builder().username("exists_user").email("e@test.com").role("USER").build();
+        User user = User.builder().id(UUID.randomUUID()).username("exists_user").email("e@test.com").role("USER").build();
         userRepository.save(user);
 
         assertTrue(userRepository.existsByUsername("exists_user"));
@@ -61,9 +61,9 @@ class UserPostRepositoryTest {
 
     @Test
     void userRepository_FindBannedUsers_ReturnsOnlyBanned() {
-        userRepository.save(User.builder().username("normal").email("n@t.com").role("USER").banned(false).build());
-        userRepository.save(User.builder().username("banned1").email("b1@t.com").role("USER").banned(true).build());
-        userRepository.save(User.builder().username("banned2").email("b2@t.com").role("USER").banned(true).build());
+        userRepository.save(User.builder().id(UUID.randomUUID()).username("normal").email("n@t.com").role("USER").banned(false).build());
+        userRepository.save(User.builder().id(UUID.randomUUID()).username("banned1").email("b1@t.com").role("USER").banned(true).build());
+        userRepository.save(User.builder().id(UUID.randomUUID()).username("banned2").email("b2@t.com").role("USER").banned(true).build());
 
         List<User> banned = userRepository.findBannedUsers();
         assertEquals(2, banned.size());

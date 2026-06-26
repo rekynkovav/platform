@@ -33,6 +33,12 @@ spring:
   cache:
     type: redis
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis_pass}
+
   security:
     oauth2:
       resourceserver:
@@ -44,8 +50,64 @@ spring:
     resources:
       static-locations: classpath:/static/
 
+# Distributed tracing — Zipkin via Micrometer
+management:
+  tracing:
+    enabled: true
+    sampling:
+      probability: ${TRACING_PROBABILITY:1.0}
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}
+
 bucket4j:
   enabled: true
+  filters:
+    # Broadcast mutations (create, start, stop) — строже
+    - cache-name: rate-limit-broadcast
+      url: /api/broadcast/create
+      method: POST
+      bandwidths:
+        - capacity: 5
+          time: 1
+          unit: hours
+    - cache-name: rate-limit-broadcast
+      url: /api/broadcast/start
+      method: POST
+      bandwidths:
+        - capacity: 5
+          time: 1
+          unit: hours
+    - cache-name: rate-limit-broadcast
+      url: /api/broadcast/*/end
+      method: POST
+      bandwidths:
+        - capacity: 10
+          time: 1
+          unit: hours
+    # Chat send — умеренно
+    - cache-name: rate-limit-chat
+      url: /api/broadcast/*/chat
+      method: POST
+      bandwidths:
+        - capacity: 30
+          time: 1
+          unit: minutes
+    # Reactions — умеренно
+    - cache-name: rate-limit-reactions
+      url: /api/broadcast/*/reaction
+      method: POST
+      bandwidths:
+        - capacity: 30
+          time: 1
+          unit: minutes
+    # Fallback — все остальные (read endpoints unlimited через matching)
+    - cache-name: rate-limit-default
+      url: /**
+      bandwidths:
+        - capacity: 200
+          time: 1
+          unit: minutes
 
 server:
   port: 8081
@@ -59,6 +121,8 @@ logging:
     org.springframework.web: INFO
     org.hibernate.SQL: WARN
     org.hibernate.type.descriptor.sql.BasicBinder: INFO
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
 
 app:
   watermark:

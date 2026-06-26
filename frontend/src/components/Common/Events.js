@@ -4,6 +4,17 @@ import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { eventsApi } from '../../services/api';
 import './Events.css';
 
+/**
+ * Events — displays a filterable, virtualized list of events with registration support.
+ *
+ * Shows upcoming, ongoing, past, and registered events in a list or calendar view.
+ * Includes event details modal, participant tracking, and registration/unregistration
+ * actions. Uses mock data for demonstration purposes.
+ *
+ * @param {string} [filter='upcoming'] - Event filter: 'upcoming', 'ongoing', 'past', or 'registered'
+ * @param {number} [limit=20] - Maximum number of events to display
+ * @returns {JSX.Element} The events list with filters, stats, and detail modal
+ */
 const Events = ({ filter = 'upcoming', limit = 20 }) => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);

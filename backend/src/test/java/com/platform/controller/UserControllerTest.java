@@ -86,7 +86,8 @@ class UserControllerTest {
 
     @Test
     void getCurrentUser_Exists_ReturnsFullProfile() throws Exception {
-        when(userService.getUserById(userId)).thenReturn(Optional.of(user));
+        when(userService.syncUser(eq(userId), eq("testuser"), isNull(), eq("USER_0")))
+                .thenReturn(user);
 
         mockMvc.perform(get("/api/users/me")
                         .with(withAuth(auth)))
@@ -100,12 +101,14 @@ class UserControllerTest {
     }
 
     @Test
-    void getCurrentUser_NotFound_Returns404() throws Exception {
-        when(userService.getUserById(userId)).thenReturn(Optional.empty());
+    void getCurrentUser_NotInDb_CreatesAndReturns() throws Exception {
+        when(userService.syncUser(eq(userId), eq("testuser"), isNull(), eq("USER_0")))
+                .thenReturn(user);
 
         mockMvc.perform(get("/api/users/me")
                         .with(withAuth(auth)))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("testuser"));
     }
 
     @Test

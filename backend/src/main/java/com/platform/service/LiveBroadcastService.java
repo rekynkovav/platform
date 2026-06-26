@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.retry.annotation.Backoff;
 import io.micrometer.core.annotation.Timed;
@@ -21,6 +22,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.security.SecureRandom;
+import java.util.Base64;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 @Slf4j
@@ -34,6 +37,9 @@ public class LiveBroadcastService {
 
     @Qualifier("taskExecutor")
     private final Executor taskExecutor;
+
+    @Value("${HLS_SERVER_URL:http://rtmp:80/hls}")
+    private String hlsServerUrl;
 
     @Timed(value = "broadcast.create", description = "Time to create broadcast")
     @Transactional(rollbackFor = Exception.class, timeout = 30)
@@ -50,7 +56,7 @@ public class LiveBroadcastService {
             .streamType(streamType)
             .ownerId(UUID.fromString(userId))
             .status(BroadcastStatus.IDLE)
-            .rtmpStreamKey(broadcastId)
+            .rtmpStreamKey(generateStreamKey())
             .version(0L)
             .build();
 
@@ -97,7 +103,11 @@ public class LiveBroadcastService {
         broadcastRepository.save(broadcast);
 
         // Асинхронное архивирование
-        CompletableFuture.runAsync(() -> archiveService.archiveBroadcast(broadcastId), taskExecutor);
+        CompletableFuture.runAsync(() -> archiveService.archiveBroadcast(broadcastId), taskExecutor)
+            .exceptionally(ex -> {
+                log.error("Failed to archive broadcast {}: {}", broadcastId, ex.getMessage(), ex);
+                return null;
+            });
 
         log.info("Broadcast stopped: {} by {}", broadcastId, userId);
     }
@@ -130,6 +140,16 @@ public class LiveBroadcastService {
         log.info("Broadcast deleted: {} by {}", broadcastId, userId);
     }
 
+    /**
+     * Update broadcast entity (e.g., link to event).
+     */
+    @Transactional
+    @CacheEvict(value = "broadcasts", allEntries = true)
+    public void updateBroadcast(LiveBroadcast broadcast) {
+        broadcastRepository.save(broadcast);
+        log.info("Broadcast updated: {}", broadcast.getId());
+    }
+
     @Timed(value = "broadcast.get_hls", description = "Time to get HLS playlist")
     public String getHlsPlaylist(String broadcastId) {
         LiveBroadcast broadcast = getBroadcast(broadcastId);
@@ -139,7 +159,7 @@ public class LiveBroadcastService {
         }
         
         // HLS плейлист от Nginx-RTMP
-        return String.format("http://localhost:8000/hls/%s/index.m3u8", broadcast.getRtmpStreamKey());
+        return String.format("%s/%s/index.m3u8", hlsServerUrl, broadcast.getRtmpStreamKey());
     }
 
     @Timed(value = "broadcast.stream_start", description = "Time to handle stream start")
@@ -172,11 +192,13 @@ public class LiveBroadcastService {
 
     @Timed(value = "broadcast.add_viewer", description = "Time to add viewer")
     @Transactional
+    @CacheEvict(value = "broadcasts", allEntries = true)
     public void addViewer(String broadcastId) {
         broadcastRepository.incrementViewerCount(UUID.fromString(broadcastId));
         
-        LiveBroadcast broadcast = getBroadcast(broadcastId);
-        int currentViewers = broadcast.getViewerCount() != null ? broadcast.getViewerCount() + 1 : 1;
+        LiveBroadcast broadcast = broadcastRepository.findById(UUID.fromString(broadcastId))
+            .orElseThrow(() -> new ResourceNotFoundException("Broadcast not found: " + broadcastId));
+        int currentViewers = broadcast.getViewerCount() != null ? broadcast.getViewerCount() : 1;
         Integer maxViewers = broadcast.getMaxViewers();
         
         if (maxViewers == null || currentViewers > maxViewers) {
@@ -205,13 +227,21 @@ public class LiveBroadcastService {
         dto.setEndedAt(broadcast.getEndedAt());
         dto.setViewerCount(broadcast.getViewerCount());
         dto.setHlsPlaylistUrl(broadcast.getHlsPlaylistUrl());
+        dto.setLinkedEventId(broadcast.getLinkedEventId() != null ? broadcast.getLinkedEventId().toString() : null);
 
         return dto;
     }
 
     @Timed(value = "broadcast.remove_viewer", description = "Time to remove viewer")
     @Transactional
+    @CacheEvict(value = "broadcasts", allEntries = true)
     public void removeViewer(String broadcastId) {
         broadcastRepository.decrementViewerCount(UUID.fromString(broadcastId));
+    }
+
+    private String generateStreamKey() {
+        byte[] keyBytes = new byte[24];
+        new SecureRandom().nextBytes(keyBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(keyBytes);
     }
 }

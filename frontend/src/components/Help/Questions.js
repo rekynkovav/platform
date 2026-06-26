@@ -2,9 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { VariableSizeList as List } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { getUsername, getUserId } from '../../keycloak';
+import { usePermissions } from '../../hooks/usePermissions';
 import { chatApi } from '../../services/api';
 import './Questions.css';
 
+/**
+ * Questions — Q&A interface for asking and answering questions in different categories.
+ *
+ * Supports three question modes: general, nutrition, and personal (for Vyacheslav).
+ * Features include submitting questions, answering them (admin), bulk delete of
+ * answered questions, real-time updates, and role-based view switching.
+ * Uses a virtualized list (react-window) for efficient rendering of large question sets.
+ *
+ * @returns {JSX.Element} The questions interface with category tabs, question list, and answer forms
+ */
 const Questions = () => {
     const [questions, setQuestions] = useState([]);
     const [newQuestion, setNewQuestion] = useState('');
@@ -33,28 +44,8 @@ const Questions = () => {
         setError(null);
     };
 
-    // Получаем роль из sessionStorage (только для development)
-    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-        ? sessionStorage.getItem('demoRole')
-        : null;
-
-    // Определяем ID роли (уникальный идентификатор)
-    const getRoleId = (role) => {
-        const roleIds = {
-            'MODERATOR_ADMIN': 'MODERATOR_ADMIN',
-            'CONSULTANT_PITANIE': 'CONSULTANT_PITANIE',
-            'CONSULTANT_SPORT': 'CONSULTANT_SPORT',
-            'VYACHESLAV': 'VYACHESLAV',
-            'DEVELOPER': 'DEVELOPER',
-            'SUPER_ADMIN': 'SUPER_ADMIN',
-            'USER_0': 'USER_0',
-            'USER_1': 'USER_1',
-            'USER_2': 'USER_2'
-        };
-        return roleIds[role] || role;
-    };
-
-    const currentRoleId = getRoleId(demoRole);
+    const { hasLevel, hasRole, hasAnyRole, isConsultant } = usePermissions();
+    const currentRoleId = hasRole('SUPER_ADMIN') ? 8 : hasRole('VYACHESLAV') ? 7 : hasLevel(6) ? 6 : isConsultant() ? 4 : hasLevel(3) ? 3 : hasLevel(2) ? 2 : 1;
 
     // Информация о комнатах вопросов из бэкенда (для будущей интеграции)
     const questionRooms = [
@@ -64,12 +55,12 @@ const Questions = () => {
     ];
 
     // Определяем роли четко
-    const isGeneralAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER';
-    const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
-    const isSportConsultant = demoRole === 'CONSULTANT_SPORT';
-    const isVyacheslav = demoRole === 'VYACHESLAV';
-    const isSuperAdmin = demoRole === 'SUPER_ADMIN';
-    const isUser0 = demoRole === 'USER_0';
+    const isGeneralAdmin = hasLevel(6);
+    const isNutritionConsultant = hasRole('CONSULTANT_PITANIE');
+    const isSportConsultant = hasRole('CONSULTANT_SPORT');
+    const isVyacheslav = hasRole('VYACHESLAV');
+    const isSuperAdmin = hasLevel(8);
+    const isUser0 = hasLevel(1) && !hasLevel(2);
     const isAnyAdmin = isGeneralAdmin || isNutritionConsultant || isSportConsultant || isVyacheslav || isSuperAdmin;
 
     // Кто может переключать режимы (ВСЕ пользователи, кроме админов в режиме ответа)

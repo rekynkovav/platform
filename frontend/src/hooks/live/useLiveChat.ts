@@ -235,7 +235,6 @@ export function useLiveChat(broadcastId?: string) {
     }
 
     // В реальной системе здесь был бы API вызов
-    console.log('[useLiveChat] Чат очищен (мок)');
     // В мок-системе мы не можем очистить глобальное состояние
     // В реальной системе: await api.clearChat(broadcastId);
   }, [liveSession.isAdmin, liveSession.isModerator]);
@@ -247,7 +246,6 @@ export function useLiveChat(broadcastId?: string) {
       return;
     }
 
-    console.log(`[useLiveChat] Сообщение ${messageId} закреплено (мок)`);
     // В реальной системе: await api.pinMessage(messageId, broadcastId);
   }, [liveSession.isAdmin, liveSession.isModerator]);
 
@@ -258,7 +256,6 @@ export function useLiveChat(broadcastId?: string) {
       return;
     }
 
-    console.log(`[useLiveChat] Сообщение ${messageId} удалено (мок)`);
     // В реальной системе: await api.deleteMessage(messageId, broadcastId);
   }, [liveSession.isAdmin, liveSession.isModerator]);
 
@@ -367,7 +364,6 @@ export function useLiveReactions(broadcastId?: string) {
       return;
     }
 
-    console.log('[useLiveReactions] Реакции сброшены (мок)');
     // В реальной системе: await api.resetReactions(broadcastId);
   }, [liveSession.isAdmin, liveSession.isModerator]);
 
@@ -400,13 +396,11 @@ export function useLiveQuestions(broadcastId?: string) {
 
   // Пометить вопрос как отвеченный
   const markAsAnswered = useCallback((questionId: string) => {
-    console.log(`[useLiveQuestions] Вопрос ${questionId} помечен как отвеченный (мок)`);
     // В реальной системе: await api.markQuestionAsAnswered(questionId, broadcastId);
   }, []);
 
   // Ответить на вопрос
   const answerQuestion = useCallback(async (questionId: string, answer: string) => {
-    console.log(`[useLiveQuestions] Ответ на вопрос ${questionId}: ${answer} (мок)`);
     // В реальной системе:
     // 1. await api.answerQuestion(questionId, answer, broadcastId);
     // 2. Отправить ответ в чат

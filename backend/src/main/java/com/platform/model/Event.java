@@ -25,6 +25,7 @@ public class Event {
     private String id;
 
     @Version
+    @Builder.Default
     private Long version = 0L;
 
     @Column(nullable = false)

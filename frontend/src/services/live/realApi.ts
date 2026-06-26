@@ -3,7 +3,9 @@
  * Replaces mockApi.ts for production use.
  *
  * Broadcast CRUD → backend /api/broadcast/*
- * Chat → local state (backend broadcast-chat endpoint: TODO)
+ * Chat → backend /api/broadcast/{id}/chat
+ * Reactions → backend /api/broadcast/{id}/reaction
+ * Linking → backend /api/broadcast/{id}/link/{eventId}
  * Viewer tracking → backend BroadcastStatsWebSocketHandler
  */
 
@@ -17,9 +19,6 @@ import {
   BroadcastStatus
 } from './types';
 import { broadcastApi } from '../api';
-
-// Broadcast chat messages stored locally (no backend endpoint yet)
-const chatStore = new Map<string, LiveChatMessage[]>();
 
 // User context from Keycloak JWT
 function getCurrentUser(): { id: string; username: string; role: string } {
@@ -66,7 +65,8 @@ function mapBackendBroadcast(raw: any): LiveBroadcast {
     },
     createdBy: raw.ownerId || raw.createdBy || '',
     createdAt: raw.createdAt || new Date().toISOString(),
-    updatedAt: raw.updatedAt || undefined
+    updatedAt: raw.updatedAt || undefined,
+    linkedEventId: raw.linkedEventId || undefined
   };
 }
 
@@ -175,11 +175,32 @@ export class RealLiveApi {
     return this.getActiveBroadcasts();
   }
 
-  // ---- Chat (local state, no backend broadcast-chat endpoint) ----
+  // ---- Chat (backend /api/broadcast/{id}/chat) ----
 
   async getChatMessages(broadcastId: string, limit = 50): Promise<LiveChatMessage[]> {
-    const messages = chatStore.get(broadcastId) || [];
-    return messages.slice(-limit);
+    try {
+      const { api } = await import('../api');
+      const response = await api.get(`/broadcast/${broadcastId}/chat`, {
+        limit
+      });
+      const data = response.data;
+      if (!Array.isArray(data)) return [];
+
+      const currentUserId = getCurrentUser().id;
+      return data.map((msg: any) => ({
+        id: msg.id || '',
+        broadcastId: msg.broadcastId || broadcastId,
+        userId: msg.userId || '',
+        username: msg.username || 'User',
+        userRole: msg.userRole || 'USER',
+        content: msg.content || '',
+        type: (msg.type || 'message') as LiveChatMessage['type'],
+        timestamp: msg.timestamp || new Date().toISOString(),
+        isOwn: msg.userId === currentUserId
+      }));
+    } catch {
+      return [];
+    }
   }
 
   async sendChatMessage(
@@ -187,29 +208,45 @@ export class RealLiveApi {
     content: string,
     type: LiveChatMessage['type'] = 'message'
   ): Promise<LiveChatMessage> {
-    const user = getCurrentUser();
-    const message: LiveChatMessage = {
-      id: `chat-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-      broadcastId,
-      userId: user.id,
-      username: user.username,
-      userRole: user.role,
+    const { api } = await import('../api');
+    const response = await api.post(`/broadcast/${broadcastId}/chat`, {
       content,
-      type,
-      timestamp: new Date().toISOString(),
+      type
+    });
+
+    const msg = response.data;
+    const user = getCurrentUser();
+    return {
+      id: msg.id || `chat-${Date.now()}`,
+      broadcastId,
+      userId: msg.userId || user.id,
+      username: msg.username || user.username,
+      userRole: msg.userRole || user.role,
+      content: msg.content || content,
+      type: (msg.type || type) as LiveChatMessage['type'],
+      timestamp: msg.timestamp || new Date().toISOString(),
       isOwn: true
     };
-
-    const messages = chatStore.get(broadcastId) || [];
-    messages.push(message);
-    chatStore.set(broadcastId, messages);
-
-    return message;
   }
 
+  // ---- Reactions (backend /api/broadcast/{id}/reaction) ----
+
   async sendReaction(broadcastId: string, emoji: string): Promise<void> {
-    // TODO: backend broadcast reaction endpoint
-    console.log('[RealLiveApi] Reaction:', emoji, 'broadcast:', broadcastId);
+    const { api } = await import('../api');
+    await api.post(`/broadcast/${broadcastId}/reaction`, { emoji });
+  }
+
+  async getReactionSummary(broadcastId: string): Promise<{ counts: Record<string, number>; total: number }> {
+    try {
+      const { api } = await import('../api');
+      const response = await api.get(`/broadcast/${broadcastId}/reaction`);
+      return {
+        counts: response.data.counts || {},
+        total: response.data.total || 0
+      };
+    } catch {
+      return { counts: {}, total: 0 };
+    }
   }
 
   // ---- Stats ----
@@ -232,7 +269,14 @@ export class RealLiveApi {
   // ---- Integration ----
 
   async linkToEvent(broadcastId: string, eventId: string): Promise<LiveBroadcast> {
-    // TODO: backend endpoint for linking
+    const { api } = await import('../api');
+    await api.post(`/broadcast/${broadcastId}/link/${eventId}`, {});
+    return this.getBroadcast(broadcastId);
+  }
+
+  async unlinkFromEvent(broadcastId: string): Promise<LiveBroadcast> {
+    const { api } = await import('../api');
+    await api.delete(`/broadcast/${broadcastId}/link`);
     return this.getBroadcast(broadcastId);
   }
 
@@ -245,7 +289,7 @@ export class RealLiveApi {
   // ---- Viewer simulation removed (real tracking via WebSocket) ----
 
   resetDemoData(): void {
-    chatStore.clear();
+    // No-op — data is in backend now
   }
 }
 

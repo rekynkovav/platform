@@ -2,6 +2,25 @@
 import React, { useState, useEffect } from 'react';
 import './EnhancedLiveBroadcastView.css';
 
+/**
+ * EnhancedLiveBroadcastView — full-featured live broadcast viewer with integrated chat and settings.
+ *
+ * Provides a complete live streaming experience with a video/audio player area,
+ * real-time chat panel, stream quality settings (audio/video bitrate, sample rate,
+ * frame rate, resolution), viewer count tracking, and duration timer. Supports
+ * both demo mode (mock data) and organizer controls for ending the broadcast.
+ *
+ * @param {Object} broadcast - The broadcast data object with title, viewerCount, type, etc.
+ * @param {boolean} [autoPlay=true] - Whether to start playback automatically
+ * @param {boolean} [showChat=true] - Whether to display the chat panel
+ * @param {boolean} [showControls=true] - Whether to display stream controls
+ * @param {boolean} [showStats=false] - Whether to display stream statistics
+ * @param {string} [layout='player-first'] - Layout mode: 'player-first' or 'chat-first'
+ * @param {boolean} [demoMode=true] - Whether to use mock data for demonstration
+ * @param {boolean} [isOrganizer=false] - Whether the current user is the broadcast organizer
+ * @param {(() => void) | null} [onEndBroadcast=null] - Callback to end the broadcast
+ * @returns {JSX.Element} The enhanced live broadcast view with player, chat, and settings
+ */
 const EnhancedLiveBroadcastView = ({
   broadcast,
   autoPlay = true,

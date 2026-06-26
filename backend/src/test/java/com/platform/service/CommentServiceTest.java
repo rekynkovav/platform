@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -221,6 +222,36 @@ class CommentServiceTest {
         assertThatThrownBy(() -> commentService.deleteComment("post-2", "comment-1", testJwt))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("does not belong");
+    }
+
+    @Test
+    @DisplayName("getRecentCommentsByPostIds - batch returns comments grouped by post")
+    void getRecentCommentsByPostIds_ShouldGroupByPost() {
+        Comment comment1 = Comment.builder()
+                .id("c1").content("First").postId("post-1")
+                .authorId("u1").authorName("a1").createdAt(LocalDateTime.now()).build();
+        Comment comment2 = Comment.builder()
+                .id("c2").content("Second").postId("post-1")
+                .authorId("u2").authorName("a2").createdAt(LocalDateTime.now()).build();
+        Comment comment3 = Comment.builder()
+                .id("c3").content("On post 2").postId("post-2")
+                .authorId("u3").authorName("a3").createdAt(LocalDateTime.now()).build();
+
+        when(commentRepository.findTopNByPostIds(eq(Set.of("post-1", "post-2")), eq(3)))
+                .thenReturn(List.of(comment1, comment2, comment3));
+
+        var result = commentService.getRecentCommentsByPostIds(Set.of("post-1", "post-2"), 3);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get("post-1")).hasSize(2);
+        assertThat(result.get("post-2")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getRecentCommentsByPostIds - empty input returns empty map")
+    void getRecentCommentsByPostIds_EmptyInput_ReturnsEmptyMap() {
+        var result = commentService.getRecentCommentsByPostIds(Set.of(), 3);
+        assertThat(result).isEmpty();
     }
 
     @Test

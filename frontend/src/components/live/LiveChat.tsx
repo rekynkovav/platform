@@ -22,6 +22,23 @@ export interface LiveChatProps {
   compact?: boolean;
 }
 
+/**
+ * LiveChat — real-time chat component for live broadcasts.
+ *
+ * Supports text messages, emoji reactions, Q&A questions, user list display,
+ * message moderation (pause/unpause, delete), and unread message tracking.
+ * Integrates with the LiveSessionContext for session state and role-based
+ * features (admin/moderator controls).
+ *
+ * @param {LiveChatProps} props - Component properties
+ * @param {string} props.broadcastId - The ID of the associated broadcast
+ * @param {string} [props.maxHeight='500px'] - Maximum height of the chat container
+ * @param {boolean} [props.showReactions=true] - Whether to show the reactions panel
+ * @param {boolean} [props.showQuestions=true] - Whether to show the Q&A questions panel
+ * @param {boolean} [props.showUserList=false] - Whether to show the online user list
+ * @param {boolean} [props.compact=false] - Whether to render in compact/mini mode
+ * @returns {JSX.Element} The live chat interface with messages, input, reactions, and controls
+ */
 export const LiveChat: React.FC<LiveChatProps> = ({
   broadcastId,
   maxHeight = '500px',

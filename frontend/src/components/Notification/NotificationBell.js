@@ -1,12 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './NotificationBell.css';
+import { usePermissions } from '../../hooks/usePermissions';
+import { getUserId, getUsername } from '../../keycloak';
 
+/**
+ * NotificationBell — notification bell icon with unread count badge and dropdown panel.
+ *
+ * Aggregates notifications from multiple sources: scheduled events, question answers,
+ * and admin replies. Polls for updates on intervals, handles cross-tab storage events,
+ * and provides mark-as-read, delete, and navigation actions for each notification type.
+ *
+ * @returns {JSX.Element} The notification bell button with unread badge and dropdown list
+ */
 const NotificationBell = () => {
     const [notifications, setNotifications] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [error, setError] = useState(null);
     const dropdownRef = useRef(null);
+
+    const { hasLevel, hasRole, hasAnyRole, isConsultant } = usePermissions();
 
     useEffect(() => {
         loadNotifications();
@@ -165,13 +178,11 @@ const NotificationBell = () => {
     };
 
     const checkQuestionNotifications = () => {
-        const demoRole = sessionStorage.getItem('demoRole');
-
-        const isGeneralAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER';
-        const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
-        const isVyacheslav = demoRole === 'VYACHESLAV';
-        const isSuperAdmin = demoRole === 'SUPER_ADMIN';
-        const isUser = demoRole === 'USER_0' || demoRole === 'USER_1' || demoRole === 'USER_2';
+        const isGeneralAdmin = hasLevel(6);
+        const isNutritionConsultant = hasRole('CONSULTANT_PITANIE');
+        const isVyacheslav = hasRole('VYACHESLAV');
+        const isSuperAdmin = hasLevel(8);
+        const isUser = hasLevel(1) && !hasLevel(6);
 
         const saved = localStorage.getItem('userNotifications');
         let existingNotifs = saved ? JSON.parse(saved) : [];
@@ -228,8 +239,8 @@ const NotificationBell = () => {
         }
 
         if (isUser) {
-            const currentUser = sessionStorage.getItem('username') || demoRole;
-            const currentRoleId = demoRole;
+            const currentUser = getUsername() || 'USER_0';
+            const currentRoleId = getUserId() || 'USER_0';
 
             const shownContentKey = `shownContent_${currentRoleId}`;
             const shownContent = JSON.parse(localStorage.getItem(shownContentKey) || '{"answers":[],"posts":[],"nutritionPosts":[],"events":[],"streams":[]}');
@@ -262,7 +273,7 @@ const NotificationBell = () => {
                 }
             });
 
-            if (demoRole === 'USER_1' || demoRole === 'USER_2' || demoRole === 'VYACHESLAV') {
+            if (hasLevel(2) || hasRole('VYACHESLAV')) {
                 const mainPosts = JSON.parse(localStorage.getItem('mainFeedPosts') || '[]');
                 mainPosts.forEach(post => {
                     const alreadyShown = shownContent.posts.includes(post.id);

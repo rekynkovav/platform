@@ -64,7 +64,7 @@ describe('NutritionChat', () => {
             storageKeyPrefix: 'nutritionChatMessages',
             canSwitchRooms: false,
             availableRooms: [],
-            useApi: false,
+            useApi: true,
         });
     });
 

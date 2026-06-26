@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './DeviceTest.css';
 
+/**
+ * DeviceTest — hardware diagnostic component for testing audio/video devices before a broadcast.
+ *
+ * Enumerates available media devices (audio inputs, video inputs, audio outputs),
+ * allows device selection, provides live audio level metering, video preview,
+ * test recording with playback, and reports results via onTestComplete callback.
+ *
+ * @param {({ audioInput: string, videoInput: string, audioOutput: string, testPassed: boolean }) => void} onTestComplete - Callback with selected devices and test result
+ * @param {() => void} onCancel - Callback to cancel the device test
+ * @returns {JSX.Element} The device test interface with device lists, previews, and test controls
+ */
 const DeviceTest = ({ onTestComplete, onCancel }) => {
     const [devices, setDevices] = useState({
         audioInputs: [],

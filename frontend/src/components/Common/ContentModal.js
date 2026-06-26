@@ -1,6 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './ContentModal.css';
 
+/**
+ * ContentModal — modal dialog for creating or editing content entries with media attachments.
+ *
+ * Provides a form with title, description, file upload (image/video/audio), and
+ * inline audio recording. Handles blob URL lifecycle and cleans up resources on close.
+ *
+ * @param {boolean} isOpen - Whether the modal is currently visible
+ * @param {() => void} onClose - Callback to close the modal
+ * @param {(data: { title: string, description: string, mediaUrl: string, mediaType: string }) => void} onSave - Callback with the saved content data
+ * @param {string} [initialTitle=''] - Pre-filled title (for editing)
+ * @param {string} [initialDescription=''] - Pre-filled description (for editing)
+ * @returns {JSX.Element|null} The modal overlay with form, or null if closed
+ */
 const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescription = '' }) => {
     const [title, setTitle] = useState(initialTitle);
     const [description, setDescription] = useState(initialDescription);

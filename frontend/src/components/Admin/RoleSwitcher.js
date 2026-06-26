@@ -6,6 +6,17 @@ import { getUserRoles } from '../../keycloak';
 
 const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'development';
 
+/**
+ * RoleSwitcher — role selection dropdown for switching user roles in development/demo mode.
+ *
+ * Displays a dropdown list of available roles (from constants/roles) and allows
+ * the user to switch between them. In development mode, persists the selected
+ * role in sessionStorage and syncs with the backend demo API. In production,
+ * reads roles from Keycloak.
+ *
+ * @param {(role: string) => void} [onRoleChange] - Callback fired when the role is changed
+ * @returns {JSX.Element} The role switcher dropdown (only rendered in development mode)
+ */
 const RoleSwitcher = ({ onRoleChange }) => {
     const [currentRole, setCurrentRole] = useState(() => {
         // Только для development

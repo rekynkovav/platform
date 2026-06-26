@@ -2,6 +2,7 @@ package com.platform.controller;
 
 import com.platform.model.dto.EventDto;
 import com.platform.service.EventService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -42,6 +43,7 @@ public class EventController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "event-limit")
     public ResponseEntity<EventDto> createEvent(
             @Valid @RequestBody EventDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -51,6 +53,7 @@ public class EventController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "event-limit")
     public ResponseEntity<EventDto> updateEvent(
             @PathVariable String id,
             @Valid @RequestBody EventDto.UpdateRequest request,
@@ -61,6 +64,7 @@ public class EventController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "event-limit")
     public ResponseEntity<Void> deleteEvent(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {

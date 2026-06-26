@@ -2,6 +2,7 @@ package com.platform.controller;
 
 import com.platform.model.dto.ReactionDto;
 import com.platform.service.ReactionService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,6 +17,7 @@ public class ReactionController {
     private final ReactionService reactionService;
 
     @PostMapping
+    @RateLimiting(name = "reaction-limit")
     public ResponseEntity<ReactionDto> toggleReaction(
             @PathVariable String postId,
             @RequestParam(defaultValue = "like") String type,

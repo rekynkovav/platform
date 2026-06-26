@@ -17,6 +17,7 @@ public class LiveBroadcastDto {
     private Integer viewerCount;
     private String hlsPlaylistUrl;
     private String thumbnailUrl;
+    private String linkedEventId;
 
     // Безопасные поля для клиента
     // НЕ включаем: streamKey, internalStreamUrl, encryptionKey, rtmpUrl

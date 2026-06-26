@@ -28,6 +28,7 @@ public class Reaction {
     private String id;
 
     @Version
+    @Builder.Default
     private Long version = 0L;
 
     @Column(name = "post_id", nullable = false)

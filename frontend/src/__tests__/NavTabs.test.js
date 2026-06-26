@@ -2,168 +2,96 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import NavTabs from '../components/Navigation/NavTabs';
-import { usePermissions } from '../hooks/usePermissions';
-
-// Моки
-jest.mock('../hooks/usePermissions', () => ({
-    usePermissions: jest.fn(),
-}));
 
 jest.mock('../components/Navigation/NavTabs.css', () => ({}));
 
 describe('NavTabs', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
-
-    it('renders base tabs for USER_0', () => {
-        usePermissions.mockReturnValue({
-            canViewAdmin: jest.fn().mockReturnValue(false),
-            canStartBroadcast: jest.fn().mockReturnValue(false),
-            hasLevel: jest.fn().mockReturnValue(false),
-        });
-
+    it('renders all base tabs', () => {
         render(
             <MemoryRouter initialEntries={['/']}>
                 <NavTabs />
             </MemoryRouter>
         );
-
-        expect(screen.getByText('Главная')).toBeInTheDocument();
-        expect(screen.getByText('События')).toBeInTheDocument();
-        expect(screen.getByText('Чат')).toBeInTheDocument();
-        expect(screen.getByText('Вопросы')).toBeInTheDocument();
-        expect(screen.getByText('Профиль')).toBeInTheDocument();
-        expect(screen.queryByText('Дашборд')).not.toBeInTheDocument();
-        expect(screen.queryByText('Трансляции')).not.toBeInTheDocument();
-        expect(screen.queryByText('Админка')).not.toBeInTheDocument();
-    });
-
-    it('renders extra tabs for MODERATOR_ADMIN', () => {
-        usePermissions.mockReturnValue({
-            canViewAdmin: jest.fn().mockReturnValue(true),
-            canStartBroadcast: jest.fn().mockReturnValue(true),
-            hasLevel: jest.fn().mockReturnValue(true),
-        });
-
-        render(
-            <MemoryRouter initialEntries={['/']}>
-                <NavTabs />
-            </MemoryRouter>
-        );
-
-        expect(screen.getByText('Главная')).toBeInTheDocument();
-        expect(screen.getByText('Дашборд')).toBeInTheDocument();
+        expect(screen.getByText('Лента Новостей')).toBeInTheDocument();
         expect(screen.getByText('Трансляции')).toBeInTheDocument();
-        expect(screen.getByText('Админка')).toBeInTheDocument();
+        expect(screen.getByText('События')).toBeInTheDocument();
+        expect(screen.getByText('Навигация')).toBeInTheDocument();
+        expect(screen.getByText('Чат')).toBeInTheDocument();
+        expect(screen.getByText('Помощь')).toBeInTheDocument();
     });
 
-    it('highlights active tab', () => {
-        usePermissions.mockReturnValue({
-            canViewAdmin: jest.fn().mockReturnValue(false),
-            canStartBroadcast: jest.fn().mockReturnValue(false),
-            hasLevel: jest.fn().mockReturnValue(false),
-        });
-
+    it('highlights active tab based on URL', () => {
         render(
             <MemoryRouter initialEntries={['/chat']}>
                 <NavTabs />
             </MemoryRouter>
         );
-
         const chatTab = screen.getByText('Чат');
         expect(chatTab.classList.contains('active')).toBe(true);
     });
 
-    it('navigates on click', () => {
-        usePermissions.mockReturnValue({
-            canViewAdmin: jest.fn().mockReturnValue(false),
-            canStartBroadcast: jest.fn().mockReturnValue(false),
-            hasLevel: jest.fn().mockReturnValue(false),
-        });
-
+    it('navigates when tab is clicked', () => {
         render(
             <MemoryRouter initialEntries={['/']}>
                 <NavTabs />
             </MemoryRouter>
         );
-
-        const profileTab = screen.getByText('Профиль');
-        fireEvent.click(profileTab);
-        expect(window.location.pathname).toBe('/profile');
+        fireEvent.click(screen.getByText('Помощь'));
+        // After click, URL should change — check that the help tab is now active
+        expect(screen.getByText('Помощь').classList.contains('active')).toBe(true);
     });
 
-    it('renders dashboard tab for MODERATOR_ADMIN', () => {
-        usePermissions.mockReturnValue({
-            canViewAdmin: jest.fn().mockReturnValue(true),
-            canStartBroadcast: jest.fn().mockReturnValue(false),
-            hasLevel: jest.fn().mockReturnValue(true),
-        });
+    it('shows active class on the correct tab', () => {
+        render(
+            <MemoryRouter initialEntries={['/archive']}>
+                <NavTabs />
+            </MemoryRouter>
+        );
+        const archiveTab = screen.getByText('Трансляции');
+        expect(archiveTab.classList.contains('active')).toBe(true);
+        expect(screen.getByText('Лента Новостей').classList.contains('active')).toBe(false);
+    });
 
+    it('renders split tabs for feed on hover', () => {
         render(
             <MemoryRouter initialEntries={['/']}>
                 <NavTabs />
             </MemoryRouter>
         );
-
-        expect(screen.getByText('Дашборд')).toBeInTheDocument();
-        expect(screen.getByText('Админка')).toBeInTheDocument();
+        const feedTab = screen.getByText('Лента Новостей');
+        const wrapper = feedTab.closest('.nav-tab-wrapper');
+        fireEvent.mouseEnter(wrapper);
+        expect(screen.getByText('Питание')).toBeInTheDocument();
+        expect(screen.getByText('Новости')).toBeInTheDocument();
     });
 
-    it('renders broadcast tab when canStartBroadcast is true', () => {
-        usePermissions.mockReturnValue({
-            canViewAdmin: jest.fn().mockReturnValue(false),
-            canStartBroadcast: jest.fn().mockReturnValue(true),
-            hasLevel: jest.fn().mockReturnValue(false),
-        });
-
+    it('renders split tabs for chat on hover', () => {
         render(
             <MemoryRouter initialEntries={['/']}>
                 <NavTabs />
             </MemoryRouter>
         );
-
-        expect(screen.getByText('Трансляции')).toBeInTheDocument();
+        const chatTab = screen.getByText('Чат');
+        const wrapper = chatTab.closest('.nav-tab-wrapper');
+        fireEvent.mouseEnter(wrapper);
+        expect(screen.getByText('Основной')).toBeInTheDocument();
     });
 
-    it('shows correct active class on initial route', () => {
-        usePermissions.mockReturnValue({
-            canViewAdmin: jest.fn().mockReturnValue(false),
-            canStartBroadcast: jest.fn().mockReturnValue(false),
-            hasLevel: jest.fn().mockReturnValue(false),
-        });
-
+    it('handles nutrition sub-tab as active', () => {
         render(
-            <MemoryRouter initialEntries={['/profile']}>
+            <MemoryRouter initialEntries={['/nutrition']}>
                 <NavTabs />
             </MemoryRouter>
         );
-
-        const profileTab = screen.getByText('Профиль');
-        expect(profileTab.classList.contains('active')).toBe(true);
-        expect(screen.getByText('Главная').classList.contains('active')).toBe(false);
+        expect(screen.getByText('Лента Новостей').closest('.nav-tab-wrapper').classList.contains('active')).toBe(true);
     });
 
-    it('renders all tabs for admin with broadcast permission', () => {
-        usePermissions.mockReturnValue({
-            canViewAdmin: jest.fn().mockReturnValue(true),
-            canStartBroadcast: jest.fn().mockReturnValue(true),
-            hasLevel: jest.fn().mockReturnValue(true),
-        });
-
+    it('handles chat-nutrition sub-tab as active', () => {
         render(
-            <MemoryRouter initialEntries={['/']}>
+            <MemoryRouter initialEntries={['/chat/nutrition']}>
                 <NavTabs />
             </MemoryRouter>
         );
-
-        expect(screen.getByText('Главная')).toBeInTheDocument();
-        expect(screen.getByText('События')).toBeInTheDocument();
-        expect(screen.getByText('Чат')).toBeInTheDocument();
-        expect(screen.getByText('Вопросы')).toBeInTheDocument();
-        expect(screen.getByText('Профиль')).toBeInTheDocument();
-        expect(screen.getByText('Дашборд')).toBeInTheDocument();
-        expect(screen.getByText('Трансляции')).toBeInTheDocument();
-        expect(screen.getByText('Админка')).toBeInTheDocument();
+        expect(screen.getByText('Чат').closest('.nav-tab-wrapper').classList.contains('active')).toBe(true);
     });
 });

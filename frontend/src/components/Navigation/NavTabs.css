@@ -177,6 +177,16 @@
     color: #198754;
 }
 
+.nav-tab-half.chat-user2:hover {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--text-primary);
+}
+
+.nav-tab-half.chat-user2.active {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+}
+
 /* Подсветка активной части */
 .nav-tab-half.active::after {
     content: '';

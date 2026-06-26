@@ -50,7 +50,7 @@ public class AdminService {
         String currentUserRole = getUserRole(jwt);
 
         // Только супер-админ может менять роли
-        if (!"SUPER_ADMIN".equals(currentUserRole) && !"VYACHESLAV".equals(currentUserRole)) {
+        if (!RoleUtils.isSuperAdmin(currentUserRole)) {
             throw new AccessDeniedException("Only super admin can change user roles");
         }
 
@@ -70,7 +70,7 @@ public class AdminService {
         String currentUserId = jwt.getSubject();
         String currentUserRole = getUserRole(jwt);
 
-        if (!"MODERATOR_ADMIN".equals(currentUserRole) && !"SUPER_ADMIN".equals(currentUserRole) && !"VYACHESLAV".equals(currentUserRole)) {
+        if (!RoleUtils.isAdmin(currentUserRole)) {
             throw new AccessDeniedException("Only admin can ban users");
         }
 
@@ -91,7 +91,7 @@ public class AdminService {
         String currentUserId = jwt.getSubject();
         String currentUserRole = getUserRole(jwt);
 
-        if (!"MODERATOR_ADMIN".equals(currentUserRole) && !"SUPER_ADMIN".equals(currentUserRole) && !"VYACHESLAV".equals(currentUserRole)) {
+        if (!RoleUtils.isAdmin(currentUserRole)) {
             throw new AccessDeniedException("Only admin can unban users");
         }
 
@@ -116,7 +116,7 @@ public class AdminService {
         String currentUserId = jwt.getSubject();
         String currentUserRole = getUserRole(jwt);
 
-        if (!"MODERATOR_ADMIN".equals(currentUserRole) && !"SUPER_ADMIN".equals(currentUserRole) && !"VYACHESLAV".equals(currentUserRole)) {
+        if (!RoleUtils.isAdmin(currentUserRole)) {
             throw new AccessDeniedException("Only admin can moderate posts");
         }
 

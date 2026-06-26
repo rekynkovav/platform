@@ -24,6 +24,7 @@ public class Contact {
     private String id;
 
     @Version
+    @Builder.Default
     private Long version = 0L;
 
     @Column(name = "user_id", nullable = false)

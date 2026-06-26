@@ -97,6 +97,39 @@
         <sqlFile path="db/changelog/v14/01-create-dashboard-menu-items.sql" splitStatements="false"/>
     </changeSet>
 
+    <!-- V15: Keycloak retry jobs queue -->
+    <changeSet id="v15-create-keycloak-retry-jobs" author="platform" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="keycloak_retry_jobs"/>
+            </not>
+        </preConditions>
+        <sqlFile path="db/changelog/v15/01-create-keycloak-retry-jobs.sql" splitStatements="false"/>
+    </changeSet>
+
+    <!-- V16: Broadcast-event linking -->
+    <changeSet id="v16-add-linked-event-to-broadcasts" author="platform" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="live_broadcasts" columnName="linked_event_id"/>
+            </not>
+        </preConditions>
+        <sqlFile path="db/changelog/v16/01-add-linked-event-to-broadcasts.sql" splitStatements="false"/>
+    </changeSet>
+
+    <!-- V17: Add missing @Version columns for optimistic locking -->
+    <changeSet id="v17-add-missing-version-columns" author="platform" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="archives" columnName="version"/>
+            </not>
+        </preConditions>
+        <sqlFile path="db/changelog/v17/01-add-missing-version-columns.sql" splitStatements="false"/>
+    </changeSet>
+
+    <!-- V18: Fix UUID column types (VARCHAR(36) → native uuid) -->
+    <include file="db/changelog/v18/01-fix-uuid-column-types.xml"/>
+
     <!-- Модули (ЗАКОММЕНТИРОВАНО: дублируют v3, раскомментировать только если v3 удален) -->
     <!-- <include file="db/changelog/db.changelog-media.yaml"/> -->
     <!-- <include file="db/changelog/db.changelog-payments.yaml"/> -->

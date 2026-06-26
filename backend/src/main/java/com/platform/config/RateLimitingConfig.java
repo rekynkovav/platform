@@ -6,7 +6,6 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.core.RedisTemplate;
 
 @Configuration
-// @Import(Bucket4JAutoConfiguration.class) - временно отключено из-за проблем с зависимостями
 public class RateLimitingConfig {
 
     @Bean

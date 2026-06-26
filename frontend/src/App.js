@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { initKeycloak, getUsername, getUserRoles, logout, login as keycloakLogin } from './keycloak';
 import NavTabs from './components/Navigation/NavTabs';
 import GlobalEventNotification from './components/Notification/GlobalEventNotification';
 import NotificationBell from './components/Notification/NotificationBell';
 import RoleSwitcher from './components/Admin/RoleSwitcher';
 import { AudioPlayerProvider } from './context/AudioPlayerContext';
+import { LiveSessionProvider } from './context/live/LiveSessionContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import './App.css';
 
@@ -14,41 +16,65 @@ const NutritionFeed = React.lazy(() => import('./components/Feed/NutritionFeed')
 const Dashboard = React.lazy(() => import('./components/Dashboard/Dashboard'));
 const EventsHub = React.lazy(() => import('./components/Events/EventsHub'));
 const ArchiveList = React.lazy(() => import('./components/Archive/ArchiveList'));
-const LiveBroadcastView = React.lazy(() => import('./components/live/LiveBroadcastViewSimple'));
+const LivePage = React.lazy(() => import('./components/live/LivePage'));
 const GeneralChat = React.lazy(() => import('./components/Chat/GeneralChat'));
+const GeneralChatUser2 = React.lazy(() => import('./components/Chat/GeneralChat').then(m => ({ default: () => <m.default roomSlug="user2" /> })));
 const NutritionChat = React.lazy(() => import('./components/Chat/NutritionChat'));
 const Questions = React.lazy(() => import('./components/Help/Questions'));
 const UserProfile = React.lazy(() => import('./components/UserProfile/UserProfile'));
 const ScheduledEvents = React.lazy(() => import('./components/Scheduled/ScheduledEvents'));
+
+// Preload all lazy components by triggering their import promises.
+// React.lazy() wraps a dynamic import — calling the same import() again
+// returns the cached module, so the component is ready before the user
+// navigates to it.
+const _preloads = [
+    () => import('./components/Feed/MainFeed'),
+    () => import('./components/Feed/NutritionFeed'),
+    () => import('./components/Dashboard/Dashboard'),
+    () => import('./components/Events/EventsHub'),
+    () => import('./components/Archive/ArchiveList'),
+    () => import('./components/live/LivePage'),
+    () => import('./components/Chat/GeneralChat'),
+    () => import('./components/Chat/NutritionChat'),
+    () => import('./components/Help/Questions'),
+    () => import('./components/UserProfile/UserProfile'),
+    () => import('./components/Scheduled/ScheduledEvents'),
+];
+const preloadComponents = () => _preloads.forEach(fn => fn());
 
 /**
  * App — root application component.
  *
  * Orchestrates the entire frontend experience:
  * - Initializes Keycloak authentication on mount
- * - Manages top-level navigation tabs and route rendering
+ * - Uses React Router for URL-based navigation
  * - Wraps children in an AudioPlayerProvider for global audio state
  * - Renders the login screen when unauthenticated, the main app when authenticated
  *
- * State:
- * @property {boolean} authenticated — whether the user has an active Keycloak session
- * @property {boolean} loading — true while Keycloak initialization is in flight
- * @property {string} activeTab — the currently selected navigation tab ID
- * @property {string[]} userRoles — list of realm roles from the Keycloak token
- * @property {string} username — display name of the authenticated user
- * @property {boolean} showAccessDenied — controls the "access denied" popup
- * @property {{x: number, y: number}} accessDeniedPosition — screen coordinates for the popup
+ * Routes:
+ * /              → MainFeed
+ * /nutrition     → NutritionFeed
+ * /dashboard     → Dashboard
+ * /events        → EventsHub
+ * /archive       → ArchiveList
+ * /live          → LiveBroadcastView
+ * /chat          → GeneralChat
+ * /chat/nutrition → NutritionChat
+ * /help          → Questions
+ * /profile       → UserProfile
+ * /scheduled     → ScheduledEvents
  */
 function App() {
     const [authenticated, setAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('main');
     const [userRoles, setUserRoles] = useState([]);
     const [username, setUsername] = useState('User');
     const [showAccessDenied, setShowAccessDenied] = useState(false);
     const [accessDeniedPosition, setAccessDeniedPosition] = useState({ x: 0, y: 0 });
     const initStartedRef = useRef(false);
     const accessDeniedTimerRef = useRef(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (initStartedRef.current) return;
@@ -60,6 +86,8 @@ function App() {
                 if (auth) {
                     setUserRoles(getUserRoles());
                     setUsername(getUsername());
+                    // Preload all lazy components to prevent flash on tab switch
+                    preloadComponents();
                 }
                 setLoading(false);
             })
@@ -86,8 +114,6 @@ function App() {
     /**
      * Shows a temporary "access denied" tooltip at the given screen coordinates.
      * Automatically hides after 2 seconds.
-     * @param {number} x - screen X position
-     * @param {number} y - screen Y position
      */
     const showAccessDeniedMessage = (x, y) => {
         setShowAccessDenied(false);
@@ -106,26 +132,17 @@ function App() {
     };
 
     /**
-     * Resets the active tab to "main" when the logo is clicked.
+     * Navigates to home page when the logo is clicked.
      */
-    const handleLogoClick = (e) => {
-        setActiveTab('main');
+    const handleLogoClick = () => {
+        navigate('/');
     };
 
     /**
-     * Switches to the "scheduled" tab when a global event notification is clicked.
+     * Navigates to scheduled events when a global event notification is clicked.
      */
     const handleEventClick = () => {
-        setActiveTab('scheduled');
-    };
-
-    /**
-     * Updates the active tab in response to navigation bar clicks.
-     * @param {string} tabId - the ID of the tab to switch to
-     * @param {Event} event - the click event
-     */
-    const handleTabChange = (tabId, event) => {
-        setActiveTab(tabId);
+        navigate('/scheduled');
     };
 
     if (loading) {
@@ -157,37 +174,9 @@ function App() {
         );
     }
 
-    const renderContent = () => {
-        switch (activeTab) {
-            case 'main':
-                return <MainFeed />;
-            case 'nutrition':
-                return <NutritionFeed />;
-            case 'dashboard':
-                return <Dashboard />;
-            case 'scheduled':
-                return <ScheduledEvents />;
-            case 'archive':
-                return <ArchiveList />;
-            case 'broadcast-live':
-                return <LiveBroadcastView />;
-            case 'chat':
-                return <GeneralChat />;
-            case 'chat-nutrition':
-                return <NutritionChat />;
-            case 'help':
-                return <Questions />;
-            case 'profile':
-                return <UserProfile />;
-            case 'events':
-                return <EventsHub />;
-            default:
-                return <MainFeed />;
-        }
-    };
-
     return (
         <AudioPlayerProvider>
+        <LiveSessionProvider>
         <div className="app">
             <header className="header">
                 <div className="header-spacer"></div>
@@ -200,11 +189,14 @@ function App() {
                 <div className="header-right">
                     <NotificationBell />
                     <RoleSwitcher />
-                    <button className="header-logout" onClick={() => setActiveTab('profile')} title="Личный кабинет">👤</button>
+                    <button className="header-profile-btn" onClick={() => navigate('/profile')} title="Личный кабинет">
+                        <span className="header-profile-icon">👤</span>
+                        <span className="header-profile-label">Кабинет</span>
+                    </button>
                 </div>
             </header>
 
-            <NavTabs activeTab={activeTab} onTabChange={handleTabChange} />
+            <NavTabs />
 
             <main className="main-content">
                 {showAccessDenied && (
@@ -221,15 +213,30 @@ function App() {
                         Доступ ограничен
                     </div>
                 )}
-                <ErrorBoundary key={activeTab}>
-                    <Suspense fallback={<div className="loading-screen">Загрузка...</div>}>
-                        {renderContent()}
+                <ErrorBoundary>
+                    <Suspense fallback={<div className="tab-loading"><div className="tab-spinner" /></div>}>
+                        <Routes>
+                            <Route path="/" element={<MainFeed />} />
+                            <Route path="/nutrition" element={<NutritionFeed />} />
+                            <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/events" element={<EventsHub />} />
+                            <Route path="/archive" element={<ArchiveList />} />
+                            <Route path="/live" element={<LivePage />} />
+                            <Route path="/chat" element={<GeneralChat />} />
+                            <Route path="/chat/user2" element={<GeneralChatUser2 />} />
+                            <Route path="/chat/nutrition" element={<NutritionChat />} />
+                            <Route path="/help" element={<Questions />} />
+                            <Route path="/profile" element={<UserProfile />} />
+                            <Route path="/scheduled" element={<ScheduledEvents />} />
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
                     </Suspense>
                 </ErrorBoundary>
             </main>
 
             <GlobalEventNotification onEventClick={handleEventClick} />
         </div>
+        </LiveSessionProvider>
         </AudioPlayerProvider>
     );
 }

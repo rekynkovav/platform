@@ -34,6 +34,7 @@ public class Post {
     private String id;
 
     @Version
+    @Builder.Default
     private Long version = 0L;
 
     @Column(nullable = false, columnDefinition = "TEXT")

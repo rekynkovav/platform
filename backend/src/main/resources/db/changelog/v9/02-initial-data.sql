@@ -97,14 +97,14 @@ BEGIN
 END $$;
 
 -- 4. Создаем тестовые сообщения с ФИКСИРОВАННЫМИ UUID
-INSERT INTO messages (id, user_id, user_name, content, chat_type, room_id, room_slug, is_read, created_at, updated_at)
+INSERT INTO messages (id, user_id, user_name, content, chat_type, room_id, room_slug, is_read, created_at)
 VALUES
-    ('b0000000-0000-0000-0000-000000000001', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Добро пожаловать в платформу!', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '5 minutes', NOW() - interval '5 minutes'),
-    ('b0000000-0000-0000-0000-000000000002', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Это тестовое сообщение в общем чате.', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '4 minutes', NOW() - interval '4 minutes'),
-    ('b0000000-0000-0000-0000-000000000003', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Здесь можно обсуждать различные темы.', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '3 minutes', NOW() - interval '3 minutes'),
-    ('b0000000-0000-0000-0000-000000000004', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Система ролей позволяет гибко управлять доступом.', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '2 minutes', NOW() - interval '2 minutes'),
-    ('b0000000-0000-0000-0000-000000000005', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Попробуйте отправить свое первое сообщение!', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '1 minute', NOW() - interval '1 minute')
-ON CONFLICT (id, created_at) DO NOTHING;
+    ('b0000000-0000-0000-0000-000000000001', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Добро пожаловать в платформу!', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '5 minutes'),
+    ('b0000000-0000-0000-0000-000000000002', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Это тестовое сообщение в общем чате.', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '4 minutes'),
+    ('b0000000-0000-0000-0000-000000000003', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Здесь можно обсуждать различные темы.', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '3 minutes'),
+    ('b0000000-0000-0000-0000-000000000004', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Система ролей позволяет гибко управлять доступом.', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '2 minutes'),
+    ('b0000000-0000-0000-0000-000000000005', '550e8400-e29b-41d4-a716-446655440000', 'Test User', 'Попробуйте отправить свое первое сообщение!', 'general', 'a0000000-0000-0000-0000-000000000009', 'user1', false, NOW() - interval '1 minute')
+ON CONFLICT (id) DO NOTHING;
 
 COMMENT ON TABLE chat_rooms IS 'Комнаты чата платформы - и��ициализированы для первого релиза';
 COMMENT ON TABLE chat_room_permissions IS 'Права доступа к комнатам - настроены для всех ролей';

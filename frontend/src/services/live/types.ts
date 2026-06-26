@@ -56,6 +56,7 @@ export interface LiveBroadcast {
 
   // Связь с существующей системой
   mediaFileId?: string;       // ID медиафайла для архивации
+  linkedEventId?: string;     // ID привязанного события
   createdBy: string;          // ID пользователя
   createdAt: string;          // ISO timestamp
   updatedAt?: string;         // ISO timestamp

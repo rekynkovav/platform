@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './GlobalEventNotification.css';
 
+/**
+ * GlobalEventNotification — displays a floating notification banner for upcoming scheduled events.
+ *
+ * Monitors scheduled events stored in sessionStorage and shows a countdown timer
+ * for the next upcoming event. The notification auto-dismisses when the event starts
+ * and supports clicking to navigate to the event details.
+ *
+ * @param {(event: Object) => void} [onEventClick] - Callback fired when the notification is clicked
+ * @returns {JSX.Element|null} The floating event notification banner, or null if no upcoming events
+ */
 const GlobalEventNotification = ({ onEventClick }) => {
     const [activeEvent, setActiveEvent] = useState(null);
     const [timeLeft, setTimeLeft] = useState({});

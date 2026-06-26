@@ -80,11 +80,15 @@ public class LiveBroadcast {
     @Column
     private Boolean isRecording;
 
+    @Column(name = "linked_event_id")
+    private UUID linkedEventId;
+
     @Column
     private LocalDateTime createdAt;
 
     @Version
     @Column(name = "version", nullable = false)
+    @Builder.Default
     private Long version = 0L;
 
     @PrePersist

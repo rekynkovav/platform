@@ -11,6 +11,8 @@ import {
 } from '../../services/live/types';
 import { liveWebSocket } from '../../services/live';
 import { liveApi } from '../../services/live';
+import { getUserRoles } from '../../keycloak';
+import { ROLES, ROLE_LEVELS } from '../../constants/roles';
 
 // Типы действий
 type LiveSessionAction =
@@ -61,16 +63,28 @@ function liveSessionReducer(state: LiveSession, action: LiveSessionAction): Live
   switch (action.type) {
     case 'SET_BROADCAST':
       const broadcast = action.payload;
-      const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-        ? sessionStorage.getItem('demoRole') || 'USER_1'
-        : 'USER_1';
+      // Read real roles from Keycloak JWT, not from sessionStorage
+      const roles = getUserRoles();
+      const SYSTEM_ROLES = ['offline_access', 'uma_authorization', 'default-roles-platform'];
+      const appRoles = roles.filter((r: string) => !SYSTEM_ROLES.includes(r));
+      // Find highest role by level
+      let highestRoleLevel = 0;
+      let highestRoleName = 'USER_0';
+      for (const [roleName, roleLevel] of Object.entries(ROLE_LEVELS)) {
+        if (appRoles.includes(roleName) && roleLevel > highestRoleLevel) {
+          highestRoleLevel = roleLevel;
+          highestRoleName = roleName;
+        }
+      }
+      const isUserAdmin = [ROLES.SUPER_ADMIN, ROLES.VYACHESLAV, ROLES.MODERATOR_ADMIN].includes(highestRoleName as any);
+      const isUserModerator = isUserAdmin || [ROLES.CONSULTANT_SPORT, ROLES.CONSULTANT_PITANIE, ROLES.DEVELOPER].includes(highestRoleName as any);
 
       return {
         ...state,
         broadcast,
-        isAdmin: demoRole === 'MODERATOR_ADMIN' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV',
+        isAdmin: isUserAdmin,
         isViewer: !!broadcast,
-        isModerator: demoRole === 'MODERATOR_ADMIN' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV',
+        isModerator: isUserModerator,
         playerState: {
           ...state.playerState,
           isPlaying: !!broadcast && broadcast.status === 'live'
@@ -236,7 +250,7 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
           if (state.broadcast?.id === data.broadcastId) {
             dispatch({
               type: 'SET_VIEWER_COUNT',
-              payload: Math.max(0, state.broadcast.viewerCount + data.viewerChange)
+              payload: Math.max(0, data.viewerCount || 0)
             });
           }
         }),
@@ -263,7 +277,6 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
         }),
 
         liveWebSocket.subscribe('SYSTEM_MESSAGE', (data) => {
-          // console.log('[LiveSession] System message:', data);
         })
       ];
 
@@ -298,7 +311,6 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
       dispatch({ type: 'SET_WS_CONNECTION', payload: connected });
 
 
-      // console.log(`[LiveSession] Подключено к трансляции ${broadcastId}`);
     } catch (error) {
       console.error('[LiveSession] Ошибка подключения к трансляции:', error);
       dispatch({ type: 'SET_WS_CONNECTION', payload: false });
@@ -314,7 +326,6 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
       // Отключаем WebSocket
       liveWebSocket.disconnect(state.broadcast.id);
 
-      // console.log(`[LiveSession] Отключено от трансляции ${state.broadcast.id}`);
     }
 
     dispatch({ type: 'RESET_SESSION' });
@@ -325,17 +336,13 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
     if (!state.broadcast || !content.trim()) return;
 
     try {
-      // Отправляем через API
+      // Отправляем через REST API — сервер рассылает через WS другим клиентам
+      // Локальный dispatch НЕ нужен — WS subscription добавит сообщение
       const message = await liveApi.sendChatMessage(state.broadcast.id, content, type);
 
-      // Также отправляем через WebSocket (имитация)
-      liveWebSocket.send('CHAT_MESSAGE', {
-        content,
-        type
-      }, state.broadcast.id);
-
-      // Добавляем в локальное состояние
-      dispatch({ type: 'ADD_CHAT_MESSAGE', payload: message });
+      // Optimistic: добавляем сразу, чтобы не ждать WS broadcast
+      // Помечаем как isOwn чтобы WS subscription пропустило дубликат
+      dispatch({ type: 'ADD_CHAT_MESSAGE', payload: { ...message, isOwn: true } });
 
     } catch (error) {
       console.error('[LiveSession] Ошибка отправки сообщения:', error);
@@ -348,9 +355,8 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
 
     try {
       await liveApi.sendReaction(state.broadcast.id, emoji);
-      liveWebSocket.send('REACTION_ADDED', { emoji }, state.broadcast.id);
 
-      // Немедленно обновляем локальное состояние
+      // Optimistic: добавляем сразу
       dispatch({ type: 'ADD_REACTION', payload: { emoji, count: 1 } });
 
     } catch (error) {
@@ -382,7 +388,6 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
         dispatch({ type: 'SET_STATUS', payload: 'live' });
       }, 2000);
 
-      // console.log('[LiveSession] Трансляция начата:', response.broadcast.id);
 
     } catch (error) {
       console.error('[LiveSession] Ошибка начала трансляции:', error);
@@ -403,7 +408,6 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
         disconnectFromBroadcast();
       }, 3000);
 
-      // console.log('[LiveSession] Трансляция остановлена:', state.broadcast.id);
 
     } catch (error) {
       console.error('[LiveSession] Ошибка остановки трансляции:', error);

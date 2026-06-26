@@ -1,19 +1,12 @@
 // Live streaming services — barrel export
-// Real services replacing mocks
 
 // Types
 export * from './types';
 
-// Real services (replacing mocks)
+// Real services
 export { realWebSocket as liveWebSocket } from './realWebSocket';
 export { realLiveApi as liveApi } from './realApi';
-// Media service: realMediaService now uses actual HLS playback
 export { realMediaService as mediaService } from './realMedia';
-
-// Also export mocks for backward compatibility
-export { mockWebSocket } from './mockWebSocket';
-export { mockLiveApi } from './mockApi';
-export { mockMediaService } from './mockMedia';
 
 // Types for TypeScript
 export type { RealWebSocketService as LiveWebSocketService } from './realWebSocket';
@@ -33,5 +26,4 @@ export const LIVE_CONFIG = {
   PLAYER_QUALITY_SWITCH_THRESHOLD: 0.75,
   BROADCAST_MAX_DURATION: 24 * 60 * 60,
   BROADCAST_AUTO_ARCHIVE_AFTER: 7 * 24 * 60 * 60,
-  DEMO_MODE_ENABLED: false,  // Real mode now
 } as const;

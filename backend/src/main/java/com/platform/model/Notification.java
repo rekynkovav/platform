@@ -20,6 +20,7 @@ public class Notification {
     private Long id;
 
     @Version
+    @Builder.Default
     private Long version = 0L;
 
     private String userId;           // кому уведомление

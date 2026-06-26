@@ -5,6 +5,17 @@ import { chatApi } from '../../services/api';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import './Chat.css';
 
+/**
+ * Chat — virtualized chat component with real-time WebSocket messaging.
+ *
+ * Displays messages in a virtualized list (react-window) for performance,
+ * supports typing indicators, user presence tracking, and message grouping
+ * by date. Sends messages via WebSocket with REST API fallback.
+ *
+ * @param {string} [roomSlug='general'] - The chat room slug identifier
+ * @param {string} currentUser - The current user's display name
+ * @returns {JSX.Element} The full chat interface with header, messages, input, and user sidebar
+ */
 const Chat = ({ roomSlug = 'general', currentUser }) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');

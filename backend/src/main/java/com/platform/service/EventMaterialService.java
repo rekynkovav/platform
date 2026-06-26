@@ -67,7 +67,7 @@ public class EventMaterialService {
                 .orElseThrow(() -> new ResourceNotFoundException("Material not found: " + id));
 
         String userRole = RoleUtils.getUserRole(jwt);
-        if (!isAdmin(userRole)) {
+        if (!RoleUtils.isAdmin(userRole)) {
             throw new AccessDeniedException("Only admins can update materials");
         }
 
@@ -89,7 +89,7 @@ public class EventMaterialService {
                 .orElseThrow(() -> new ResourceNotFoundException("Material not found: " + id));
 
         String userRole = RoleUtils.getUserRole(jwt);
-        if (!isAdmin(userRole)) {
+        if (!RoleUtils.isAdmin(userRole)) {
             throw new AccessDeniedException("Only admins can delete materials");
         }
 
@@ -113,10 +113,5 @@ public class EventMaterialService {
                 .createdAt(m.getCreatedAt())
                 .updatedAt(m.getUpdatedAt())
                 .build();
-    }
-
-    private boolean isAdmin(String role) {
-        return "MODERATOR_ADMIN".equals(role) || "SUPER_ADMIN".equals(role)
-                || "VYACHESLAV".equals(role) || "DEVELOPER".equals(role);
     }
 }

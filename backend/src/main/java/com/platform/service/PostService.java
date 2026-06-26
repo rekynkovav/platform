@@ -21,6 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -45,7 +46,12 @@ public class PostService {
             posts = postRepository.findFeed(pageable);
         }
         Set<String> likedPostIds = getLikedPostIds(posts, userId);
-        return posts.stream().map(post -> toDto(post, userId, likedPostIds)).collect(Collectors.toList());
+        // Batch fetch recent comments for ALL posts — 1 query instead of N
+        Map<String, List<CommentDto>> commentsByPost = commentService.getRecentCommentsByPostIds(
+                posts.stream().map(Post::getId).collect(Collectors.toSet()), 3);
+        return posts.stream()
+                .map(post -> toDto(post, userId, likedPostIds, commentsByPost.getOrDefault(post.getId(), List.of())))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -60,7 +66,12 @@ public class PostService {
             posts = postRepository.findFeedByCategory(category, pageable);
         }
         Set<String> likedPostIds = getLikedPostIds(posts, userId);
-        return posts.stream().map(post -> toDto(post, userId, likedPostIds)).collect(Collectors.toList());
+        // Batch fetch recent comments for ALL posts — 1 query instead of N
+        Map<String, List<CommentDto>> commentsByPost = commentService.getRecentCommentsByPostIds(
+                posts.stream().map(Post::getId).collect(Collectors.toSet()), 3);
+        return posts.stream()
+                .map(post -> toDto(post, userId, likedPostIds, commentsByPost.getOrDefault(post.getId(), List.of())))
+                .collect(Collectors.toList());
     }
 
     private LocalDateTime parseBefore(String before) {
@@ -74,7 +85,12 @@ public class PostService {
     public PostDto getPost(String postId, String userId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found: " + postId));
-        return toDto(post, userId, null);
+        // Single post: batch for 1 — still avoids the N+1 pattern
+        Set<String> likedPostIds = Set.of(reactionRepository.findPostIdsByPostIdInAndUserIdAndType(
+                List.of(postId), userId, "like").toArray(new String[0]));
+        Map<String, List<CommentDto>> commentsByPost = commentService.getRecentCommentsByPostIds(
+                Set.of(postId), 3);
+        return toDto(post, userId, likedPostIds, commentsByPost.getOrDefault(postId, List.of()));
     }
 
     private Set<String> getLikedPostIds(List<Post> posts, String userId) {
@@ -109,7 +125,7 @@ public class PostService {
 
         post = postRepository.save(post);
         log.info("Post created: {} by {} in category {}", post.getId(), userId, post.getCategory());
-        return toDto(post, userId, null);
+        return toDto(post, userId, null, List.of());
     }
 
     @Transactional
@@ -131,7 +147,7 @@ public class PostService {
         post.setUpdatedAt(LocalDateTime.now());
         post = postRepository.save(post);
         log.info("Post updated: {} by {}", postId, userId);
-        return toDto(post, userId, null);
+        return toDto(post, userId, null, List.of());
     }
 
     @Transactional
@@ -171,10 +187,8 @@ public class PostService {
         }
     }
 
-    private PostDto toDto(Post post, String userId, Set<String> likedPostIds) {
-        boolean userLiked = likedPostIds != null ? likedPostIds.contains(post.getId())
-                : reactionRepository.existsByPostIdAndUserIdAndType(post.getId(), userId, "like");
-        List<CommentDto> recentComments = commentService.getRecentComments(post.getId(), 3);
+    private PostDto toDto(Post post, String userId, Set<String> likedPostIds, List<CommentDto> recentComments) {
+        boolean userLiked = likedPostIds != null && likedPostIds.contains(post.getId());
 
         return PostDto.builder()
                 .id(post.getId())
@@ -189,6 +203,7 @@ public class PostService {
                 .sharesCount(post.getSharesCount())
                 .viewsCount(post.getViewsCount())
                 .userLiked(userLiked)
+                .category(post.getCategory())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .recentComments(recentComments)

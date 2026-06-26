@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import './NetworkSpeedTest.css';
 
+/**
+ * NetworkSpeedTest — internet connection diagnostic tool for pre-broadcast checks.
+ *
+ * Measures download speed, upload speed, and ping latency, then determines
+ * connection quality and recommends optimal stream settings (resolution, bitrate)
+ * based on the measured bandwidth. Reports results via onTestComplete callback.
+ *
+ * @param {(result: { downloadSpeed: number, uploadSpeed: number, ping: number, quality: string, recommendedSettings: Object }) => void} onTestComplete - Callback with speed test results and recommendations
+ * @param {() => void} onCancel - Callback to cancel the speed test
+ * @returns {JSX.Element} The speed test interface with progress indicators and results
+ */
 const NetworkSpeedTest = ({ onTestComplete, onCancel }) => {
     const [testStatus, setTestStatus] = useState('ready'); // ready, testing, complete
     const [downloadSpeed, setDownloadSpeed] = useState(null);

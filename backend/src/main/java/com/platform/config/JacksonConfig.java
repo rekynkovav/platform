@@ -14,7 +14,7 @@ import java.time.format.DateTimeFormatter;
 @Configuration
 public class JacksonConfig {
 
-    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
+    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
 
     @Bean
     @Primary

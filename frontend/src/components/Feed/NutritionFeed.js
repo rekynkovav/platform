@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { getUserRoles } from '../../keycloak';
+import { usePermissions } from '../../hooks/usePermissions';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import ContentModal from '../Common/ContentModal';
 import { feedApi } from '../../services/api';
@@ -145,13 +146,24 @@ const generateTestPosts = (menuId, count) => {
     return posts;
 };
 
+/**
+ * NutritionFeed — content management feed for the nutrition menu section.
+ *
+ * Displays a scrollable list of nutrition-related posts (articles, recipes, living kitchen)
+ * with inline audio/video playback, admin CRUD operations, and content categorization.
+ * Supports adding, editing, and deleting posts with audio recording and file upload.
+ *
+ * @returns {JSX.Element} The nutrition feed with category tabs, posts list, and management controls
+ */
 const NutritionFeed = () => {
     const [posts, setPosts] = useState([]);
     const [newPost, setNewPost] = useState({ type: 'text', title: '', content: '', url: '' });
     const [showAddForm, setShowAddForm] = useState(false);
-    const [userRoles, setUserRoles] = useState([]);
     const [notification, setNotification] = useState(null);
     const [error, setError] = useState(null);
+    const { hasLevel, hasRole, hasAnyRole, isConsultant } = usePermissions();
+    const isAdmin = hasLevel(6);
+    const isNutritionConsultant = hasRole('CONSULTANT_PITANIE');
     const clearError = () => {
         setError(null);
     };
@@ -200,25 +212,6 @@ const NutritionFeed = () => {
         formatTime
     } = useAudioPlayer();
 
-    // Функция для обновления ролей из sessionStorage (только для development)
-    const updateRoles = () => {
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        let roles = [];
-
-        if (demoRole === 'MODERATOR_ADMIN' || demoRole === 'CONSULTANT_PITANIE' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') {
-            roles = ['MODERATOR_ADMIN', 'USER_0'];
-        } else if (demoRole === 'USER_0' || demoRole === 'USER_1' || demoRole === 'USER_2') {
-            roles = ['USER_0'];
-        } else {
-            roles = getUserRoles();
-        }
-
-        setUserRoles(roles);
-        return roles;
-    };
-
     // Синхронизируем activeAudioPostId с currentTrack
     useEffect(() => {
         if (currentTrack) {
@@ -264,7 +257,6 @@ const NutritionFeed = () => {
         };
 
         loadPosts();
-        updateRoles();
     }, []);
 
     useEffect(() => {
@@ -314,11 +306,6 @@ const NutritionFeed = () => {
     };
 
     const handleAddPost = () => {
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
-
         if (!isNutritionConsultant) {
             alert('Только консультант питания может добавлять записи');
             return;
@@ -336,11 +323,6 @@ const NutritionFeed = () => {
     // Функция для фактического удаления
     const executeDeletePost = async () => {
         if (!postToDelete) return;
-
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
 
         if (!isNutritionConsultant) {
             alert('Только консультант питания может удалять записи');
@@ -374,11 +356,6 @@ const NutritionFeed = () => {
 
     // Функция для начала редактирования поста
     const handleEditPost = (post) => {
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
-
         if (!isNutritionConsultant) {
             alert('Только консультант питания может редактировать записи');
             return;
@@ -436,12 +413,7 @@ const NutritionFeed = () => {
 
     // Функция для скачивания материала (только для SUPER_ADMIN)
     const handleDownloadPost = async (post) => {
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        const isSuperAdmin = demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
-
-        if (!isSuperAdmin) {
+        if (!hasAnyRole(['SUPER_ADMIN', 'VYACHESLAV'])) {
             setError('Только главный админ может скачивать материалы');
             return;
         }
@@ -525,11 +497,6 @@ const NutritionFeed = () => {
     const isThisPlaying = (postId) => {
         return currentTrack?.id === postId && isPlaying;
     };
-
-    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-        ? sessionStorage.getItem('demoRole')
-        : null;
-    const isNutritionConsultant = demoRole === 'CONSULTANT_PITANIE';
 
     // Загрузка данных меню
     useEffect(() => {
@@ -864,7 +831,7 @@ const NutritionFeed = () => {
                                 <div className="post-title">{post.title}</div>
                                 {isNutritionConsultant && (
                                     <div className="post-actions">
-                                        {(demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') && (
+                                        {hasAnyRole(['SUPER_ADMIN', 'VYACHESLAV']) && (
                                             <button
                                                 className="download-post"
                                                 onClick={() => handleDownloadPost(post)}

@@ -142,6 +142,6 @@ public class EventService {
     }
 
     private boolean isAdmin(String role) {
-        return "MODERATOR_ADMIN".equals(role) || "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
+        return RoleUtils.isAdmin(role);
     }
 }

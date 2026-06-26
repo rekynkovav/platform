@@ -3,6 +3,7 @@ package com.platform.controller;
 import com.platform.model.Payment;
 import com.platform.model.dto.PaymentDto;
 import com.platform.service.PaymentService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ public class PaymentController {
 
     @PostMapping("/create")
     @PreAuthorize("hasRole('USER_0')")
+    @RateLimiting(name = "payment-limit")
     public ResponseEntity<PaymentDto> createPayment(
             @Valid @RequestBody PaymentDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -38,6 +40,7 @@ public class PaymentController {
      */
     @PostMapping
     @PreAuthorize("hasRole('USER_0')")
+    @RateLimiting(name = "payment-limit")
     public ResponseEntity<PaymentDto> createPaymentAlias(
             @Valid @RequestBody PaymentDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -96,6 +99,7 @@ public class PaymentController {
 
     @PostMapping("/{paymentId}/confirm")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'VYACHESLAV', 'SUPER_ADMIN')")
+    @RateLimiting(name = "payment-limit")
     public ResponseEntity<PaymentDto> confirmPayment(
             @PathVariable String paymentId,
             @Valid @RequestBody PaymentDto.ConfirmRequest request,

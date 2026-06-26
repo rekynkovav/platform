@@ -16,7 +16,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -40,6 +44,26 @@ public class CommentService {
 
     public List<CommentDto> getRecentComments(String postId, int limit) {
         return getCommentsByPost(postId, limit);
+    }
+
+    /**
+     * Batch fetch top-N comments per post IDs.
+     * Returns Map&lt;postId, List&lt;CommentDto&gt;&gt; — eliminates N+1 queries.
+     */
+    public Map<String, List<CommentDto>> getRecentCommentsByPostIds(Set<String> postIds, int topN) {
+        if (postIds == null || postIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Comment> allComments = commentRepository.findTopNByPostIds(postIds, topN);
+        Map<String, List<CommentDto>> result = new LinkedHashMap<>();
+        for (String postId : postIds) {
+            result.put(postId, new ArrayList<>());
+        }
+        for (Comment comment : allComments) {
+            result.computeIfAbsent(comment.getPostId(), k -> new ArrayList<>())
+                  .add(toDto(comment));
+        }
+        return result;
     }
 
     public long getTotalCount() {
@@ -79,16 +103,15 @@ public class CommentService {
     public void deleteComment(String postId, String commentId, org.springframework.security.oauth2.jwt.Jwt jwt) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found: " + commentId));
-
         // Проверяем, что комментарий принадлежит этому посту
         if (!comment.getPostId().equals(postId)) {
             throw new IllegalArgumentException("Comment does not belong to this post");
         }
 
         String userId = jwt.getSubject();
-        String userRole = getUserRole(jwt);
+        String userRole = RoleUtils.getUserRole(jwt);
 
-        if (!comment.getAuthorId().equals(userId) && !isAdmin(userRole)) {
+        if (!comment.getAuthorId().equals(userId) && !RoleUtils.isAdmin(userRole)) {
             throw new AccessDeniedException("You don't have permission to delete this comment");
         }
 
@@ -113,13 +136,5 @@ public class CommentService {
                 .authorName(comment.getAuthorName())
                 .createdAt(comment.getCreatedAt())
                 .build();
-    }
-
-    private String getUserRole(org.springframework.security.oauth2.jwt.Jwt jwt) {
-        return RoleUtils.getUserRole(jwt);
-    }
-
-    private boolean isAdmin(String role) {
-        return "MODERATOR_ADMIN".equals(role) || "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
     }
 }

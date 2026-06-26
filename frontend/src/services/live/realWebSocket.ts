@@ -91,6 +91,13 @@ export class RealWebSocketService {
 
       // Add JWT token as query param (backend interceptor reads it)
       const token = localStorage.getItem('keycloak-token');
+
+      // Check token expiry before connecting — skip if expired
+      if (token && this.isTokenExpired(token)) {
+        console.warn('[RealWS] Token expired, skipping reconnect for', broadcastId);
+        return false;
+      }
+
       const wsUrl = token ? `${url}?token=${encodeURIComponent(token)}` : url;
 
       const ws = new WebSocket(wsUrl);
@@ -104,7 +111,6 @@ export class RealWebSocketService {
 
         ws.onopen = () => {
           clearTimeout(timeout);
-          console.log(`[RealWS] Connected to broadcast ${broadcastId}`);
           this.connections.set(broadcastId, ws);
           this.reconnectAttempts.set(broadcastId, 0);
           resolve(true);
@@ -120,7 +126,6 @@ export class RealWebSocketService {
         };
 
         ws.onclose = (event) => {
-          console.log(`[RealWS] Disconnected from ${broadcastId} (code: ${event.code})`);
           this.connections.delete(broadcastId);
           if (!this.closed && event.code !== 1000) {
             this.scheduleReconnect(broadcastId);
@@ -154,7 +159,6 @@ export class RealWebSocketService {
         break;
 
       default:
-        console.log('[RealWS] Unknown message type:', data.type);
     }
   }
 
@@ -175,7 +179,6 @@ export class RealWebSocketService {
     const delay = RECONNECT_DELAYS[attempts];
     this.reconnectAttempts.set(broadcastId, attempts + 1);
 
-    console.log(`[RealWS] Reconnecting to ${broadcastId} in ${delay}ms (attempt ${attempts + 1})`);
 
     const timer = setTimeout(() => {
       this.reconnectTimers.delete(broadcastId);
@@ -231,6 +234,20 @@ export class RealWebSocketService {
       clearTimeout(timer);
     });
     this.reconnectTimers.clear();
+  }
+
+  /**
+   * Check if a JWT token is expired.
+   */
+  private isTokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const now = Math.floor(Date.now() / 1000);
+      // Expire 30 seconds early to avoid edge cases
+      return !payload.exp || payload.exp < now + 30;
+    } catch {
+      return true; // Can't parse = treat as expired
+    }
   }
 
   /**

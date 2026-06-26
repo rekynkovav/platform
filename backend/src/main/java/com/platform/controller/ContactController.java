@@ -2,6 +2,7 @@ package com.platform.controller;
 
 import com.platform.model.dto.ContactDto;
 import com.platform.service.ContactService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,6 +28,7 @@ public class ContactController {
     }
 
     @PostMapping
+    @RateLimiting(name = "contact-limit")
     public ResponseEntity<ContactDto> addContact(
             @Valid @RequestBody ContactDto.AddRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -35,6 +37,7 @@ public class ContactController {
     }
 
     @DeleteMapping("/{contactId}")
+    @RateLimiting(name = "contact-limit")
     public ResponseEntity<Void> removeContact(
             @PathVariable String contactId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -44,6 +47,7 @@ public class ContactController {
     }
 
     @PutMapping("/{contactId}")
+    @RateLimiting(name = "contact-limit")
     public ResponseEntity<ContactDto> updateContactNickname(
             @PathVariable String contactId,
             @Valid @RequestBody ContactDto.UpdateRequest request,

@@ -141,7 +141,9 @@ const MainFeed = () => {
     useEffect(() => {
         if (showAddForm && addFormRef.current) {
             setTimeout(() => {
-                addFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (addFormRef.current) {
+                    addFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }, 100);
         }
     }, [showAddForm]);
@@ -545,7 +547,7 @@ const MainFeed = () => {
 
                 {isAdmin && (
                     <div className="admin-panel" ref={addFormRef}>
-                        <button className="add-post-btn" onClick={handleAddPost}>
+                        <button className="create-post-btn" onClick={handleAddPost}>
                             ➕ Добавить запись
                         </button>
                     </div>

@@ -346,14 +346,11 @@ public class SecureMediaService {
     }
 
     private boolean isAdmin(String role) {
-        return "SUPER_ADMIN".equals(role) || 
-               "VYACHESLAV".equals(role) || 
-               "MODERATOR_ADMIN".equals(role) ||
-               "DEVELOPER".equals(role);
+        return RoleUtils.isAdmin(role);
     }
 
     private boolean canDownloadOriginal(String role) {
-        return "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
+        return RoleUtils.isSuperAdmin(role);
     }
 
     private boolean hasPremiumAccess(Jwt jwt) {

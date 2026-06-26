@@ -3,6 +3,7 @@ package com.platform.service;
 import com.platform.exception.AccessDeniedException;
 import com.platform.exception.ResourceNotFoundException;
 import com.platform.model.Post;
+import com.platform.model.dto.CommentDto;
 import com.platform.model.dto.PostDto;
 import com.platform.repository.PostRepository;
 import com.platform.repository.ReactionRepository;
@@ -17,7 +18,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,16 +32,12 @@ class PostServiceTest {
 
     @Mock
     private PostRepository postRepository;
-
     @Mock
     private ReactionRepository reactionRepository;
-
     @Mock
     private CommentService commentService;
-
     @Mock
     private SecureMediaService secureMediaService;
-
     @InjectMocks
     private PostService postService;
 
@@ -74,7 +73,7 @@ class PostServiceTest {
 
         when(postRepository.findFeed(any(PageRequest.class))).thenReturn(List.of(post));
         when(reactionRepository.findPostIdsByPostIdInAndUserIdAndType(anyList(), eq(userId), eq("like"))).thenReturn(List.of());
-        when(commentService.getRecentComments(anyString(), anyInt())).thenReturn(List.of());
+        when(commentService.getRecentCommentsByPostIds(anySet(), eq(3))).thenReturn(Map.of());
 
         List<PostDto> feed = postService.getFeed(userId, null, PageRequest.of(0, 10));
 
@@ -100,7 +99,7 @@ class PostServiceTest {
 
         when(postRepository.findFeedByCategory(eq("nutrition"), any(PageRequest.class))).thenReturn(List.of(post));
         when(reactionRepository.findPostIdsByPostIdInAndUserIdAndType(anyList(), eq(userId), eq("like"))).thenReturn(List.of("post-2"));
-        when(commentService.getRecentComments(anyString(), anyInt())).thenReturn(List.of());
+        when(commentService.getRecentCommentsByPostIds(anySet(), eq(3))).thenReturn(Map.of());
 
         List<PostDto> feed = postService.getFeedByCategory("nutrition", userId, null, PageRequest.of(0, 10));
 
@@ -125,8 +124,8 @@ class PostServiceTest {
                 .build();
 
         when(postRepository.findById("post-3")).thenReturn(Optional.of(post));
-        when(reactionRepository.existsByPostIdAndUserIdAndType(anyString(), anyString(), eq("like"))).thenReturn(false);
-        when(commentService.getRecentComments(anyString(), anyInt())).thenReturn(List.of());
+        when(reactionRepository.findPostIdsByPostIdInAndUserIdAndType(anyList(), eq(userId), eq("like"))).thenReturn(List.of());
+        when(commentService.getRecentCommentsByPostIds(anySet(), eq(3))).thenReturn(Map.of());
 
         PostDto result = postService.getPost("post-3", userId);
 
@@ -151,8 +150,6 @@ class PostServiceTest {
                 .build();
 
         when(postRepository.save(any(Post.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(reactionRepository.existsByPostIdAndUserIdAndType(anyString(), anyString(), eq("like"))).thenReturn(false);
-        when(commentService.getRecentComments(anyString(), anyInt())).thenReturn(List.of());
 
         PostDto result = postService.createPost(request, jwt);
 

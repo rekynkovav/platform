@@ -2,6 +2,7 @@ package com.platform.controller;
 
 import com.platform.model.dto.PostDto;
 import com.platform.service.PostService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,7 @@ public class FeedController {
      * Frontend: api.get('/feed/main')
      */
     @GetMapping("/main")
+    @RateLimiting(name = "feed-limit")
     public ResponseEntity<List<PostDto>> getMainFeed(
             @RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) String before,
@@ -52,6 +54,7 @@ public class FeedController {
      * Frontend: api.get('/feed/nutrition')
      */
     @GetMapping("/nutrition")
+    @RateLimiting(name = "feed-limit")
     public ResponseEntity<List<PostDto>> getNutritionFeed(
             @RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) String before,
@@ -68,6 +71,7 @@ public class FeedController {
      */
     @PostMapping("/posts")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "feed-limit")
     public ResponseEntity<PostDto> createPost(
             @Valid @RequestBody PostDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -82,6 +86,7 @@ public class FeedController {
      */
     @PutMapping("/posts/{id}")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "feed-limit")
     public ResponseEntity<PostDto> updatePost(
             @PathVariable String id,
             @Valid @RequestBody PostDto.UpdateRequest request,
@@ -97,6 +102,7 @@ public class FeedController {
      */
     @DeleteMapping("/posts/{id}")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "feed-limit")
     public ResponseEntity<Void> deletePost(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {

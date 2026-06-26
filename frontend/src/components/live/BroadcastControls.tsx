@@ -22,6 +22,21 @@ export interface BroadcastControlsProps {
   showAdvanced?: boolean;
 }
 
+/**
+ * BroadcastControls — admin/moderator control panel for managing a live broadcast.
+ *
+ * Provides controls for starting/stopping broadcasts, editing settings (title,
+ * description, public visibility, chat, reactions, recording), selecting stream
+ * quality, and viewing real-time broadcast statistics. Uses the useLiveBroadcast
+ * hook for broadcast operations and the LiveSessionContext for session state.
+ *
+ * @param {BroadcastControlsProps} props - Component properties
+ * @param {LiveBroadcast} props.broadcast - The current broadcast data object
+ * @param {(broadcast: LiveBroadcast) => void} [props.onUpdate] - Callback when broadcast data is updated
+ * @param {(status: BroadcastStatus) => void} [props.onStatusChange] - Callback when broadcast status changes
+ * @param {boolean} [props.showAdvanced=false] - Whether to show advanced settings panel
+ * @returns {JSX.Element} The broadcast controls panel with status, settings, and quality selectors
+ */
 export const BroadcastControls: React.FC<BroadcastControlsProps> = ({
   broadcast,
   onUpdate,
@@ -144,7 +159,6 @@ export const BroadcastControls: React.FC<BroadcastControlsProps> = ({
     try {
       const stream = mediaService.switchQuality(broadcast.id, quality);
       setSelectedQuality(quality);
-      // console.log(`[BroadcastControls] Качество переключено на: ${quality}`, stream);
     } catch (error) {
       console.error('[BroadcastControls] Ошибка переключения качества:', error);
     }

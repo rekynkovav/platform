@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import useAudioRecorder from '../../hooks/useAudioRecorder';
+import useAudioRecorder from '../hooks/useAudioRecorder';
 
 // Мок для MediaRecorder
 class MockMediaRecorder {
@@ -10,7 +10,6 @@ class MockMediaRecorder {
         this.onstop = null;
         this.onerror = null;
     }
-
     start() {
         this.state = 'recording';
         setTimeout(() => {
@@ -19,7 +18,6 @@ class MockMediaRecorder {
             }
         }, 50);
     }
-
     stop() {
         this.state = 'inactive';
         if (this.onstop) this.onstop({});
@@ -27,17 +25,21 @@ class MockMediaRecorder {
 }
 
 global.MediaRecorder = MockMediaRecorder;
+global.MediaStream = class MediaStream {};
 
 // Мок для getUserMedia
 global.navigator.mediaDevices = {
     getUserMedia: jest.fn().mockResolvedValue(new MediaStream())
 };
 
-describe('useAudioRecorder', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
+// Мок для URL.createObjectURL/revokeObjectURL (отсутствует в jsdom)
+let blobCounter = 0;
+beforeEach(() => {
+    URL.createObjectURL = jest.fn(() => `blob:test-${++blobCounter}`);
+    URL.revokeObjectURL = jest.fn();
+});
 
+describe('useAudioRecorder', () => {
     it('should start recording', async () => {
         const { result } = renderHook(() => useAudioRecorder());
 
@@ -66,7 +68,8 @@ describe('useAudioRecorder', () => {
         });
 
         expect(result.current.isRecording).toBe(false);
-        expect(result.current.audioBlobUrl).toBeNull();
+        // After stop, audioBlobUrl should be a blob URL (set by onstop handler)
+        expect(result.current.audioBlobUrl).toMatch(/^blob:/);
     });
 
     it('should reset recording', async () => {

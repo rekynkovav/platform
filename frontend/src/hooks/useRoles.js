@@ -2,16 +2,12 @@ import { useState, useEffect } from 'react';
 import { getUserRoles, getUsername } from '../keycloak';
 import { ROLES, ROLE_LEVELS, ROLE_LABELS } from '../constants/roles';
 
-// Только для DEVELOPMENT режима
-const DEMO_ROLES = process.env.REACT_APP_ENVIRONMENT === 'development' ? [
-    { id: ROLES.SUPER_ADMIN, name: ROLE_LABELS[ROLES.SUPER_ADMIN], level: ROLE_LEVELS[ROLES.SUPER_ADMIN] },
-    { id: ROLES.VYACHESLAV, name: ROLE_LABELS[ROLES.VYACHESLAV], level: ROLE_LEVELS[ROLES.VYACHESLAV] },
-    { id: ROLES.MODERATOR_ADMIN, name: ROLE_LABELS[ROLES.MODERATOR_ADMIN], level: ROLE_LEVELS[ROLES.MODERATOR_ADMIN] },
-    { id: ROLES.DEVELOPER, name: ROLE_LABELS[ROLES.DEVELOPER], level: ROLE_LEVELS[ROLES.DEVELOPER] },
-    { id: ROLES.USER_2, name: ROLE_LABELS[ROLES.USER_2], level: ROLE_LEVELS[ROLES.USER_2] },
-    { id: ROLES.USER_1, name: ROLE_LABELS[ROLES.USER_1], level: ROLE_LEVELS[ROLES.USER_1] },
-    { id: ROLES.USER_0, name: ROLE_LABELS[ROLES.USER_0], level: ROLE_LEVELS[ROLES.USER_0] }
-] : [];
+// Для DEVELOPMENT режима — все роли доступны для переключения
+const DEMO_ROLES = process.env.REACT_APP_ENVIRONMENT === 'development' ? Object.values(ROLES).map(roleId => ({
+    id: roleId,
+    name: ROLE_LABELS[roleId] || roleId,
+    level: ROLE_LEVELS[roleId] || 1
+})) : [];
 
 export const useRoles = () => {
     const [currentRole, setCurrentRole] = useState(() => {

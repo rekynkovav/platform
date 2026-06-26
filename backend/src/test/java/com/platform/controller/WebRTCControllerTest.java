@@ -63,7 +63,7 @@ class WebRTCControllerTest {
     // ==================== POST /api/webrtc/offer ====================
 
     @Test
-    void handleOffer_ValidRequest_ReturnsAnswer() throws Exception {
+    void handleOffer_ValidRequest_ReturnsOfferReceived() throws Exception {
         WebRTCController.OfferRequest request = new WebRTCController.OfferRequest();
         request.setBroadcastId("broadcast-123");
         request.setSdp("v=0\r\no=- 123456 2 IN IP4 127.0.0.1");
@@ -73,8 +73,8 @@ class WebRTCControllerTest {
                         .content(objectMapper.writeValueAsString(request))
                         .with(withAuth(auth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.type").value("answer"))
-                .andExpect(jsonPath("$.sdp").exists());
+                .andExpect(jsonPath("$.status").value("offer_received"))
+                .andExpect(jsonPath("$.broadcastId").value("broadcast-123"));
     }
 
     @Test
@@ -104,10 +104,11 @@ class WebRTCControllerTest {
     // ==================== GET /api/webrtc/candidate/{broadcastId} ====================
 
     @Test
-    void getIceCandidates_NoSession_Returns403() throws Exception {
+    void getIceCandidates_NoBroadcast_ReturnsEmpty() throws Exception {
+        // New controller returns empty candidates list, not 403
         mockMvc.perform(get("/api/webrtc/candidate/{broadcastId}", "nonexistent")
                         .with(withAuth(auth)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error").value("Access denied"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.candidates").isArray());
     }
 }

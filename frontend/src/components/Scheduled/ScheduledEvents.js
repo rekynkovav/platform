@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getUserRoles } from '../../keycloak';
+import { usePermissions } from '../../hooks/usePermissions';
 import { api } from '../../services/api';
 import './ScheduledEvents.css';
 
+/**
+ * ScheduledEvents — event scheduling and management interface.
+ *
+ * Allows admins to create, edit, delete, and list scheduled events with title,
+ * date, time, and description. Features include role-based access control,
+ * real-time notification display for upcoming events, confirmation modals
+ * for deletions, and inline editing of event details.
+ *
+ * @returns {JSX.Element} The scheduled events management interface with create/edit forms and event list
+ */
 const ScheduledEvents = () => {
     const [events, setEvents] = useState([]);
     const [newEvent, setNewEvent] = useState({
@@ -12,7 +23,6 @@ const ScheduledEvents = () => {
         description: ''
     });
     const [showAddForm, setShowAddForm] = useState(false);
-    const [userRoles, setUserRoles] = useState([]);
     const [notificationEvent, setNotificationEvent] = useState(null);
     const [deleteNotification, setDeleteNotification] = useState(null);
 
@@ -26,6 +36,7 @@ const ScheduledEvents = () => {
     const [error, setError] = useState(null);
 
     const notificationTimeoutRef = useRef(null);
+    const { hasLevel } = usePermissions();
 
     const getCurrentDate = () => {
         const today = new Date();
@@ -84,22 +95,6 @@ const ScheduledEvents = () => {
     useEffect(() => {
         loadEvents();
 
-        // Получаем роль из sessionStorage (только для development)
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        let roles = [];
-
-        if (demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') {
-            roles = ['MODERATOR_ADMIN', 'USER_0'];
-        } else if (demoRole === 'USER_0' || demoRole === 'USER_1' || demoRole === 'USER_2') {
-            roles = ['USER_0'];
-        } else {
-            roles = getUserRoles();
-        }
-
-        setUserRoles(roles);
-
         setNewEvent(prev => ({
             ...prev,
             date: getCurrentDate(),
@@ -116,12 +111,9 @@ const ScheduledEvents = () => {
         };
     }, []);
 
-    // Проверяем роль из sessionStorage (только для development)
-    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-        ? sessionStorage.getItem('demoRole')
-        : null;
-    const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
-    const canEdit = demoRole === 'MODERATOR_ADMIN' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
+    // Проверяем роль через usePermissions
+    const isAdmin = hasLevel(6);
+    const canEdit = hasLevel(6);
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -219,11 +211,7 @@ const ScheduledEvents = () => {
     const executeDeleteEvent = async () => {
         if (!eventToDelete) return;
 
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        const canDelete = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
-        if (!canDelete) {
+        if (!hasLevel(6)) {
             alert('Только администратор может удалять события!');
             setShowDeleteConfirm(false);
             setEventToDelete(null);

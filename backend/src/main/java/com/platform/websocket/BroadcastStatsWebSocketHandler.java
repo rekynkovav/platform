@@ -32,6 +32,25 @@ public class BroadcastStatsWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        // Validate broadcast: must exist, be public, and be LIVE
+        try {
+            com.platform.model.LiveBroadcast broadcast = broadcastService.getBroadcast(broadcastId);
+            if (!Boolean.TRUE.equals(broadcast.getIsPublic())) {
+                log.warn("WebSocket rejected: broadcast {} is not public", broadcastId);
+                try { session.close(new org.springframework.web.socket.CloseStatus(4403, "Broadcast is not public")); } catch (Exception ignored) {}
+                return;
+            }
+            if (broadcast.getStatus() != com.platform.model.BroadcastStatus.LIVE) {
+                log.warn("WebSocket rejected: broadcast {} is not LIVE (status={})", broadcastId, broadcast.getStatus());
+                try { session.close(new org.springframework.web.socket.CloseStatus(4403, "Broadcast is not live")); } catch (Exception ignored) {}
+                return;
+            }
+        } catch (Exception e) {
+            log.warn("WebSocket rejected: broadcast {} not found", broadcastId);
+            try { session.close(new org.springframework.web.socket.CloseStatus(4404, "Broadcast not found")); } catch (Exception ignored) {}
+            return;
+        }
+
         broadcastSessions.computeIfAbsent(broadcastId, k -> new ConcurrentHashMap<>())
                 .put(session.getId(), session);
 

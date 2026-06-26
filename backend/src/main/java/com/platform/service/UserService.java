@@ -3,6 +3,7 @@ package com.platform.service;
 import com.platform.model.User;
 import com.platform.model.dto.UserDto;
 import com.platform.repository.UserRepository;
+import com.platform.util.RoleUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -84,19 +85,13 @@ public class UserService {
 
     public boolean isAdmin(String userId) {
         return userRepository.findById(UUID.fromString(userId))
-                .map(user -> {
-                    String role = user.getRole();
-                    return "MODERATOR_ADMIN".equals(role) || "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
-                })
+                .map(user -> RoleUtils.isAdmin(user.getRole()))
                 .orElse(false);
     }
 
     public boolean isModerator(String userId) {
         return userRepository.findById(UUID.fromString(userId))
-                .map(user -> {
-                    String role = user.getRole();
-                    return "MODERATOR_ADMIN".equals(role) || "SUPER_ADMIN".equals(role) || "VYACHESLAV".equals(role);
-                })
+                .map(user -> RoleUtils.isAdmin(user.getRole()))
                 .orElse(false);
     }
 

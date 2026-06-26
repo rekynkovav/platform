@@ -22,6 +22,7 @@ public class Archive {
     private String id;
 
     @Version
+    @Builder.Default
     private Long version = 0L;
 
     @Column(nullable = false)

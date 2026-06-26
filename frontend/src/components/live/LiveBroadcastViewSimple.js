@@ -2,6 +2,22 @@
 import React from 'react';
 import './LiveBroadcastView.css';
 
+/**
+ * LiveBroadcastView — simplified live broadcast display without styled-jsx dependencies.
+ *
+ * Renders a basic live broadcast interface with a placeholder player area,
+ * viewer count display, optional chat panel with demo messages, and stream
+ * statistics. Used as a lightweight alternative to EnhancedLiveBroadcastView.
+ *
+ * @param {Object} broadcast - The broadcast data object with title, viewerCount, type, etc.
+ * @param {boolean} [autoPlay=true] - Whether to start playback automatically
+ * @param {boolean} [showChat=true] - Whether to display the chat panel
+ * @param {boolean} [showControls=true] - Whether to display stream controls
+ * @param {boolean} [showStats=false] - Whether to display stream statistics
+ * @param {string} [layout='player-first'] - Layout mode: 'player-first' or 'chat-first'
+ * @param {boolean} [demoMode=true] - Whether to use mock data for demonstration
+ * @returns {JSX.Element} The simplified live broadcast view
+ */
 const LiveBroadcastView = ({ broadcast, autoPlay = true, showChat = true, showControls = true, showStats = false, layout = 'player-first', demoMode = true }) => {
   return (
     <div className="live-broadcast-simple">

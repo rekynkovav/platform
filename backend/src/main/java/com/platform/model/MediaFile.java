@@ -20,6 +20,7 @@ public class MediaFile {
     private String id;
 
     @Version
+    @Builder.Default
     private Long version = 0L;
 
     @Column(nullable = false)

@@ -9,7 +9,9 @@ import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.retry.annotation.Retryable;
 import jakarta.annotation.PostConstruct;
 import org.springframework.retry.annotation.Backoff;
@@ -17,11 +19,16 @@ import org.springframework.retry.annotation.Recover;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class KeycloakService {
+
+    @Lazy
+    @Autowired
+    private KeycloakRetryProcessor retryProcessor;
 
     @Value("${keycloak.auth-server-url}")
     private String serverUrl;
@@ -90,8 +97,9 @@ public class KeycloakService {
     @Recover
     public void recoverUpdateUserRole(Exception e, String userId, String oldRole, String newRole) {
         log.error("Failed to update user role after retries: {}", userId, e);
-        // Отправить в очередь для повторной обработки
-        // TODO: Implement queue retry logic
+        retryProcessor.enqueue("UPDATE_USER_ROLE",
+            Map.of("userId", userId, "oldRole", oldRole, "newRole", newRole),
+            e.getMessage());
     }
 
     /**

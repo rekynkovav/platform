@@ -18,14 +18,15 @@
 import Keycloak from 'keycloak-js';
 
 const DEBUG = process.env.NODE_ENV === 'development';
-const log = (...args) => { if (DEBUG) { console.log('[KC]', ...args); } };
+const DEV_MOCK_AUTH = process.env.REACT_APP_DEV_MOCK_AUTH === 'true';
+const log = (...args) => { if (DEBUG) console.log('[KC]', ...args); };
 const warn = (...args) => { if (DEBUG) console.warn('[KC]', ...args); };
 const error = (...args) => console.error('[KC]', ...args);
 
 const keycloakConfig = {
-    url: process.env.REACT_APP_KEYCLOAK_URL || 'https://auth.platform.local/auth',
-    realm: 'platform',
-    clientId: 'platform-frontend'
+    url: process.env.REACT_APP_KEYCLOAK_URL || (window.location.origin + '/auth'),
+    realm: process.env.REACT_APP_KEYCLOAK_REALM || 'platform',
+    clientId: process.env.REACT_APP_KEYCLOAK_CLIENT_ID || 'platform-frontend'
 };
 
 const REDIRECT_URI = window.location.origin + '/';
@@ -51,6 +52,31 @@ let tokenRefreshIntervalId = null;
  */
 export const initKeycloak = async () => {
     log('initKeycloak called, isInitialized:', isInitialized);
+
+    // DEV MOCK AUTH: skip Keycloak entirely — no redirect, no network
+    // Read role from RoleSwitcher (sessionStorage) or default to SUPER_ADMIN for dev
+    if (DEV_MOCK_AUTH) {
+        warn('DEV MOCK AUTH: skipping Keycloak, using mock auth');
+        const demoRole = sessionStorage.getItem('demoRole') || 'SUPER_ADMIN';
+        userRoles = [demoRole];
+        username = 'dev-user';
+        keycloakInstance = {
+            authenticated: true,
+            token: 'mock-dev-token',
+            tokenParsed: {
+                realm_access: { roles: userRoles },
+                preferred_username: username,
+                sub: 'dev-user-id'
+            },
+            login: () => Promise.resolve(),
+            logout: () => Promise.resolve(),
+            updateToken: () => Promise.resolve(true),
+            isTokenExpired: () => false,
+        };
+        isInitialized = true;
+        return true;
+    }
+
     log('Current URL:', window.location.href);
     log('Config:', keycloakConfig);
 
@@ -94,11 +120,27 @@ export const initKeycloak = async () => {
             }
             username = token?.preferred_username || token?.email || 'User';
             log('Authenticated! User:', username, 'Roles:', userRoles);
-
-            if (tokenRefreshIntervalId) {
-                clearInterval(tokenRefreshIntervalId);
+        } else {
+            log('NOT authenticated');
+            // DEV MOCK AUTH: auto-login when Keycloak is up but user isn't logged in
+            if (DEV_MOCK_AUTH) {
+                warn('DEV MOCK AUTH: auto-login with mock roles');
+                const demoRole2 = sessionStorage.getItem('demoRole') || 'SUPER_ADMIN';
+                userRoles = [demoRole2];
+                username = 'dev-user';
+                keycloakInstance.authenticated = true;
+                keycloakInstance.token = 'mock-dev-token';
+                keycloakInstance.tokenParsed = {
+                    realm_access: { roles: userRoles },
+                    preferred_username: username,
+                    sub: 'dev-user-id'
+                };
+                isInitialized = true;
+                return true;
             }
+        }
 
+        if (authenticated) {
             tokenRefreshIntervalId = setInterval(() => {
                 keycloakInstance.updateToken(30).catch(err => {
                     error('Failed to refresh token:', err);
@@ -119,7 +161,6 @@ export const initKeycloak = async () => {
                             logout();
                         } else {
                             log('Token refreshed successfully');
-                            // Re-extract roles
                             const newRoles = keycloakInstance?.tokenParsed?.realm_access?.roles || [];
                             userRoles = newRoles;
                             username = keycloakInstance?.tokenParsed?.preferred_username || username;
@@ -132,15 +173,12 @@ export const initKeycloak = async () => {
                                                err?.name === 'TypeError';
                         if (isNetworkError) {
                             warn('Network error during token refresh, will retry on next interval');
-                            // Don't logout - interval will retry
                         } else {
                             error('Auth error during token refresh:', err);
                             logout();
                         }
                     });
             };
-        } else {
-            log('NOT authenticated - will show login screen');
         }
 
         // Clean URL from auth params after callback
@@ -158,8 +196,28 @@ export const initKeycloak = async () => {
         return authenticated;
     } catch (err) {
         error('init() FAILED:', err.message);
+
+        // DEV MOCK AUTH: if Keycloak is unreachable, auto-authenticate with mock roles
+        if (DEV_MOCK_AUTH) {
+            warn('DEV MOCK AUTH: Keycloak unavailable, using mock authentication');
+            const demoRole3 = sessionStorage.getItem('demoRole') || 'SUPER_ADMIN';
+            userRoles = [demoRole3];
+            username = 'dev-user';
+            isInitialized = true;
+            // Make the mock keycloakInstance look authenticated
+            keycloakInstance = keycloakInstance || {};
+            keycloakInstance.authenticated = true;
+            keycloakInstance.token = 'mock-dev-token';
+            keycloakInstance.tokenParsed = {
+                realm_access: { roles: userRoles },
+                preferred_username: username,
+                sub: 'dev-user-id'
+            };
+            return true;
+        }
+
         keycloakInstance = null; // discard broken instance
-        // Do NOT set isInitialized = true, allow retry
+        // DO NOT set isInitialized = true, allow retry
         return false;
     }
 };

@@ -2,6 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import './MediaRenderer.css';
 
+/**
+ * MediaRenderer — universal media display component for images, video, audio, and generic files.
+ *
+ * Resolves stream URLs from mediaIds, handles loading and error states, and renders
+ * the appropriate player or preview. Supports fullscreen image view and integrates
+ * with the global AudioPlayer context for audio/video playback.
+ *
+ * @param {string} mediaUrl - URL or mediaId of the media resource to display
+ * @param {string} mediaType - Type of media: 'image', 'video', 'audio', or 'file'
+ * @param {string} [fileName] - Display name of the file
+ * @param {() => void} [onLoadError] - Callback fired when the media fails to load
+ * @param {boolean} [compact=false] - Whether to render a compact/inline version
+ * @returns {JSX.Element} The rendered media component (image, video, audio player, or file link)
+ */
 const MediaRenderer = ({ mediaUrl, mediaType, fileName, onLoadError, compact = false }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);

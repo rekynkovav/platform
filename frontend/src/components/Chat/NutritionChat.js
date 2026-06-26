@@ -1,6 +1,15 @@
 import { useChat } from './useChat';
 import ChatRoom from './ChatRoom';
 
+/**
+ * NutritionChat — dedicated chat room for nutrition-related discussions.
+ *
+ * Wraps the ChatRoom component with a single room configuration for nutrition
+ * topics, providing message management, voice recording, and file upload
+ * capabilities through the useChat hook.
+ *
+ * @returns {JSX.Element} The nutrition chat room interface
+ */
 const NutritionChat = () => {
     // Одна комната - без переключения
     const availableRooms = [];
@@ -31,7 +40,7 @@ const NutritionChat = () => {
         storageKeyPrefix: 'nutritionChatMessages',
         canSwitchRooms: false,
         availableRooms,
-        useApi: false // Временно отключаем API до запуска бэкенда
+        useApi: true
     });
 
     if (loading) return <div className="loading">Загрузка чата...</div>;

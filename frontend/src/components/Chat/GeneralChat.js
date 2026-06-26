@@ -4,7 +4,16 @@ import useWebSocket from '../../hooks/useWebSocket';
 import { getUsername } from '../../keycloak';
 import './GeneralChat.css';
 
-const GeneralChat = () => {
+/**
+ * GeneralChat — the main general-purpose chat component with real-time messaging via WebSocket.
+ *
+ * Features include paginated message history, real-time message delivery through
+ * WebSocket, auto-scrolling, and connection status indicators. Uses the chatApi
+ * for REST-based message operations and useWebSocket for live updates.
+ *
+ * @returns {JSX.Element} The general chat interface with message list and input
+ */
+const GeneralChat = ({ roomSlug = 'user1' }) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
@@ -12,7 +21,6 @@ const GeneralChat = () => {
     const [error, setError] = useState(null);
     const messagesEndRef = useRef(null);
     const username = getUsername();
-    const roomSlug = 'general';
 
     // Множество идентификаторов уже полученных сообщений для исключения дубликатов
     const messageIdsRef = useRef(new Set());
@@ -120,7 +128,7 @@ const GeneralChat = () => {
     return (
         <div className="general-chat">
             <div className="chat-header">
-                <h3>Общий чат</h3>
+                <h3>{roomSlug === 'user1' ? 'Общий чат' : roomSlug === 'user2' ? 'Чат продвинутых' : 'Чат: ' + roomSlug}</h3>
                 <div className="connection-status">
                     {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
                 </div>

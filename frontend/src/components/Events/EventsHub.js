@@ -1,10 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getUsername } from '../../keycloak';
+import { usePermissions } from '../../hooks/usePermissions';
 import { eventsApi, feedbackApi } from '../../services/api';
 import './EventsHub.css';
 
+/**
+ * EventsHub — content management hub for platform sections (About, Important Materials, etc.).
+ *
+ * Provides a hierarchical menu system with sub-sections for managing content
+ * across different platform areas. Features include adding, editing, deleting
+ * content items, audio recording, file uploads, feedback submission, and
+ * role-based access control. Uses the dashboardApi for CRUD operations.
+ *
+ * @returns {JSX.Element} The events hub with hierarchical menu, content list, and management controls
+ */
 const EventsHub = () => {
-    const [userRoles, setUserRoles] = useState([]);
     const [showAddForm, setShowAddForm] = useState(false);
     const [activeMenu, setActiveMenu] = useState(null);
     const [newMaterial, setNewMaterial] = useState({ type: 'text', title: '', content: '', url: '' });
@@ -16,6 +26,8 @@ const EventsHub = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [materialToDelete, setMaterialToDelete] = useState(null);
     const [error, setError] = useState(null);
+
+    const { hasLevel } = usePermissions();
 
     // Состояния для записи аудио
     const [isRecording, setIsRecording] = useState(false);
@@ -41,16 +53,11 @@ const EventsHub = () => {
         { id: 'challenge', title: 'Годовой челлендж', isHighlighted: true, subItems: [] }
     ];
 
-    // Получаем роль из sessionStorage (только для development)
-    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-        ? sessionStorage.getItem('demoRole')
-        : null;
-    const isAdmin = demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV';
+    // Роль пользователя через usePermissions
+    const isAdmin = hasLevel(6);
     const currentUser = getUsername();
 
     // Отладка: выводим роль и статус админа
-    // console.log('[EventsHub] demoRole:', demoRole);
-    // console.log('[EventsHub] isAdmin:', isAdmin);
 
     // Загрузка аудио файлов из папки
     useEffect(() => {
@@ -63,19 +70,6 @@ const EventsHub = () => {
             { id: 5, title: 'Эфир от 01.03.2025', url: '/audio/broadcast5.mp3', date: '2025-03-01' }
         ];
         setAudioFiles(audioList);
-    }, []);
-
-    useEffect(() => {
-        const savedRoles = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
-        let roles = [];
-        if (savedRoles === 'MODERATOR_ADMIN' || savedRoles === 'SUPER_ADMIN' || savedRoles === 'VYACHESLAV' || savedRoles === 'DEVELOPER') {
-            roles = ['MODERATOR_ADMIN', 'USER_0'];
-        } else if (savedRoles === 'USER_0' || savedRoles === 'USER_1' || savedRoles === 'USER_2') {
-            roles = ['USER_0'];
-        }
-        setUserRoles(roles);
     }, []);
 
     // Cleanup blob URLs и recording timer при размонтировании

@@ -3,6 +3,7 @@ package com.platform.controller;
 import com.platform.model.dto.AdminStatsDto;
 import com.platform.model.dto.UserDto;
 import com.platform.service.AdminService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -40,6 +41,7 @@ public class AdminController {
 
     @PutMapping("/users/{userId}/role")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "admin-limit")
     public ResponseEntity<UserDto> updateUserRole(
             @PathVariable String userId,
             @RequestParam String role,
@@ -50,6 +52,7 @@ public class AdminController {
 
     @PostMapping("/users/{userId}/ban")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "admin-limit")
     public ResponseEntity<Void> banUser(
             @PathVariable String userId,
             @RequestParam String reason,
@@ -61,6 +64,7 @@ public class AdminController {
 
     @PostMapping("/users/{userId}/unban")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "admin-limit")
     public ResponseEntity<Void> unbanUser(
             @PathVariable String userId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -77,6 +81,7 @@ public class AdminController {
 
     @PostMapping("/posts/{postId}/moderate")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "admin-limit")
     public ResponseEntity<Void> moderatePost(
             @PathVariable String postId,
             @RequestParam boolean approve,

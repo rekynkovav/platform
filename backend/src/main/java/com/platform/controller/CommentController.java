@@ -2,6 +2,7 @@ package com.platform.controller;
 
 import com.platform.model.dto.CommentDto;
 import com.platform.service.CommentService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,6 +29,7 @@ public class CommentController {
     }
 
     @PostMapping
+    @RateLimiting(name = "comment-limit")
     public ResponseEntity<CommentDto> createComment(
             @PathVariable String postId,
             @Valid @RequestBody CommentDto.CreateRequest request,
@@ -38,6 +40,7 @@ public class CommentController {
     }
 
     @DeleteMapping("/{commentId}")
+    @RateLimiting(name = "comment-limit")
     public ResponseEntity<Void> deleteComment(
             @PathVariable String postId,
             @PathVariable String commentId,

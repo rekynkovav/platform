@@ -20,7 +20,6 @@ import java.util.UUID;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column()
     private UUID id;
 
@@ -60,5 +59,6 @@ public class User {
 
     @Version
     @Column(name = "version", nullable = false)
+    @Builder.Default
     private Long version = 0L;
 }

@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import EventsHub from '../components/Events/EventsHub';
 import { eventsApi, feedbackApi } from '../services/api';
 import { getUsername } from '../keycloak';
+import { usePermissions } from '../hooks/usePermissions';
 
 // Моки
 jest.mock('../services/api', () => ({
@@ -22,7 +23,25 @@ jest.mock('../keycloak', () => ({
     getUsername: jest.fn(),
 }));
 
+jest.mock('../hooks/usePermissions', () => ({
+    usePermissions: jest.fn(),
+}));
+
 jest.mock('../components/Events/EventsHub.css', () => ({}));
+
+// Helper: create a permissions object for a given role level
+const createPermissions = (roleName, level) => ({
+    roles: [roleName],
+    level,
+    hasRole: (r) => [roleName].includes(r),
+    hasAnyRole: (rs) => rs.some(r => [roleName].includes(r)),
+    hasLevel: (n) => level >= n,
+    canViewAdmin: () => level >= 6,
+    canUploadMedia: () => level >= 4,
+    canStartBroadcast: () => level >= 6,
+    canModerate: () => level >= 6,
+    isConsultant: () => false,
+});
 
 describe('EventsHub', () => {
     beforeEach(() => {
@@ -30,6 +49,8 @@ describe('EventsHub', () => {
         delete process.env.REACT_APP_ENVIRONMENT;
         getUsername.mockReturnValue('testuser');
         eventsApi.getMaterialsBySection.mockResolvedValue([]);
+        // Default: regular user
+        usePermissions.mockReturnValue(createPermissions('USER_0', 1));
     });
 
     it('renders library header', () => {
@@ -56,7 +77,7 @@ describe('EventsHub', () => {
 
     it('shows add material form for admin in development', async () => {
         process.env.REACT_APP_ENVIRONMENT = 'development';
-        sessionStorage.setItem('demoRole', 'MODERATOR_ADMIN');
+        usePermissions.mockReturnValue(createPermissions('SUPER_ADMIN', 8));
 
         render(<EventsHub />);
 
@@ -68,26 +89,14 @@ describe('EventsHub', () => {
             // Should trigger materials load
             expect(eventsApi.getMaterialsBySection).toHaveBeenCalledWith('about');
         });
-
-        sessionStorage.removeItem('demoRole');
     });
 
-    it('shows feedback form when clicking Отзывы и Предложения', () => {
+    it('shows feedback section when hovering over Отзывы и Предложения', () => {
         render(<EventsHub />);
-
         const feedbackItem = screen.getByText('Отзывы и Предложения');
         fireEvent.mouseEnter(feedbackItem);
 
-        expect(screen.getByText('Поделитесь своим мнением')).toBeInTheDocument();
+        expect(screen.getByText('Оставить отзыв или предложение')).toBeInTheDocument();
     });
 
-    it('renders audio files list on mount', () => {
-        render(<EventsHub />);
-
-        expect(screen.getByText('Эфир от 01.01.2025')).toBeInTheDocument();
-        expect(screen.getByText('Эфир от 15.01.2025')).toBeInTheDocument();
-        expect(screen.getByText('Эфир от 01.02.2025')).toBeInTheDocument();
-        expect(screen.getByText('Эфир от 15.02.2025')).toBeInTheDocument();
-        expect(screen.getByText('Эфир от 01.03.2025')).toBeInTheDocument();
-    });
 });

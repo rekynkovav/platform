@@ -1,7 +1,44 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { chatApi, mediaApi } from '../../services/api';
+import { usePermissions } from '../../hooks/usePermissions';
 import chatLogger from '../../utils/chatLogger';
 
+/**
+ * useChat — custom React hook for managing chat state, messages, and actions.
+ *
+ * Provides full chat functionality including message loading, sending, editing,
+ * deleting, voice recording, file uploads, and media URL resolution with caching.
+ * Supports both API-backed and sessionStorage-based (development) backends.
+ *
+ * @param {string} chatRoom - The default chat room identifier (e.g. 'user1', 'nutrition')
+ * @param {Object} [config={}] - Configuration options
+ * @param {string} [config.storageKeyPrefix='chatMessages'] - Prefix for sessionStorage keys
+ * @param {boolean} [config.canSwitchRooms=true] - Whether the user can switch between rooms
+ * @param {Array} [config.availableRooms=[]] - List of rooms available for switching
+ * @param {boolean} [config.useApi=true] - Whether to use the backend API (false = sessionStorage fallback)
+ * @returns {Object} Chat state and actions
+ * @returns {Array} return.messages - Current messages array
+ * @returns {boolean} return.loading - Whether messages are currently loading
+ * @returns {string} return.currentRoom - Active room identifier
+ * @returns {boolean} return.canSwitch - Whether room switching is allowed
+ * @returns {string} return.currentUserAuthor - Current user's display name
+ * @returns {boolean} return.isRecording - Whether voice recording is active
+ * @returns {number} return.recordingTime - Current recording duration in seconds
+ * @returns {boolean} return.uploading - Whether a file upload is in progress
+ * @returns {string|null} return.error - Current error message, if any
+ * @returns {(room: string) => void} return.changeRoom - Switch to a different chat room
+ * @returns {(content: string, mediaId?: string) => Promise} return.sendMessage - Send a text or media message
+ * @returns {(msgId: string, content: string) => Promise} return.editMessage - Edit an existing message
+ * @returns {(msgId: string) => Promise} return.deleteMessage - Delete a message (with confirmation)
+ * @returns {(file: File) => Promise} return.uploadFile - Upload a file via base64 (sessionStorage mode)
+ * @returns {(file: File) => Promise} return.uploadMedia - Upload a file to the server
+ * @returns {() => Promise} return.startRecording - Start voice recording
+ * @returns {() => void} return.stopRecording - Stop voice recording
+ * @returns {(seconds: number) => string} return.formatRecordingTime - Format seconds to MM:SS
+ * @returns {(mediaId: string) => Promise<string|null>} return.getMediaUrl - Get a stream URL for a mediaId (cached)
+ * @returns {(room: string) => void} return.loadMessages - Reload messages for a room
+ * @returns {() => void} return.clearError - Dismiss the current error
+ */
 export const useChat = (chatRoom, config = {}) => {
     const {
         storageKeyPrefix = 'chatMessages',
@@ -9,6 +46,9 @@ export const useChat = (chatRoom, config = {}) => {
         availableRooms = [],
         useApi = true // Использовать API или sessionStorage (только в development)
     } = config;
+
+    const { roles } = usePermissions();
+    const userRole = roles[0] || 'USER_0';
 
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -29,27 +69,24 @@ export const useChat = (chatRoom, config = {}) => {
 
     // Определяем текущего пользователя и права доступа
     useEffect(() => {
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole')
-            : null;
         let author = 'Пользователь';
         let avatarUrl = '';
 
-        if (demoRole === 'MODERATOR_ADMIN' || demoRole === 'DEVELOPER' || demoRole === 'SUPER_ADMIN' || demoRole === 'VYACHESLAV') {
+        if (userRole === 'MODERATOR_ADMIN' || userRole === 'DEVELOPER' || userRole === 'SUPER_ADMIN' || userRole === 'VYACHESLAV') {
             author = 'Админ';
             // Аватар для админа
             avatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin&backgroundColor=dc3545&hairColor=000000&accessories=sunglasses';
-        } else if (demoRole === 'USER_0') {
+        } else if (userRole === 'USER_0') {
             author = 'Пользователь 1';
             // Аватар для USER_0 (демо)
             avatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=user0&backgroundColor=4a90e2&hairColor=2c1b18&accessories=round&facialHair=beardLight';
-        } else if (demoRole === 'USER_1') {
+        } else if (userRole === 'USER_1') {
             author = 'Пользователь 2';
             // Аватар для USER_1
             avatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=user1&backgroundColor=28a745&hairColor=2c1b18&accessories=prescription02';
         } else {
             // Для других ролей - общий аватар
-            avatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (demoRole || 'user') + '&backgroundColor=6c757d&hairColor=2c1b18';
+            avatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (userRole || 'user') + '&backgroundColor=6c757d&hairColor=2c1b18';
         }
 
         setCurrentUserAuthor(author);
@@ -58,10 +95,10 @@ export const useChat = (chatRoom, config = {}) => {
         // Настройка прав переключения комнат
         // Только для общих чатов (user1, user2) применяем ограничения
         if (chatRoom === 'user1' || chatRoom === 'user2') {
-            if (demoRole === 'USER_0') {
+            if (userRole === 'USER_0') {
                 setCurrentRoom('user1');
                 setCanSwitch(false);
-            } else if (demoRole === 'USER_1') {
+            } else if (userRole === 'USER_1') {
                 setCurrentRoom('user1'); // USER_1 тоже видит только чат новичков
                 setCanSwitch(false); // Убираем переключатель для USER_1
             }
@@ -334,13 +371,10 @@ export const useChat = (chatRoom, config = {}) => {
 
         // Логирование текстового сообщения
         if (content?.trim()) {
-            const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-                ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
-                : 'UNKNOWN';
             const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                            currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
-            chatLogger.logTextMessage(chatType, currentRoom, demoRole, content);
+            chatLogger.logTextMessage(chatType, currentRoom, userRole, content);
         }
 
         const tempId = `temp_${Date.now()}`;
@@ -359,7 +393,7 @@ export const useChat = (chatRoom, config = {}) => {
 
         if (useApi) {
             try {
-                const response = await chatApi.sendMessage(content, mediaId);
+                const response = await chatApi.sendMessage(currentRoom, { content: content?.trim() || '', mediaId });
                 // Заменяем временное сообщение реальным, сохраняя avatarUrl
                 setMessages(prev =>
                     prev.map(msg =>
@@ -416,13 +450,10 @@ export const useChat = (chatRoom, config = {}) => {
         setUploading(true);
 
         // Логирование загрузки файла
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
-            : 'UNKNOWN';
         const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                        currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
-        chatLogger.logFileUpload(chatType, currentRoom, demoRole, file);
+        chatLogger.logFileUpload(chatType, currentRoom, userRole, file);
 
         try {
             const type = getMediaType(file.type);
@@ -455,13 +486,10 @@ export const useChat = (chatRoom, config = {}) => {
     // Старая функция для совместимости (sessionStorage)
     const uploadFile = useCallback((file) => {
         // Логирование загрузки файла (sessionStorage режим)
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
-            : 'UNKNOWN';
         const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                        currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
-        chatLogger.logFileUpload(chatType, currentRoom, demoRole, file);
+        chatLogger.logFileUpload(chatType, currentRoom, userRole, file);
 
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -507,16 +535,13 @@ export const useChat = (chatRoom, config = {}) => {
         if (!newContent.trim()) return;
 
         // Логирование редактирования
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
-            : 'UNKNOWN';
         const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                        currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
         // Находим старое сообщение для логирования
         const oldMessage = messages.find(msg => msg.id === msgId);
         if (oldMessage) {
-            chatLogger.logMessageEdit(chatType, currentRoom, demoRole, msgId, oldMessage.content, newContent);
+            chatLogger.logMessageEdit(chatType, currentRoom, userRole, msgId, oldMessage.content, newContent);
         }
 
         if (useApi) {
@@ -550,13 +575,10 @@ export const useChat = (chatRoom, config = {}) => {
         if (!window.confirm('Удалить это сообщение?')) return false;
 
         // Логирование удаления
-        const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-            ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
-            : 'UNKNOWN';
         const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                        currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
-        chatLogger.logMessageDelete(chatType, currentRoom, demoRole, msgId);
+        chatLogger.logMessageDelete(chatType, currentRoom, userRole, msgId);
 
         if (useApi) {
             try {
@@ -606,13 +628,10 @@ export const useChat = (chatRoom, config = {}) => {
 
                 if (useApi) {
                     // Логирование голосового сообщения (API режим)
-                    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-                ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
-                : 'UNKNOWN';
                     const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                                    currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
-                    chatLogger.logVoiceMessage(chatType, currentRoom, demoRole, recordingTime);
+                    chatLogger.logVoiceMessage(chatType, currentRoom, userRole, recordingTime);
 
                     // Загружаем на сервер
                     try {
@@ -643,13 +662,10 @@ export const useChat = (chatRoom, config = {}) => {
                     }
                 } else {
                     // Логирование голосового сообщения (sessionStorage режим)
-                    const demoRole = process.env.REACT_APP_ENVIRONMENT === 'development'
-                ? sessionStorage.getItem('demoRole') || 'UNKNOWN'
-                : 'UNKNOWN';
                     const chatType = currentRoom.includes('nutrition') ? 'NutritionChat' :
                                    currentRoom.includes('user') ? 'GeneralChat' : 'UnknownChat';
 
-                    chatLogger.logVoiceMessage(chatType, currentRoom, demoRole, recordingTime);
+                    chatLogger.logVoiceMessage(chatType, currentRoom, userRole, recordingTime);
 
                     // LocalStorage - сохраняем как base64
                     const reader = new FileReader();

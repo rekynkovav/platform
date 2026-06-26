@@ -1,5 +1,17 @@
 import React from 'react';
 
+/**
+ * ErrorBoundary — React error boundary component that catches JavaScript errors
+ * in its child component tree and displays a fallback UI instead of crashing.
+ *
+ * Implements the standard React error boundary lifecycle methods:
+ * - getDerivedStateFromError: updates state to trigger fallback rendering
+ * - componentDidCatch: logs error details to the console
+ *
+ * @param {React.ReactNode} props.children - Child components to wrap
+ * @param {React.ReactNode} [props.fallback] - Custom fallback UI to render on error (optional)
+ * @returns {React.ReactNode} Either the children or the fallback UI
+ */
 class ErrorBoundary extends React.Component {
     constructor(props) {
         super(props);

@@ -2,6 +2,7 @@ package com.platform.controller;
 
 import com.platform.model.dto.PostDto;
 import com.platform.service.PostService;
+import com.giffing.bucket4j.spring.boot.starter.context.RateLimiting;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -44,6 +45,7 @@ public class PostController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "post-limit")
     public ResponseEntity<PostDto> createPost(
             @Valid @RequestBody PostDto.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -54,6 +56,7 @@ public class PostController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "post-limit")
     public ResponseEntity<PostDto> updatePost(
             @PathVariable String id,
             @Valid @RequestBody PostDto.UpdateRequest request,
@@ -65,6 +68,7 @@ public class PostController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "post-limit")
     public ResponseEntity<Void> deletePost(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
@@ -75,6 +79,7 @@ public class PostController {
 
     @PostMapping("/media")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'SUPER_ADMIN', 'VYACHESLAV')")
+    @RateLimiting(name = "post-limit")
     public ResponseEntity<PostDto.MediaUploadResponse> uploadMedia(
             @RequestParam("media") MultipartFile media,
             @RequestParam(required = false) String type) {

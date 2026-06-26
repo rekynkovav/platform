@@ -2,6 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import './Timer.css';
 
+/**
+ * Timer — countdown timer component that displays time remaining until a target date/time.
+ *
+ * Shows days, hours, minutes, and seconds until the target time. Displays an
+ * "event started" message when the countdown expires. Updates every second.
+ *
+ * @param {string|Date} targetTime - The target date/time string or Date object to count down to
+ * @returns {JSX.Element} The countdown timer display with units, or an expiry message
+ */
 const Timer = ({ targetTime }) => {
     const [timeLeft, setTimeLeft] = useState({
         days: 0,

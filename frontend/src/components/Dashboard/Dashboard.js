@@ -47,6 +47,17 @@ const SECTION_META = [
     { key: 'challenge', initial: initialChallenge }
 ];
 
+/**
+ * Dashboard — admin content management panel with 18 section tabs.
+ *
+ * Provides a tabbed interface for managing content sections (broadcasts, exercises,
+ * recommendations, hardening, about, newbies, heart voice, reflection, interviews,
+ * participants, motivation, reviews, music, movies, literature, about Timoshenko,
+ * challenge). Supports CRUD operations, audio recording, file uploads, and
+ * section-specific content management with permission-based access control.
+ *
+ * @returns {JSX.Element} The dashboard with section tabs, content list, and add/edit forms
+ */
 const Dashboard = () => {
     const [hoveredMenu, setHoveredMenu] = useState(null);
     const [hoveredSubmenu, setHoveredSubmenu] = useState(null);

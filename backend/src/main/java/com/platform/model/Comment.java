@@ -26,6 +26,7 @@ public class Comment {
     private String id;
 
     @Version
+    @Builder.Default
     private Long version = 0L;
 
     @Column(nullable = false, columnDefinition = "TEXT")

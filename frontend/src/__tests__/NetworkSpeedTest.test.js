@@ -97,12 +97,12 @@ describe('NetworkSpeedTest', () => {
         expect(mockOnCancel).toHaveBeenCalled();
     });
 
-    it('shows re-test button on error', async () => {
+    it('shows error message when fetch fails', async () => {
         global.fetch.mockRejectedValue(new Error('Network error'));
         render(<NetworkSpeedTest onTestComplete={mockOnTestComplete} onCancel={mockOnCancel} />);
 
         await waitFor(() => {
-            expect(screen.getByText('Повторить тест')).toBeInTheDocument();
+            expect(screen.getByText(/Не удалось измерить/)).toBeInTheDocument();
         });
     });
 });

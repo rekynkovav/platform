@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { getUsername, getUserRoles } from '../../keycloak';
 import { usersApi } from '../../services/api';
 
+/**
+ * UserStatus — displays the current user's online status, username, and role badges.
+ *
+ * Fetches user data from the backend API (with local fallback) and renders a
+ * status indicator with color coding (online/away/busy/offline), last-seen time,
+ * and role badges. Falls back to Keycloak data if the API is unavailable.
+ *
+ * @returns {JSX.Element} The user status bar with status dot, username, and role badges
+ */
 const UserStatus = () => {
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
