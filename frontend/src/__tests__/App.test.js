@@ -17,7 +17,7 @@ jest.mock('../components/Navigation/NavTabs', () => () => <div data-testid="nav-
 jest.mock('../components/Feed/MainFeed', () => () => <div data-testid="main-feed">MainFeed</div>);
 jest.mock('../components/Feed/NutritionFeed', () => () => <div data-testid="nutrition-feed">NutritionFeed</div>);
 jest.mock('../components/Dashboard/Dashboard', () => () => <div data-testid="dashboard">Dashboard</div>);
-jest.mock('../components/live/LiveBroadcastViewSimple', () => () => <div data-testid="live-broadcast">LiveBroadcastView</div>);
+jest.mock('../components/live/LivePage', () => () => <div data-testid="live-page">LivePage</div>);
 jest.mock('../features/chat/ChatPage', () => (props) => <div data-testid={`chat-${props.configKey}`}>ChatPage</div>);
 jest.mock('../hooks/usePermissions', () => ({
     usePermissions: () => ({ hasLevel: () => true }),
