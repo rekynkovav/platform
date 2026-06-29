@@ -25,6 +25,7 @@ export interface LivePlayerProps {
   onPlay?: () => void;
   onPause?: () => void;
   onEnded?: () => void;
+  onRetry?: () => void;
 }
 
 /**
@@ -59,6 +60,7 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
   onPlay,
   onPause,
   onEnded,
+  onRetry,
 }) => {
   const { playerState, setPlayerState } = usePlayerState();
 
@@ -153,7 +155,7 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
           <div className="error-text">{state.error}</div>
           <button
             className="error-retry"
-            onClick={() => window.location.reload()}
+            onClick={() => onRetry?.()}
           >
             Перезагрузить
           </button>

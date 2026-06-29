@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { MemoryRouter } from 'react-router-dom';
 
 // ── Mock all dependencies ──────────────────────────────────────────────────────
 
@@ -126,6 +127,10 @@ const mockLiveSession = {
   markChatAsRead: jest.fn(),
 };
 
+// Helper to wrap component in MemoryRouter
+const renderWithRouter = (ui: React.ReactElement) =>
+  render(<MemoryRouter>{ui}</MemoryRouter>);
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('BroadcastControls', () => {
@@ -139,7 +144,7 @@ describe('BroadcastControls', () => {
   // ── 1. Renders without crashing ─────────────────────────────────────────────
 
   it('renders without crashing', () => {
-    render(<BroadcastControls broadcast={mockBroadcast} />);
+    renderWithRouter(<BroadcastControls broadcast={mockBroadcast} />);
     expect(screen.getByText('Управление трансляцией')).toBeInTheDocument();
   });
 
@@ -148,7 +153,7 @@ describe('BroadcastControls', () => {
   it('shows access denied when user has no control rights', () => {
     (canControlBroadcast as jest.Mock).mockReturnValue(false);
 
-    render(<BroadcastControls broadcast={mockBroadcast} />);
+    renderWithRouter(<BroadcastControls broadcast={mockBroadcast} />);
 
     expect(
       screen.getByText(/У вас нет прав для управления этой трансляцией/),
@@ -158,7 +163,7 @@ describe('BroadcastControls', () => {
   // ── 3. Displays broadcast info ──────────────────────────────────────────────
 
   it('displays broadcast information (ID, viewers, status)', () => {
-    render(<BroadcastControls broadcast={mockBroadcast} />);
+    renderWithRouter(<BroadcastControls broadcast={mockBroadcast} />);
 
     expect(screen.getByText('bc-1')).toBeInTheDocument();
     expect(screen.getByText('42 / 100')).toBeInTheDocument();
@@ -168,7 +173,7 @@ describe('BroadcastControls', () => {
   // ── 4. Enters edit mode when "Редактировать" is clicked ────────────────────
 
   it('enters edit mode when edit button is clicked', () => {
-    render(<BroadcastControls broadcast={mockBroadcast} />);
+    renderWithRouter(<BroadcastControls broadcast={mockBroadcast} />);
 
     const editBtn = screen.getByText(/Редактировать/);
     fireEvent.click(editBtn);
@@ -182,7 +187,7 @@ describe('BroadcastControls', () => {
   // ── 5. Cancels editing when cancel button is clicked ────────────────────────
 
   it('cancels editing when cancel button is clicked', () => {
-    render(<BroadcastControls broadcast={mockBroadcast} />);
+    renderWithRouter(<BroadcastControls broadcast={mockBroadcast} />);
 
     // Enter edit mode
     fireEvent.click(screen.getByText(/Редактировать/));
@@ -196,7 +201,7 @@ describe('BroadcastControls', () => {
   // ── 6. Shows start button disabled when broadcast is live ────────────────────
 
   it('disables start button when broadcast status is live', () => {
-    render(<BroadcastControls broadcast={mockBroadcast} />);
+    renderWithRouter(<BroadcastControls broadcast={mockBroadcast} />);
     const startBtn = screen.getByText(/Начать трансляцию/);
     expect(startBtn).toBeDisabled();
   });
@@ -204,7 +209,7 @@ describe('BroadcastControls', () => {
   // ── 7. Shows stop button enabled when broadcast is live ──────────────────────
 
   it('enables stop button when broadcast status is live', () => {
-    render(<BroadcastControls broadcast={mockBroadcast} />);
+    renderWithRouter(<BroadcastControls broadcast={mockBroadcast} />);
     const stopBtn = screen.getByText(/Остановить трансляцию/);
     expect(stopBtn).not.toBeDisabled();
   });
@@ -214,7 +219,7 @@ describe('BroadcastControls', () => {
   it('calls onStatusChange when a status button is clicked', async () => {
     const onStatusChange = jest.fn();
 
-    render(
+    renderWithRouter(
       <BroadcastControls
         broadcast={mockBroadcast}
         onStatusChange={onStatusChange}
@@ -233,7 +238,7 @@ describe('BroadcastControls', () => {
   // ── 9. Shows advanced quality controls when showAdvanced is true ────────────
 
   it('shows quality controls when showAdvanced is true', () => {
-    render(<BroadcastControls broadcast={mockBroadcast} showAdvanced />);
+    renderWithRouter(<BroadcastControls broadcast={mockBroadcast} showAdvanced />);
 
     expect(screen.getByText('Управление качеством:')).toBeInTheDocument();
     expect(screen.getByText('1080p')).toBeInTheDocument();
@@ -244,7 +249,7 @@ describe('BroadcastControls', () => {
   // ── 10. Hides quality controls when showAdvanced is false ───────────────────
 
   it('hides quality controls when showAdvanced is false', () => {
-    render(<BroadcastControls broadcast={mockBroadcast} />);
+    renderWithRouter(<BroadcastControls broadcast={mockBroadcast} />);
 
     expect(screen.queryByText('Управление качеством:')).not.toBeInTheDocument();
   });
@@ -252,7 +257,7 @@ describe('BroadcastControls', () => {
   // ── 11. Shows test functions section in advanced mode ────────────────────────
 
   it('shows test functions section when showAdvanced is true', () => {
-    render(<BroadcastControls broadcast={mockBroadcast} showAdvanced />);
+    renderWithRouter(<BroadcastControls broadcast={mockBroadcast} showAdvanced />);
 
     expect(screen.getByText('Тестовые функции:')).toBeInTheDocument();
     expect(screen.getByText(/Получить статистику/)).toBeInTheDocument();
@@ -263,7 +268,7 @@ describe('BroadcastControls', () => {
   it('calls onUpdate after saving edited broadcast', async () => {
     const onUpdate = jest.fn();
 
-    render(
+    renderWithRouter(
       <BroadcastControls broadcast={mockBroadcast} onUpdate={onUpdate} />,
     );
 

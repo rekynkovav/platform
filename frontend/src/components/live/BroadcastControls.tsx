@@ -2,6 +2,7 @@
 // Для администраторов и модераторов
 
 import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LiveBroadcast, BroadcastStatus, StreamQuality } from '../../services/live/types';
 import './BroadcastControls.css';
 import { useLiveBroadcast } from '../../hooks/live/useLiveBroadcast';
@@ -44,6 +45,7 @@ export const BroadcastControls: React.FC<BroadcastControlsProps> = ({
   onStatusChange,
   showAdvanced = false
 }) => {
+  const navigate = useNavigate();
   const {
     updateStatus,
     startBroadcast,
@@ -183,7 +185,7 @@ export const BroadcastControls: React.FC<BroadcastControlsProps> = ({
 
     if (window.confirm('Вы уверены, что хотите сбросить все состояния? Это действие нельзя отменить.')) {
       mediaService.reset();
-      window.location.reload();
+      navigate(0);
     }
   }, [canControl]);
 
@@ -500,7 +502,7 @@ export const BroadcastControls: React.FC<BroadcastControlsProps> = ({
           )}
           <button
             className="refresh-button"
-            onClick={() => window.location.reload()}
+            onClick={() => onUpdate?.(broadcast)}
           >
             🔄 Обновить
           </button>

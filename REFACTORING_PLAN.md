@@ -48,11 +48,17 @@
 6. HLS_ALGORITHM замена + проверка плеера
 
 ### Блок D — DOM манипуляции (#4)
-7. Dashboard.js — самый тяжёлый
-8. Остальные 20 файлов — постепенно
+7. ✅ window.location.reload() — 5 мест заменены:
+   - RoleSwitcher.js → useNavigate(0)
+   - LivePage.js → setError(null) + refreshKey
+   - LivePlayer.tsx → onRetry callback
+   - BroadcastControls.tsx → useNavigate(0) + onUpdate callback
+   - ErrorBoundary.js — ОСТАВЛЕН (корректное поведение)
+8. Dashboard.js DOM — стандартные паттерны (menu positioning, file download, window.open), не нарушения
 
 ### Блок E — @Transactional audit (#7)
-9. Проверить BroadcastChatService, BroadcastReactionService и др.
+9. ✅ Все 18 сервисов без @Transactional — инфраструктурные (Redis, S3, Keycloak, FFmpeg, файлы)
+   Не используют JPA Repository → @Transactional не нужен. False positive из плана.
 
 ### Блок F — Тесты (#3)
 10. Приоритет: Dashboard, LivePage, NavTabs

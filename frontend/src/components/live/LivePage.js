@@ -1,7 +1,7 @@
 // LivePage — основная страница live трансляции
 // Загружает broadcast из API, рендерит плеер + чат + управление
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { LivePlayer } from './LivePlayer';
 import { LiveChat } from './LiveChat';
@@ -32,6 +32,7 @@ function LivePage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,7 +77,7 @@ function LivePage() {
       cancelled = true;
       disconnectFromBroadcast();
     };
-  }, [broadcastIdFromUrl, connectToBroadcast, disconnectFromBroadcast]);
+  }, [broadcastIdFromUrl, connectToBroadcast, disconnectFromBroadcast, refreshKey]);
 
   // Loading state
   if (loading) {
@@ -99,10 +100,10 @@ function LivePage() {
           <div className="error-text">{error}</div>
           <button
             className="error-retry"
-            onClick={() => window.location.reload()}
+            onClick={() => { setError(null); setRefreshKey(k => k + 1); }}
           >
-            Попробовать снова
-          </button>
+           Попробовать снова
+         </button>
         </div>
       </div>
     );
@@ -132,6 +133,7 @@ function LivePage() {
             autoPlay={true}
             muted={false}
             controls={true}
+            onRetry={() => { setError(null); setRefreshKey(k => k + 1); }}
           />
         </div>
 

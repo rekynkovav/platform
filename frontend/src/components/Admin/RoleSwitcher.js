@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './RoleSwitcher.css';
 import { ROLES, ROLE_LABELS, ROLE_ICONS } from '../../constants/roles';
 import { demoApi } from '../../services/api';
@@ -18,6 +19,7 @@ const isDevelopment = process.env.REACT_APP_ENVIRONMENT === 'development';
  * @returns {JSX.Element} The role switcher dropdown (only rendered in development mode)
  */
 const RoleSwitcher = ({ onRoleChange }) => {
+    const navigate = useNavigate();
     const [currentRole, setCurrentRole] = useState(() => {
         // Только для development
         if (process.env.REACT_APP_ENVIRONMENT === 'development') {
@@ -86,7 +88,7 @@ const RoleSwitcher = ({ onRoleChange }) => {
 
         if (onRoleChange) onRoleChange(roleId);
         setIsOpen(false);
-        window.location.reload();
+        navigate(0);
     };
 
     const getCurrentRoleData = () => {
