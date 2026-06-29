@@ -22,20 +22,20 @@
 .test-header {
     text-align: center;
     margin-bottom: 24px;
-    border-bottom: 1px solid #eaeaea;
+    border-bottom: 1px solid var(--gray-200);
     padding-bottom: 16px;
 }
 
 .test-header h3 {
     margin: 0 0 8px 0;
-    color: #333;
+    color: var(--gray-700);
     font-size: 1.5rem;
     font-weight: 600;
 }
 
 .test-header p {
     margin: 0;
-    color: #666;
+    color: var(--gray-500);
     font-size: 0.95rem;
 }
 
@@ -46,10 +46,10 @@
 .test-status {
     text-align: center;
     padding: 20px;
-    background: #f8f9fa;
+    background: var(--gray-50);
     border-radius: 8px;
     margin-bottom: 20px;
-    color: #495057;
+    color: var(--gray-600);
     font-weight: 500;
     animation: pulse 1.5s infinite;
 }
@@ -61,13 +61,13 @@
 }
 
 .test-status.error {
-    background: #fff5f5;
-    color: #e53e3e;
+    background: var(--gray-50);
+    color: var(--danger-dark);
     animation: none;
 }
 
 .test-results {
-    background: #f8f9fa;
+    background: var(--gray-50);
     border-radius: 8px;
     padding: 20px;
 }
@@ -77,7 +77,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 0;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .result-item:last-child {
@@ -85,46 +85,46 @@
 }
 
 .result-label {
-    color: #495057;
+    color: var(--gray-600);
     font-weight: 500;
     font-size: 0.95rem;
 }
 
 .result-value {
-    color: #333;
+    color: var(--gray-700);
     font-weight: 600;
     font-size: 1.1rem;
 }
 
 .quality-отличное {
-    color: #38a169;
+    color: var(--success);
 }
 
 .quality-хорошее {
-    color: #3182ce;
+    color: var(--info);
 }
 
 .quality-среднее {
-    color: #d69e2e;
+    color: var(--warning);
 }
 
 .quality-слабое {
-    color: #ed8936;
+    color: var(--warning);
 }
 
 .quality-очень-слабое {
-    color: #e53e3e;
+    color: var(--danger-dark);
 }
 
 .recommended-settings {
     margin-top: 24px;
     padding-top: 20px;
-    border-top: 2px solid #e9ecef;
+    border-top: 2px solid var(--gray-200);
 }
 
 .recommended-settings h4 {
     margin: 0 0 16px 0;
-    color: #333;
+    color: var(--gray-700);
     font-size: 1.2rem;
     font-weight: 600;
 }
@@ -141,17 +141,17 @@
     background: white;
     padding: 12px;
     border-radius: 6px;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--gray-200);
 }
 
 .setting-label {
-    color: #718096;
+    color: var(--gray-500);
     font-size: 0.85rem;
     margin-bottom: 4px;
 }
 
 .setting-value {
-    color: #333;
+    color: var(--gray-700);
     font-weight: 600;
     font-size: 1rem;
 }
@@ -159,9 +159,9 @@
 .test-error {
     text-align: center;
     padding: 20px;
-    background: #fff5f5;
+    background: var(--gray-50);
     border-radius: 8px;
-    color: #e53e3e;
+    color: var(--danger-dark);
 }
 
 .test-error p {
@@ -169,7 +169,7 @@
 }
 
 .retry-btn {
-    background: #e53e3e;
+    background: var(--danger-dark);
     color: white;
     border: none;
     padding: 10px 20px;
@@ -180,7 +180,7 @@
 }
 
 .retry-btn:hover {
-    background: #c53030;
+    background: var(--danger);
 }
 
 .test-actions {
@@ -188,12 +188,12 @@
     justify-content: flex-end;
     gap: 12px;
     padding-top: 20px;
-    border-top: 1px solid #eaeaea;
+    border-top: 1px solid var(--gray-200);
 }
 
 .cancel-btn {
-    background: #e2e8f0;
-    color: #4a5568;
+    background: var(--gray-200);
+    color: var(--gray-600);
     border: none;
     padding: 10px 20px;
     border-radius: 6px;
@@ -203,11 +203,11 @@
 }
 
 .cancel-btn:hover {
-    background: #cbd5e0;
+    background: var(--gray-300);
 }
 
 .apply-btn {
-    background: #3182ce;
+    background: var(--info);
     color: white;
     border: none;
     padding: 10px 20px;
@@ -218,11 +218,11 @@
 }
 
 .apply-btn:hover {
-    background: #2c5282;
+    background: var(--info);
 }
 
 .apply-btn:disabled {
-    background: #a0aec0;
+    background: var(--gray-400);
     cursor: not-allowed;
 }
 
@@ -237,7 +237,7 @@
     display: inline-block;
     width: 16px;
     height: 16px;
-    border: 2px solid #3182ce;
+    border: 2px solid var(--info);
     border-top-color: transparent;
     border-radius: 50%;
     margin-right: 8px;
@@ -248,7 +248,7 @@
 .test-status.complete::before {
     content: '✓';
     animation: none;
-    background: #38a169;
+    background: var(--success);
     color: white;
     border: none;
     border-radius: 50%;
@@ -264,7 +264,7 @@
 .test-status.error::before {
     content: '✗';
     animation: none;
-    background: #e53e3e;
+    background: var(--danger-dark);
     color: white;
     border: none;
     border-radius: 50%;

@@ -3,6 +3,7 @@ import { FixedSizeList as List } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { eventsApi } from '../../services/api';
 import './Events.css';
+import '../common/Modal.css';
 
 /**
  * Events — displays a filterable, virtualized list of events with registration support.

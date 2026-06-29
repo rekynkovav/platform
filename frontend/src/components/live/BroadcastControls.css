@@ -19,8 +19,8 @@
 
 /* ---- Access Denied Banner ---- */
 .access-denied {
-  background: #ff9800;
-  color: #fff;
+  background: var(--warning);
+  color: white;
   padding: 12px;
   border-radius: var(--radius-sm);
   text-align: center;
@@ -142,8 +142,8 @@
 }
 
 .status-button.paused {
-  background: #ff9800;
-  border-color: #ff9800;
+  background: var(--warning);
+  border-color: var(--warning);
 }
 
 .status-button.ended {
@@ -255,11 +255,11 @@
 
 .save-button {
   background: var(--success);
-  color: #fff;
+  color: white;
 }
 
 .save-button:hover:not(:disabled) {
-  background: #157347;
+  background: var(--success);
 }
 
 .save-button:disabled {
@@ -268,12 +268,12 @@
 }
 
 .cancel-button {
-  background: #666;
-  color: #fff;
+  background: var(--gray-500);
+  color: white;
 }
 
 .cancel-button:hover:not(:disabled) {
-  background: #777;
+  background: var(--gray-500);
 }
 
 /* ---- Quality Controls ---- */
@@ -408,25 +408,25 @@
 
 .quick-action.start {
   background: var(--success);
-  color: #fff;
+  color: white;
 }
 
 .quick-action.start:hover:not(:disabled) {
-  background: #157347;
+  background: var(--success);
 }
 
 .quick-action.stop {
   background: var(--danger);
-  color: #fff;
+  color: white;
 }
 
 .quick-action.stop:hover:not(:disabled) {
-  background: #bb2d3b;
+  background: var(--danger);
 }
 
 .quick-action.stats {
   background: var(--accent);
-  color: #fff;
+  color: white;
 }
 
 .quick-action.stats:hover:not(:disabled) {
@@ -473,12 +473,12 @@
 .test-button.danger {
   background: var(--danger);
   border-color: var(--danger);
-  color: #fff;
+  color: white;
 }
 
 .test-button.danger:hover {
-  background: #bb2d3b;
-  border-color: #bb2d3b;
+  background: var(--danger);
+  border-color: var(--danger);
 }
 
 /* ---- Responsive ---- */

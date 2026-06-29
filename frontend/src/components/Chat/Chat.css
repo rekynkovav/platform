@@ -228,21 +228,21 @@
 }
 
 .edit-actions button:first-child {
-    background: #86efac;
-    color: #166534;
+    background: var(--success);
+    color: var(--success);
 }
 
 .edit-actions button:first-child:hover {
-    background: #6ee7b7;
+    background: var(--success);
 }
 
 .edit-actions button:last-child {
-    background: #fca5a5;
-    color: #991b1b;
+    background: var(--danger-light);
+    color: var(--danger-dark);
 }
 
 .edit-actions button:last-child:hover {
-    background: #f87171;
+    background: var(--danger-light);
 }
 
 .chat-message strong {
@@ -291,7 +291,7 @@
 }
 
 .attach-file-btn:hover {
-    background: var(--bg-tertiary, #e5e7eb);
+    background: var(--bg-tertiary, var(--gray-200));
     border-color: var(--accent);
 }
 
@@ -310,13 +310,13 @@
 }
 
 .voice-record-btn:hover {
-    background: var(--bg-tertiary, #e5e7eb);
+    background: var(--bg-tertiary, var(--gray-200));
     border-color: var(--accent);
 }
 
 .voice-record-btn.recording {
     background: rgba(239, 68, 68, 0.1);
-    border-color: #ef4444;
+    border-color: var(--danger-light);
     animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -331,7 +331,7 @@
 
 .recording-time {
     font-size: 14px;
-    color: #ef4444;
+    color: var(--danger-light);
     font-weight: 600;
     padding: 0 8px;
 }
@@ -344,7 +344,7 @@
     display: inline-flex;
     align-items: center;
     padding: 8px 12px;
-    background: var(--bg-tertiary, #e5e7eb);
+    background: var(--bg-tertiary, var(--gray-200));
     border-radius: var(--radius-sm);
     color: var(--text-primary);
     text-decoration: none;
@@ -485,7 +485,7 @@
     height: 32px;
     border-radius: 50%;
     border: none;
-    background: var(--bg-tertiary, #e5e7eb);
+    background: var(--bg-tertiary, var(--gray-200));
     color: var(--text-secondary);
     cursor: pointer;
     font-size: 16px;
@@ -496,17 +496,17 @@
 }
 
 .cancel-file-btn:hover {
-    background: #fca5a5;
-    color: #991b1b;
+    background: var(--danger-light);
+    color: var(--danger-dark);
 }
 
 .upload-error {
-    color: #ef4444;
+    color: var(--danger-light);
     font-size: 12px;
     padding: 8px 12px;
-    background: #fef2f2;
+    background: var(--gray-50);
     border-radius: var(--radius-sm);
-    border: 1px solid #fecaca;
+    border: 1px solid var(--danger-light);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -523,7 +523,7 @@
     margin-left: auto;
     background: none;
     border: none;
-    color: #ef4444;
+    color: var(--danger-light);
     font-size: 16px;
     cursor: pointer;
     padding: 0 4px;

@@ -147,8 +147,8 @@
 
 .nutrition-menu-dropdown .menu-dropdown-item:hover {
     background: var(--bg-primary);
-    border-color: #198754;
-    box-shadow: 0 0 0 2px #198754;
+    border-color: var(--success);
+    box-shadow: 0 0 0 2px var(--success);
 }
 
 .nutrition-menu-dropdown .menu-item-content {
@@ -189,7 +189,7 @@
 }
 
 .nutrition-menu-dropdown .delete-item-btn:hover {
-    background: #c82333;
+    background: var(--danger);
     transform: scale(1.1);
 }
 
@@ -250,7 +250,7 @@
 .add-post-btn.add-event-style:hover {
     background: var(--bg-primary);
     border-color: rgba(25, 135, 84, 0.5);
-    color: #198754;
+    color: var(--success);
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(25, 135, 84, 0.2);
 }

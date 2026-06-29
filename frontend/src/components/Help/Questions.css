@@ -67,7 +67,7 @@
 
 /* Активная кнопка "Общий" */
 .mode-btn.active {
-    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    background: linear-gradient(135deg, var(--accent), var(--accent-purple));
     color: white;
     border-color: var(--accent);
     box-shadow: 0 6px 16px rgba(139, 92, 246, 0.5);
@@ -76,26 +76,26 @@
 
 /* Активная кнопка "Питание" (вторая) */
 .mode-btn:nth-child(2).active {
-    background: linear-gradient(135deg, #10b981, #34d399);
-    border-color: #10b981;
+    background: linear-gradient(135deg, var(--success), var(--success));
+    border-color: var(--success);
     box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
 }
 
 .mode-btn:nth-child(2):hover:not(.active) {
-    border-color: #10b981;
+    border-color: var(--success);
     box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
     background: linear-gradient(135deg, var(--bg-secondary), rgba(16, 185, 129, 0.1));
 }
 
 /* Активная кнопка "Вячеславу" (третья) */
 .mode-btn:nth-child(3).active {
-    background: linear-gradient(135deg, #f59e0b, #fbbf24);
-    border-color: #f59e0b;
+    background: linear-gradient(135deg, var(--warning), var(--warning));
+    border-color: var(--warning);
     box-shadow: 0 6px 16px rgba(245, 158, 11, 0.5);
 }
 
 .mode-btn:nth-child(3):hover:not(.active) {
-    border-color: #f59e0b;
+    border-color: var(--warning);
     box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
     background: linear-gradient(135deg, var(--bg-secondary), rgba(245, 158, 11, 0.1));
 }
@@ -103,7 +103,7 @@
 .help-header h2 {
     font-size: 28px;
     margin-bottom: 10px;
-    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    background: linear-gradient(135deg, var(--accent), var(--accent-purple));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -165,7 +165,7 @@
 
 .submit-button {
     padding: 12px 24px;
-    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    background: linear-gradient(135deg, var(--accent), var(--accent-purple));
     color: white;
     border: none;
     border-radius: 12px;
@@ -221,11 +221,11 @@
 
 /* Стили для статусов вопросов */
 .faq-item.answered {
-    border-left: 3px solid #10b981;
+    border-left: 3px solid var(--success);
 }
 
 .faq-item.pending {
-    border-left: 3px solid #f59e0b;
+    border-left: 3px solid var(--warning);
 }
 
 .faq-item.newest {
@@ -295,7 +295,7 @@
 }
 
 .answered-badge {
-    color: #10b981;
+    color: var(--success);
     background: rgba(16, 185, 129, 0.1);
     padding: 2px 8px;
     border-radius: 12px;
@@ -304,7 +304,7 @@
 }
 
 .pending-badge {
-    color: #f59e0b;
+    color: var(--warning);
     background: rgba(245, 158, 11, 0.1);
     padding: 2px 8px;
     border-radius: 12px;
@@ -314,7 +314,7 @@
 
 .waiting-badge {
     background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
+    color: var(--warning);
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 11px;
@@ -470,7 +470,7 @@
 }
 
 .warning-text {
-    color: #ef4444 !important;
+    color: var(--danger-light) !important;
     font-size: 13px !important;
     margin-top: 12px !important;
 }
@@ -543,7 +543,7 @@
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, var(--danger-light), var(--danger));
     color: white;
     border: none;
     border-radius: 20px;
@@ -587,7 +587,7 @@
     padding: 10px 12px;
     border-radius: 8px;
     font-size: 13px;
-    color: #f59e0b;
+    color: var(--warning);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -607,7 +607,7 @@
     padding: 15px;
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(168, 85, 247, 0.1));
     border-radius: 12px;
-    border-left: 4px solid #3b82f6;
+    border-left: 4px solid var(--accent);
 }
 
 .help-subtitle small {
@@ -637,7 +637,7 @@
 
 .room-slug {
     font-family: 'Courier New', monospace;
-    color: #3b82f6;
+    color: var(--accent);
     font-weight: 600;
     margin-bottom: 4px;
 }
@@ -674,7 +674,7 @@
 
 .room-indicator {
     padding: 4px 12px;
-    background: #3b82f6;
+    background: var(--accent);
     color: white;
     border-radius: 6px;
     font-weight: 600;
@@ -692,7 +692,7 @@
     padding: 2px 6px;
     border-radius: 4px;
     font-family: 'Courier New', monospace;
-    color: #3b82f6;
+    color: var(--accent);
 }
 
 .faq-title-section {
@@ -713,7 +713,7 @@
 }
 
 .backend-info small {
-    color: #16a34a;
+    color: var(--success);
     font-weight: 500;
 }
 
@@ -722,7 +722,7 @@
     font-size: 12px;
     padding: 4px 8px;
     background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    color: var(--accent);
     border-radius: 4px;
     border: 1px solid rgba(59, 130, 246, 0.3);
 }

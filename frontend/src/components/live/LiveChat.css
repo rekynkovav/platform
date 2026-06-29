@@ -84,7 +84,7 @@
 }
 
 .control-button.danger:hover {
-  background: #b82e2e;
+  background: var(--danger);
 }
 
 /* ============================================================
@@ -328,7 +328,7 @@
 
 .chat-message.system {
   background: rgba(139, 92, 246, 0.15);
-  border-left-color: #8b5cf6;
+  border-left-color: var(--accent-purple);
 }
 
 .chat-message.question {
@@ -343,7 +343,7 @@
 
 .message-pinned {
   background: var(--warning);
-  color: #1a1a1a;
+  color: var(--bg-dark);
   padding: 4px 8px;
   border-radius: var(--radius-sm);
   font-size: 11px;
@@ -626,7 +626,7 @@
 
 .questions-stats .unanswered {
   background: var(--warning);
-  color: #1a1a1a;
+  color: var(--bg-dark);
   font-weight: 500;
 }
 
@@ -691,7 +691,7 @@
 .question-button {
   padding: 8px 16px;
   background: var(--warning);
-  color: #1a1a1a;
+  color: var(--bg-dark);
   border: none;
   border-radius: var(--radius-sm);
   font-size: 14px;
@@ -701,7 +701,7 @@
 }
 
 .question-button:hover:not(:disabled) {
-  background: #e6a800;
+  background: var(--warning);
 }
 
 .question-button:disabled {
@@ -723,7 +723,7 @@
 }
 
 .answer-button:hover {
-  background: #157347;
+  background: var(--success);
 }
 
 .question-answer {

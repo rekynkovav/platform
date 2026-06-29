@@ -224,7 +224,7 @@
 
 .quality-button.active,
 .quality-button.active:disabled {
-  color: #fff;
+  color: white;
   background: var(--accent);
   border-color: var(--accent);
   cursor: default;

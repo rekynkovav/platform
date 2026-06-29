@@ -1,6 +1,6 @@
 /* Стили для улучшенного интерфейса Live трансляции */
 .enhanced-live-broadcast {
-    background: #1a1a1a;
+    background: var(--bg-dark);
     border-radius: 16px;
     padding: 24px;
     color: var(--text-primary);
@@ -17,7 +17,7 @@
     justify-content: space-between;
     align-items: flex-start;
     padding-bottom: 20px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--gray-700);
 }
 
 .header-left {
@@ -34,7 +34,7 @@
 }
 
 .live-badge {
-    background: #ef4444;
+    background: var(--danger-light);
     color: var(--text-primary);
     padding: 4px 12px;
     border-radius: 20px;
@@ -53,7 +53,7 @@
     display: flex;
     gap: 20px;
     font-size: 14px;
-    color: #aaa;
+    color: var(--gray-300);
 }
 
 .info-item {
@@ -65,7 +65,7 @@
 .end-broadcast-btn {
     padding: 10px 20px;
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: var(--danger-light);
     border: 1px solid rgba(239, 68, 68, 0.4);
     border-radius: 12px;
     font-size: 14px;
@@ -110,7 +110,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+    background: linear-gradient(135deg, var(--bg-darker), var(--bg-dark));
     padding: 40px;
 }
 
@@ -130,7 +130,7 @@
 
 .visualizer-bar {
     width: 8px;
-    background: #3b82f6;
+    background: var(--accent);
     border-radius: 4px;
     animation: audioWave 1.5s ease-in-out infinite;
 }
@@ -163,7 +163,7 @@
 
 .audio-text {
     font-size: 18px;
-    color: #aaa;
+    color: var(--gray-300);
 }
 
 .video-preview {
@@ -175,11 +175,11 @@
 
 .preview-text {
     font-size: 18px;
-    color: #aaa;
+    color: var(--gray-300);
 }
 
 .preview-placeholder {
-    background: #2a2a2a;
+    background: var(--bg-darker);
     border-radius: 12px;
     padding: 40px;
     display: flex;
@@ -194,12 +194,12 @@
 
 .streamer-name {
     font-size: 16px;
-    color: #aaa;
+    color: var(--gray-300);
 }
 
 .demo-notice {
     font-size: 14px;
-    color: #888;
+    color: var(--gray-400);
     font-style: italic;
     margin-top: 20px;
 }
@@ -209,13 +209,13 @@
     display: flex;
     gap: 12px;
     padding: 16px;
-    background: #2a2a2a;
-    border-top: 1px solid #333;
+    background: var(--bg-darker);
+    border-top: 1px solid var(--gray-700);
 }
 
 .player-control-btn {
     padding: 10px 20px;
-    background: #333;
+    background: var(--gray-700);
     color: var(--text-primary);
     border: none;
     border-radius: 8px;
@@ -228,7 +228,7 @@
 }
 
 .player-control-btn:hover {
-    background: #444;
+    background: var(--gray-600);
 }
 
 .volume-control {
@@ -236,13 +236,13 @@
     align-items: center;
     gap: 8px;
     margin-left: auto;
-    color: #aaa;
+    color: var(--gray-300);
 }
 
 .volume-control input[type="range"] {
     width: 100px;
     height: 4px;
-    background: #444;
+    background: var(--gray-600);
     border-radius: 2px;
     outline: none;
     -webkit-appearance: none;
@@ -252,7 +252,7 @@
     -webkit-appearance: none;
     width: 16px;
     height: 16px;
-    background: #3b82f6;
+    background: var(--accent);
     border-radius: 50%;
     cursor: pointer;
 }
@@ -265,7 +265,7 @@
 .settings-toggle-btn {
     padding: 10px 20px;
     background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    color: var(--accent);
     border: 1px solid rgba(59, 130, 246, 0.3);
     border-radius: 12px;
     font-size: 14px;
@@ -288,13 +288,13 @@
     bottom: 100%;
     left: 0;
     margin-bottom: 10px;
-    background: #2a2a2a;
+    background: var(--bg-darker);
     border-radius: 12px;
     padding: 20px;
     width: 320px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     z-index: 100;
-    border: 1px solid #333;
+    border: 1px solid var(--gray-700);
 }
 
 .settings-header {
@@ -313,7 +313,7 @@
 .close-settings-btn {
     background: transparent;
     border: none;
-    color: #aaa;
+    color: var(--gray-300);
     font-size: 20px;
     cursor: pointer;
     padding: 0;
@@ -335,7 +335,7 @@
 .settings-section h5 {
     margin: 0 0 12px 0;
     font-size: 14px;
-    color: #aaa;
+    color: var(--gray-300);
     font-weight: 500;
 }
 
@@ -348,9 +348,9 @@
 .quality-btn {
     flex: 1;
     padding: 8px 12px;
-    background: #333;
-    color: #aaa;
-    border: 1px solid #444;
+    background: var(--gray-700);
+    color: var(--gray-300);
+    border: 1px solid var(--gray-600);
     border-radius: 6px;
     font-size: 12px;
     cursor: pointer;
@@ -358,18 +358,18 @@
 }
 
 .quality-btn.active {
-    background: #3b82f6;
+    background: var(--accent);
     color: var(--text-primary);
-    border-color: #3b82f6;
+    border-color: var(--accent);
 }
 
 .quality-btn:hover:not(.active) {
-    border-color: #3b82f6;
+    border-color: var(--accent);
 }
 
 .current-quality {
     font-size: 12px;
-    color: #888;
+    color: var(--gray-400);
     text-align: center;
 }
 
@@ -386,15 +386,15 @@
     justify-content: space-between;
     align-items: center;
     font-size: 13px;
-    color: #aaa;
+    color: var(--gray-300);
 }
 
 .audio-controls select,
 .video-controls select {
     padding: 6px 12px;
-    border: 1px solid #444;
+    border: 1px solid var(--gray-600);
     border-radius: 6px;
-    background: #333;
+    background: var(--gray-700);
     color: var(--text-primary);
     font-size: 13px;
     min-width: 100px;
@@ -411,7 +411,7 @@
     align-items: center;
     gap: 8px;
     font-size: 13px;
-    color: #aaa;
+    color: var(--gray-300);
     cursor: pointer;
 }
 
@@ -422,7 +422,7 @@
 /* Чат */
 .chat-section {
     width: 320px;
-    background: #2a2a2a;
+    background: var(--bg-darker);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
@@ -434,7 +434,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--gray-700);
 }
 
 .chat-header h3 {
@@ -445,7 +445,7 @@
 
 .chat-count {
     font-size: 12px;
-    color: #aaa;
+    color: var(--gray-300);
 }
 
 .chat-messages {
@@ -458,7 +458,7 @@
 }
 
 .chat-message {
-    background: #333;
+    background: var(--gray-700);
     border-radius: 8px;
     padding: 12px;
 }
@@ -472,18 +472,18 @@
 
 .message-user {
     font-size: 13px;
-    color: #3b82f6;
+    color: var(--accent);
     font-weight: 500;
 }
 
 .message-time {
     font-size: 11px;
-    color: #888;
+    color: var(--gray-400);
 }
 
 .message-text {
     font-size: 14px;
-    color: #ddd;
+    color: var(--gray-200);
     line-height: 1.4;
 }
 
@@ -491,27 +491,27 @@
     display: flex;
     gap: 8px;
     padding: 16px;
-    border-top: 1px solid #333;
+    border-top: 1px solid var(--gray-700);
 }
 
 .chat-input input {
     flex: 1;
     padding: 10px 12px;
-    border: 1px solid #444;
+    border: 1px solid var(--gray-600);
     border-radius: 8px;
-    background: #333;
+    background: var(--gray-700);
     color: var(--text-primary);
     font-size: 14px;
 }
 
 .chat-input input:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: var(--accent);
 }
 
 .chat-input button {
     padding: 10px 20px;
-    background: #3b82f6;
+    background: var(--accent);
     color: var(--text-primary);
     border: none;
     border-radius: 8px;
@@ -521,12 +521,12 @@
 }
 
 .chat-input button:hover {
-    background: #2563eb;
+    background: var(--accent);
 }
 
 /* Статистика */
 .stats-section {
-    background: #2a2a2a;
+    background: var(--bg-darker);
     border-radius: 12px;
     padding: 20px;
 }
@@ -544,7 +544,7 @@
 }
 
 .stat-card {
-    background: #333;
+    background: var(--gray-700);
     border-radius: 8px;
     padding: 20px;
     text-align: center;
@@ -566,7 +566,7 @@
 
 .stat-label {
     font-size: 12px;
-    color: #aaa;
+    color: var(--gray-300);
 }
 
 /* Адаптивность */

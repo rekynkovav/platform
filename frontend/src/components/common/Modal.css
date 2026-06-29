@@ -81,12 +81,12 @@
 }
 
 .modal-btn.confirm {
-    background: #ef4444;
+    background: var(--danger-light);
     color: white;
 }
 
 .modal-btn.confirm:hover {
-    background: #dc2626;
+    background: var(--danger);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
@@ -121,4 +121,10 @@
         transform: translateY(0);
         opacity: 1;
     }
+}
+
+/* Wide variant for content-heavy modals (EventsHub, etc.) */
+.modal-content.wide {
+    max-width: 550px;
+    max-height: 85vh;
 }

@@ -14,14 +14,14 @@
     align-items: center;
     margin-bottom: 24px;
     padding-bottom: 16px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .simple-header h2 {
     margin: 0;
     font-size: 24px;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--gray-800);
 }
 
 .simple-status {
@@ -31,7 +31,7 @@
 }
 
 .status-badge {
-    background: #dc2626;
+    background: var(--danger);
     color: white;
     padding: 4px 12px;
     border-radius: 12px;
@@ -46,7 +46,7 @@
 }
 
 .viewer-count {
-    color: #6b7280;
+    color: var(--gray-500);
     font-size: 14px;
 }
 
@@ -55,7 +55,7 @@
 }
 
 .player-placeholder {
-    background: #1f2937;
+    background: var(--gray-800);
     border-radius: 12px;
     aspect-ratio: 16 / 9;
     display: flex;
@@ -81,11 +81,11 @@
 .demo-notice {
     margin-top: 16px;
     font-size: 14px;
-    color: #9ca3af;
+    color: var(--gray-400);
 }
 
 .simple-chat {
-    background: #f9fafb;
+    background: var(--gray-50);
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 16px;
@@ -101,11 +101,11 @@
 .chat-header h3 {
     margin: 0;
     font-size: 16px;
-    color: #1f2937;
+    color: var(--gray-800);
 }
 
 .chat-count {
-    color: #6b7280;
+    color: var(--gray-500);
     font-size: 13px;
 }
 
@@ -117,7 +117,7 @@
 
 .message {
     padding: 8px 0;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .message:last-child {
@@ -126,12 +126,12 @@
 
 .message .user {
     font-weight: 600;
-    color: #4f46e5;
+    color: var(--accent-indigo);
     margin-right: 8px;
 }
 
 .message .text {
-    color: #374151;
+    color: var(--gray-700);
 }
 
 .chat-input {
@@ -142,14 +142,14 @@
 .chat-input input {
     flex: 1;
     padding: 8px 12px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--gray-200);
     border-radius: 8px;
     font-size: 14px;
 }
 
 .chat-input button {
     padding: 8px 16px;
-    background: #4f46e5;
+    background: var(--accent-indigo);
     color: white;
     border: none;
     border-radius: 8px;
@@ -157,7 +157,7 @@
 }
 
 .simple-controls {
-    background: #f9fafb;
+    background: var(--gray-50);
     border-radius: 12px;
     padding: 16px;
 }
@@ -165,7 +165,7 @@
 .simple-controls h3 {
     margin: 0 0 12px 0;
     font-size: 16px;
-    color: #1f2937;
+    color: var(--gray-800);
 }
 
 .controls-grid {
@@ -177,7 +177,7 @@
 .control-btn {
     padding: 10px 16px;
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--gray-200);
     border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
@@ -185,11 +185,11 @@
 }
 
 .control-btn:hover {
-    background: #f3f4f6;
+    background: var(--gray-100);
 }
 
 .simple-stats {
-    background: #f9fafb;
+    background: var(--gray-50);
     border-radius: 12px;
     padding: 16px;
     margin-top: 16px;
@@ -198,7 +198,7 @@
 .simple-stats h3 {
     margin: 0 0 12px 0;
     font-size: 16px;
-    color: #1f2937;
+    color: var(--gray-800);
 }
 
 .stats-grid {
@@ -213,14 +213,14 @@
 
 .stat-label {
     font-size: 12px;
-    color: #6b7280;
+    color: var(--gray-500);
     margin-bottom: 4px;
 }
 
 .stat-value {
     font-size: 24px;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--gray-800);
 }
 
 /* Responsive */
@@ -244,37 +244,37 @@
 /* Dark theme */
 @media (prefers-color-scheme: dark) {
     .live-broadcast-simple {
-        background: #1f2937;
+        background: var(--gray-800);
     }
 
     .simple-header {
-        border-bottom-color: #374151;
+        border-bottom-color: var(--gray-700);
     }
 
     .simple-header h2 {
-        color: #f3f4f6;
+        color: var(--gray-100);
     }
 
     .simple-chat {
-        background: #111827;
+        background: var(--gray-900);
     }
 
     .simple-controls,
     .simple-stats {
-        background: #111827;
+        background: var(--gray-900);
     }
 
     .control-btn {
-        background: #374151;
-        border-color: #4b5563;
-        color: #d1d5db;
+        background: var(--gray-700);
+        border-color: var(--gray-600);
+        color: var(--gray-300);
     }
 
     .control-btn:hover {
-        background: #4b5563;
+        background: var(--gray-600);
     }
 
     .stat-value {
-        color: #f3f4f6;
+        color: var(--gray-100);
     }
 }

@@ -32,7 +32,7 @@
 .header-logo {
     font-size: 22px;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    background: linear-gradient(135deg, var(--accent), var(--accent-purple));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin: 0;
@@ -74,7 +74,7 @@
     padding: 6px 14px;
     border-radius: 20px;
     cursor: pointer;
-    background: var(--accent, #0d6efd);
+    background: var(--accent, var(--accent));
     border: none;
     color: white;
     font-size: 14px;
@@ -95,7 +95,7 @@
 .header-profile-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(13, 110, 253, 0.35);
-    background: #0a58ca;
+    background: var(--accent);
 }
 
 .main-content {
@@ -104,7 +104,7 @@
 
 /* Уведомление о недоступности */
 .access-denied-message {
-    background: linear-gradient(135deg, #7f1d1d, #6b1515);
+    background: linear-gradient(135deg, var(--danger-dark), var(--danger-dark));
     color: white;
     padding: 16px 32px;
     border-radius: 12px;
@@ -181,7 +181,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--accent-indigo) 0%, var(--accent-purple) 100%);
     z-index: 10000;
 }
 
@@ -197,12 +197,12 @@
 .loading-screen .login-container p {
     margin-bottom: 28px;
     font-size: 20px;
-    color: #333;
+    color: var(--gray-700);
 }
 
 .loading-screen .login-btn {
     padding: 14px 36px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--accent-indigo) 0%, var(--accent-purple) 100%);
     color: white;
     border: none;
     border-radius: 40px;

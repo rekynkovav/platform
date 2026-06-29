@@ -59,40 +59,6 @@
     z-index: 1001;
 }
 
-.modal-container {
-    background: var(--bg-primary);
-    border-radius: 16px;
-    width: 90%;
-    max-width: 550px;
-    max-height: 85vh;
-    overflow-y: auto;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border);
-}
-
-.modal-header h3 {
-    margin: 0;
-    font-size: 18px;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: var(--text-secondary);
-}
-
-.modal-body {
-    padding: 24px;
-}
-
 .material-title-input,
 .material-content-input,
 .feedback-input {
@@ -149,9 +115,9 @@
 }
 
 .mic-button.recording {
-    background: #ef4444;
+    background: var(--danger-light);
     color: white;
-    border-color: #ef4444;
+    border-color: var(--danger-light);
     animation: pulse 1s infinite;
 }
 
@@ -200,8 +166,8 @@
 .publish-btn {
     width: 100%;
     padding: 12px;
-    background: #86efac;
-    color: #166534;
+    background: var(--success);
+    color: var(--success);
     border: none;
     border-radius: 8px;
     font-size: 14px;
@@ -212,7 +178,7 @@
 }
 
 .publish-btn:hover {
-    background: #6ee7b7;
+    background: var(--success);
     transform: translateY(-1px);
 }
 
@@ -301,7 +267,7 @@
 }
 
 .special-badge {
-    background: #ef4444;
+    background: var(--danger-light);
 }
 
 /* Выпадающее меню */
@@ -402,12 +368,12 @@
 }
 
 .feedback-btn {
-    border-color: #14b8a6;
+    border-color: var(--success);
 }
 
 .feedback-btn:hover {
-    background: #14b8a6;
-    border-color: #14b8a6;
+    background: var(--success);
+    border-color: var(--success);
 }
 
 .admin-notice {
@@ -500,20 +466,20 @@
 }
 
 .cancel-btn {
-    background: #fca5a5;
-    color: #991b1b;
-    border: 1px solid #f87171;
+    background: var(--danger-light);
+    color: var(--danger-dark);
+    border: 1px solid var(--danger-light);
 }
 
 .cancel-btn:hover {
-    background: #f87171;
+    background: var(--danger-light);
 }
 
 .delete-confirm-btn {
-    background: #ef4444;
+    background: var(--danger-light);
     color: white;
 }
 
 .delete-confirm-btn:hover {
-    background: #dc2626;
+    background: var(--danger);
 }

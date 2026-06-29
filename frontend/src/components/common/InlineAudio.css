@@ -38,7 +38,7 @@
 
 .inline-stop-btn:hover {
     transform: scale(1.05);
-    background: #c82333;
+    background: var(--danger);
 }
 
 .inline-progress {

@@ -118,7 +118,7 @@
 }
 
 .play-audio-btn {
-    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    background: linear-gradient(135deg, var(--accent), var(--accent-purple));
     color: white;
     border: none;
     padding: 10px 20px;
@@ -208,11 +208,11 @@
 }
 
 .modal-btn.confirm.publish {
-    background: var(--success, #10b981);
+    background: var(--success, var(--success));
 }
 
 .modal-btn.confirm.publish:hover {
-    background: #059669;
+    background: var(--success);
 }
 
 .publish-btn:hover {
@@ -234,7 +234,7 @@
 }
 
 .notification-content {
-    background: linear-gradient(135deg, var(--success), #00b894);
+    background: linear-gradient(135deg, var(--success), var(--success));
     border-radius: 16px;
     padding: 12px 20px;
     display: flex;
@@ -314,13 +314,13 @@
 }
 
 .mic-button:hover {
-    background: #ef4444;
+    background: var(--danger-light);
     color: white;
-    border-color: #ef4444;
+    border-color: var(--danger-light);
 }
 
 .mic-button.recording {
-    background: #ef4444;
+    background: var(--danger-light);
     color: white;
     animation: pulse 1s infinite;
 }
@@ -403,7 +403,7 @@
 }
 
 .delete-notification .notification-content {
-    background: #ef4444;
+    background: var(--danger-light);
     color: white;
     border-radius: 12px;
     padding: 12px 20px;
@@ -435,7 +435,7 @@
 }
 
 .warning-text {
-    color: #ef4444 !important;
+    color: var(--danger-light) !important;
     font-size: 13px !important;
     margin-top: 12px !important;
 }

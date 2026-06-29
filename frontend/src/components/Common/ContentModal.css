@@ -79,7 +79,7 @@
 }
 
 .content-modal-mic-button.recording {
-    background: #dc3545;
+    background: var(--danger);
     animation: pulse 1.5s infinite;
 }
 
@@ -172,7 +172,7 @@
 }
 
 .content-modal-btn.save:hover {
-    background: #157347;
+    background: var(--success);
     transform: translateY(-2px);
 }
 

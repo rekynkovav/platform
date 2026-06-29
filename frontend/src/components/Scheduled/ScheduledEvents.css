@@ -366,7 +366,7 @@
 }
 
 .delete-notification .notification-content {
-    background: #ef4444;
+    background: var(--danger-light);
     color: white;
     border-radius: 12px;
     padding: 12px 20px;
@@ -434,7 +434,7 @@
 }
 
 .warning-text {
-    color: #ef4444 !important;
+    color: var(--danger-light) !important;
     font-size: 13px !important;
     margin-top: 12px !important;
 }
@@ -451,7 +451,7 @@
 }
 
 .delete-notification .notification-content {
-    background: #ef4444;
+    background: var(--danger-light);
     color: white;
     border-radius: 12px;
     padding: 12px 20px;

@@ -43,7 +43,7 @@
     transform: translateX(-50%) scaleX(0);
     width: 80%;
     height: 3px;
-    background: linear-gradient(90deg, var(--accent), #8b5cf6);
+    background: linear-gradient(90deg, var(--accent), var(--accent-purple));
     border-radius: 3px 3px 0 0;
     transition: transform 0.3s ease;
 }
@@ -80,17 +80,17 @@
 
 .nav-tab-half.nutrition { border-right: 1px solid var(--border); }
 .nav-tab-half.nutrition:hover { background: rgba(25, 135, 84, 0.15); color: var(--text-primary); }
-.nav-tab-half.nutrition.active { background: rgba(25, 135, 84, 0.2); color: #198754; }
+.nav-tab-half.nutrition.active { background: rgba(25, 135, 84, 0.2); color: var(--success); }
 
 .nav-tab-half.news:hover { background: rgba(139, 92, 246, 0.15); color: var(--text-primary); }
-.nav-tab-half.news.active { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+.nav-tab-half.news.active { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
 
 .nav-tab-half.chat-user1 { border-right: 1px solid var(--border); }
 .nav-tab-half.chat-user1:hover { background: rgba(59, 130, 246, 0.15); color: var(--text-primary); }
-.nav-tab-half.chat-user1.active { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+.nav-tab-half.chat-user1.active { background: rgba(59, 130, 246, 0.2); color: var(--accent); }
 
 .nav-tab-half.chat-nutrition:hover { background: rgba(25, 135, 84, 0.15); color: var(--text-primary); }
-.nav-tab-half.chat-nutrition.active { background: rgba(25, 135, 84, 0.2); color: #198754; }
+.nav-tab-half.chat-nutrition.active { background: rgba(25, 135, 84, 0.2); color: var(--success); }
 
 .nav-tab-half.active::after {
     content: '';

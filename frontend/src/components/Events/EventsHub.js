@@ -3,6 +3,7 @@ import { getUsername } from '../../keycloak';
 import { usePermissions } from '../../hooks/usePermissions';
 import { eventsApi, feedbackApi } from '../../services/api';
 import './EventsHub.css';
+import '../common/Modal.css';
 
 /**
  * EventsHub — content management hub for platform sections (About, Important Materials, etc.).
@@ -374,7 +375,7 @@ const EventsHub = () => {
             {/* Модальное окно добавления материала */}
             {showAddForm && isAdmin && (
                 <div className="add-material-modal">
-                    <div className="modal-container">
+                    <div className="modal-content">
                         <div className="modal-header">
                             <h3>{editingMaterial ? 'Редактировать материал' : `Добавить материал в раздел "${menuItems.find(m => m.id === activeMenu)?.title}"`}</h3>
                             <button className="modal-close" onClick={() => {
@@ -459,7 +460,7 @@ const EventsHub = () => {
             {/* Модальное окно для отзыва/предложения */}
             {showFeedbackForm && (
                 <div className="add-material-modal">
-                    <div className="modal-container">
+                    <div className="modal-content">
                         <div className="modal-header">
                             <h3>Ваш отзыв или предложение</h3>
                             <button className="modal-close" onClick={() => {
@@ -629,7 +630,7 @@ const EventsHub = () => {
             {/* Модальное окно подтверждения удаления */}
             {showDeleteConfirm && (
                 <div className="add-material-modal">
-                    <div className="modal-container delete-confirm">
+                    <div className="modal-content delete-confirm">
                         <div className="modal-header">
                             <h3>Подтверждение удаления</h3>
                         </div>

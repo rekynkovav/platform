@@ -163,13 +163,13 @@
 .notification-title {
     font-size: 13px;
     font-weight: 600;
-    color: #ffffff;
+    color: white;
     margin-bottom: 4px;
 }
 
 .notification-message {
     font-size: 12px;
-    color: #ffffff;
+    color: white;
     margin-bottom: 4px;
     line-height: 1.4;
 }

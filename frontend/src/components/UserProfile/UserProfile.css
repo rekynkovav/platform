@@ -53,7 +53,7 @@
     margin-top: 16px;
     padding: 16px;
     background: rgba(255, 193, 7, 0.1);
-    border-left: 4px solid #ffc107;
+    border-left: 4px solid var(--warning);
     border-radius: 8px;
 }
 
@@ -105,7 +105,7 @@
 }
 
 .period-card.selected {
-    border-color: #0d6efd;
+    border-color: var(--accent);
     background: rgba(13, 110, 253, 0.05);
 }
 
@@ -113,7 +113,7 @@
     position: absolute;
     top: -10px;
     right: 10px;
-    background: #dc3545;
+    background: var(--danger);
     color: white;
     padding: 4px 12px;
     border-radius: 12px;
@@ -131,7 +131,7 @@
 .period-price {
     font-size: 28px;
     font-weight: 700;
-    color: #0d6efd;
+    color: var(--accent);
     margin-bottom: 4px;
 }
 
@@ -143,14 +143,14 @@
 
 .period-savings {
     font-size: 12px;
-    color: #28a745;
+    color: var(--success);
     font-weight: 600;
 }
 
 .payment-button {
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%);
     color: white;
     border: none;
     border-radius: 12px;
@@ -283,7 +283,7 @@
 
 .bank-details-note {
     background: rgba(255, 193, 7, 0.1);
-    border-left: 4px solid #ffc107;
+    border-left: 4px solid var(--warning);
     padding: 12px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -291,7 +291,7 @@
 }
 
 .bank-details-note strong {
-    color: #dc3545;
+    color: var(--danger);
     font-family: monospace;
 }
 
@@ -344,7 +344,7 @@
 }
 
 .check-payment-btn {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, var(--success) 0%, var(--success) 100%);
     color: white;
 }
 
@@ -759,7 +759,7 @@
 .save-btn {
     flex: 1;
     padding: 14px;
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, var(--success) 0%, var(--success) 100%);
     color: white;
     border: none;
     border-radius: 10px;
@@ -901,7 +901,7 @@
 }
 
 .avatar-remove-btn:hover {
-    background: #dc3545;
+    background: var(--danger);
     transform: translateY(-2px);
 }
 
