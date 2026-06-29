@@ -401,7 +401,6 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     await navigator.clipboard.writeText(text);
     return true;
   } catch (err) {
-    console.error('Ошибка копирования в буфер обмена:', err);
 
     // Fallback для старых браузеров
     try {

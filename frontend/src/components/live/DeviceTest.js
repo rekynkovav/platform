@@ -83,7 +83,6 @@ const DeviceTest = ({ onTestComplete, onCancel }) => {
             }
 
         } catch (error) {
-            console.error('Ошибка получения устройств:', error);
             setError('Не удалось получить доступ к устройствам. Проверьте разрешения.');
         }
     };
@@ -128,7 +127,6 @@ const DeviceTest = ({ onTestComplete, onCancel }) => {
                 videoRef.current.srcObject = stream;
                 setVideoPreview(stream);
             } catch (error) {
-                console.error('Ошибка запуска видео:', error);
                 setError('Не удалось запустить видео. Проверьте доступ к камере.');
             }
         }
@@ -145,7 +143,6 @@ const DeviceTest = ({ onTestComplete, onCancel }) => {
                 initAudioAnalyzer(stream);
                 setAudioPreview(stream);
             } catch (error) {
-                console.error('Ошибка запуска аудио:', error);
                 setError('Не удалось запустить аудио. Проверьте доступ к микрофону.');
             }
         }
@@ -210,7 +207,6 @@ const DeviceTest = ({ onTestComplete, onCancel }) => {
             }, 1000);
 
         } catch (error) {
-            console.error('Ошибка записи:', error);
             setError('Не удалось начать запись. Проверьте доступ к устройствам.');
         }
     };

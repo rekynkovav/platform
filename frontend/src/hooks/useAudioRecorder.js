@@ -61,7 +61,6 @@ const useAudioRecorder = () => {
                 setRecordingTime(prev => prev + 1);
             }, 1000);
         } catch (err) {
-            console.error('Ошибка доступа к микрофону:', err);
             throw err; // пробрасываем, чтобы компонент мог обработать
         }
     }, [clearTimer, stopTracks]);

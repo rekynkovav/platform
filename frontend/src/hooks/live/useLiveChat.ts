@@ -133,7 +133,6 @@ export function useLiveChat(broadcastId?: string) {
       await sendMessage(messageContent, type);
       setNewMessage('');
     } catch (error) {
-      console.error('[useLiveChat] Ошибка отправки сообщения:', error);
     } finally {
       setIsSending(false);
     }
@@ -146,7 +145,6 @@ export function useLiveChat(broadcastId?: string) {
     try {
       await sendReaction(emoji);
     } catch (error) {
-      console.error('[useLiveChat] Ошибка отправки реакции:', error);
     }
   }, [broadcastId, sendReaction]);
 
@@ -230,7 +228,6 @@ export function useLiveChat(broadcastId?: string) {
   // Очистка чата (для админов)
   const clearChat = useCallback(() => {
     if (!liveSession.isAdmin && !liveSession.isModerator) {
-      console.warn('[useLiveChat] Недостаточно прав для очистки чата');
       return;
     }
 
@@ -242,7 +239,6 @@ export function useLiveChat(broadcastId?: string) {
   // Закрепление сообщения (для модераторов)
   const pinMessage = useCallback((messageId: string) => {
     if (!liveSession.isAdmin && !liveSession.isModerator) {
-      console.warn('[useLiveChat] Недостаточно прав для закрепления сообщения');
       return;
     }
 
@@ -252,7 +248,6 @@ export function useLiveChat(broadcastId?: string) {
   // Удаление сообщения (для модераторов)
   const deleteMessage = useCallback((messageId: string) => {
     if (!liveSession.isAdmin && !liveSession.isModerator) {
-      console.warn('[useLiveChat] Недостаточно прав для удаления сообщения');
       return;
     }
 
@@ -341,7 +336,6 @@ export function useLiveReactions(broadcastId?: string) {
     try {
       await sendReaction(emoji);
     } catch (error) {
-      console.error('[useLiveReactions] Ошибка отправки реакции:', error);
     }
   }, [broadcastId, sendReaction]);
 
@@ -360,7 +354,6 @@ export function useLiveReactions(broadcastId?: string) {
   // Сброс всех реакций (для админов)
   const resetReactions = useCallback(() => {
     if (!liveSession.isAdmin && !liveSession.isModerator) {
-      console.warn('[useLiveReactions] Недостаточно прав для сброса реакций');
       return;
     }
 

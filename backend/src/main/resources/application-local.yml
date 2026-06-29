@@ -1,0 +1,50 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+    allow-circular-references: true
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/platform_db}
+    username: ${DB_USERNAME:platform_user}
+    password: ${DB_PASSWORD:platform_pass_2026}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+
+  liquibase:
+    enabled: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis_pass}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/auth/realms/platform}
+
+bucket4j:
+  enabled: false
+
+server:
+  port: 8081
+
+keycloak:
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8080/auth}
+  realm: ${KEYCLOAK_REALM:platform}
+  resource: ${KEYCLOAK_RESOURCE:platform-backend}
+  credentials:
+    secret: ${KEYCLOAK_SECRET:dev-dummy-secret}
+
+logging:
+  level:
+    com.platform: DEBUG

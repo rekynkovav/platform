@@ -5,6 +5,7 @@ import { getUsername, getUserId } from '../../keycloak';
 import { usePermissions } from '../../hooks/usePermissions';
 import { chatApi } from '../../services/api';
 import './Questions.css';
+import '../common/Modal.css';
 
 /**
  * Questions — Q&A interface for asking and answering questions in different categories.
@@ -86,7 +87,6 @@ const Questions = () => {
             const data = await chatApi.getQuestionsDto(questionMode);
             setQuestions(sortQuestions(data || []));
         } catch (err) {
-            console.error('Failed to load questions:', err);
 
             let errorMessage = 'Не удалось загрузить вопросы';
             if (err.response?.status === 401) {
@@ -153,7 +153,6 @@ const Questions = () => {
             setNewQuestion('');
             showQuestionSentNotification();
         } catch (err) {
-            console.error('Failed to send question:', err);
 
             let errorMessage = 'Ошибка отправки вопроса';
             if (err.response?.status === 401) {
@@ -231,7 +230,6 @@ const Questions = () => {
             setShowAnswerConfirm(false);
             setPendingAnswerData(null);
         } catch (err) {
-            console.error('Failed to send answer:', err);
 
             let errorMessage = 'Ошибка отправки ответа';
             if (err.response?.status === 401) {
@@ -291,7 +289,6 @@ const Questions = () => {
             setShowDeleteConfirm(false);
             setQuestionToDelete(null);
         } catch (err) {
-            console.error('Failed to delete question:', err);
 
             let errorMessage = 'Ошибка удаления вопроса';
             if (err.response?.status === 401) {
@@ -335,7 +332,6 @@ const Questions = () => {
             await loadQuestions();
             setShowBulkDeleteConfirm(false);
         } catch (err) {
-            console.error('Failed to archive questions:', err);
 
             let errorMessage = 'Ошибка архивации';
             if (err.response?.status === 401) {
@@ -540,17 +536,6 @@ const Questions = () => {
 
             <div className="help-header">
                 <h2>Вопросы и ответы</h2>
-                <div className="help-subtitle">
-                    <small>💡 Система вопросов подготовлена для интеграции с бэкендом. В бэкенде уже есть 3 комнаты:</small>
-                    <div className="room-info">
-                        {questionRooms.map(room => (
-                            <div key={room.slug} className="room-badge">
-                                <span className="room-slug">{room.slug}</span>
-                                <span className="room-name">{room.name}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
 
                 {/* Переключатель для выбора комнаты вопросов */}
                 <div className="mode-section">
@@ -604,9 +589,6 @@ const Questions = () => {
                             <span className="room-indicator">
                                 {questionRooms.find(r => r.mode === questionMode)?.name || 'Общие вопросы'}
                             </span>
-                            <small className="room-slug-hint">
-                                (комната в бэкенде: <code>{questionRooms.find(r => r.mode === questionMode)?.slug || 'questions-general'}</code>)
-                            </small>
                         </div>
                         <p>
                             {questionMode === 'general' && 'Напишите свой вопрос в общий раздел. Ответят администраторы или другие пользователи.'}
@@ -642,11 +624,6 @@ const Questions = () => {
                                 : `📋 Мои вопросы (${questions.length})`
                             }
                         </h3>
-                        <div className="backend-info">
-                            <small>🔧 Для интеграции с бэкендом использовать:</small>
-                            <code className="api-endpoint">GET /api/chat/questions/{questionMode}</code>
-                            <code className="api-endpoint">POST /api/chat/questions/{questionMode}</code>
-                        </div>
                     </div>
                     {/* Кнопка очистки для админов */}
                     {(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) && answeredCount > 0 && (

@@ -6,6 +6,7 @@ import ConfirmModal from '../common/ConfirmModal';
 import usePostAudioControls from '../../hooks/usePostAudioControls';
 import fallbackPosts from '../../constants/fallbackPosts';
 import './MainFeed.css';
+import '../common/Modal.css';
 
 /**
  * MainFeed — the primary news feed component for the "Лента Новостей" tab.
@@ -26,7 +27,6 @@ const MainFeed = () => {
     const [showAddForm, setShowAddForm] = useState(false);
     const [error, setError] = useState(null);
     const feedEndRef = useRef(null);
-    const addFormRef = useRef(null);
     const [activeAudioPostId, setActiveAudioPostId] = useState(null);
     const blobUrlsRef = useRef([]);
 
@@ -119,7 +119,6 @@ const MainFeed = () => {
                 setLoadingMore(false);
             }
         } catch (err) {
-            console.error('Failed to load feed:', err);
             setError('Не удалось загрузить ленту');
             if (reset) {
                 setPosts(fallbackPosts);
@@ -138,15 +137,7 @@ const MainFeed = () => {
         }
     }, [posts]);
 
-    useEffect(() => {
-        if (showAddForm && addFormRef.current) {
-            setTimeout(() => {
-                if (addFormRef.current) {
-                    addFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }, 100);
-        }
-    }, [showAddForm]);
+    // Forms are now modals — no scrollIntoView needed
 
     // Функция для определения типа файла
     const getFileType = (file) => {
@@ -250,7 +241,6 @@ const MainFeed = () => {
                 }
             }, 100);
         } catch (error) {
-            console.error('Ошибка при создании поста:', error);
             alert('Не удалось создать пост. Попробуйте снова.');
         }
     };
@@ -290,7 +280,6 @@ const MainFeed = () => {
             setShowDeleteConfirm(false);
             setPostToDelete(null);
         } catch (error) {
-            console.error('Ошибка при удалении поста:', error);
             alert('Не удалось удалить пост. Попробуйте снова.');
         }
     };
@@ -352,7 +341,6 @@ const MainFeed = () => {
             blobUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
             blobUrlsRef.current = [];
         } catch (err) {
-            console.error('Failed to update post:', err);
             alert('Не удалось обновить запись');
         }
     };
@@ -397,7 +385,6 @@ const MainFeed = () => {
                 document.body.removeChild(a);
             }
         } catch (error) {
-            console.error('Ошибка при скачивании:', error);
             setError('Не удалось скачать файл');
         }
     };
@@ -442,6 +429,7 @@ const MainFeed = () => {
             <div className="feed-container">
                 <div className="feed-list">
                     {posts.map((post) => (
+
                         <div key={post.id} className="feed-post">
                             <div className="post-header">
                                 <div className="post-title">{post.title}</div>
@@ -543,114 +531,136 @@ const MainFeed = () => {
                             )}
                         </div>
                     ))}
+                    <div ref={feedEndRef} />
                 </div>
-
-                {isAdmin && (
-                    <div className="admin-panel" ref={addFormRef}>
-                        <button className="create-post-btn" onClick={handleAddPost}>
-                            ➕ Добавить запись
-                        </button>
-                    </div>
-                )}
-
-                {showAddForm && (
-                    <div className="add-post-form">
-                        <h3>Новая запись</h3>
-                        <input
-                            type="text"
-                            placeholder="Заголовок"
-                            value={newPost.title}
-                            onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
-                        />
-                        <textarea
-                            placeholder="Текст (для аудио/видео описание)"
-                            value={newPost.content}
-                            onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                        />
-                        <div className="media-upload-section">
-                            <label className="file-upload-label">
-                                📁 Загрузить файл
-                                <input
-                                    type="file"
-                                    accept="audio/*,video/*,image/*"
-                                    onChange={handleFileUpload}
-                                    style={{ display: 'none' }}
-                                />
-                            </label>
-                            <button
-                                className={`mic-btn ${isRecording ? 'recording' : ''}`}
-                                onClick={isRecording ? handleStopRecording : handleStartRecording}
-                            >
-                                {isRecording ? '⏹️ Остановить запись' : '🎤 Записать аудио'}
-                            </button>
-                        </div>
-                        {isRecording && (
-                            <div className="recording-indicator">
-                                <span className="recording-dot">🔴</span>
-                                <span className="recording-time">{formatRecordingTime(recordingTime)}</span>
-                            </div>
-                        )}
-                        {newPost.url && (
-                            <div className="attached-file">
-                                <span className="file-info">
-                                    {newPost.type === 'audio' ? '🎵 Аудио' : newPost.type === 'video' ? '🎬 Видео' : '📷 Фото'} прикреплено
-                                </span>
-                            </div>
-                        )}
-                        <div className="form-buttons">
-                            <button className="publish-btn" onClick={handlePublishPost}>Опубликовать</button>
-                            <button className="cancel-btn" onClick={cancelAddPost}>Отмена</button>
-                        </div>
-                    </div>
-                )}
-
-                {showEditForm && (
-                    <div className="edit-post-form">
-                        <h3>Редактировать запись</h3>
-                        <input
-                            type="text"
-                            placeholder="Заголовок"
-                            value={newPost.title}
-                            onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
-                        />
-                        <textarea
-                            placeholder="Текст"
-                            value={newPost.content}
-                            onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                        />
-                        <div className="media-upload-section">
-                            <label className="file-upload-label">
-                                📁 Заменить файл
-                                <input
-                                    type="file"
-                                    accept="audio/*,video/*,image/*"
-                                    onChange={handleFileUpload}
-                                    style={{ display: 'none' }}
-                                />
-                            </label>
-                            <button
-                                className={`mic-btn ${isRecording ? 'recording' : ''}`}
-                                onClick={isRecording ? handleStopRecording : handleStartRecording}
-                            >
-                                {isRecording ? '⏹️ Остановить запись' : '🎤 Записать аудио'}
-                            </button>
-                        </div>
-                        {newPost.url && (
-                            <div className="attached-file">
-                                <span className="file-info">
-                                    {newPost.type === 'audio' ? '🎵 Аудио' : newPost.type === 'video' ? '🎬 Видео' : '📷 Фото'} прикреплено
-                                </span>
-                            </div>
-                        )}
-                        <div className="form-buttons">
-                            <button className="save-btn" onClick={handleSaveEditedPost}>Сохранить</button>
-                            <button className="cancel-btn" onClick={handleCancelEdit}>Отмена</button>
-                        </div>
-                    </div>
-                )}
-
-                <div ref={feedEndRef} />
             </div>
+
+            {/* Кнопка добавления — всегда внизу экрана */}
+            {isAdmin && (
+                <div className="admin-panel-sticky">
+                    <button className="create-post-btn" onClick={handleAddPost}>
+                        ➕ Добавить запись
+                    </button>
+                </div>
+            )}
+
+            {/* Модалка: Новая запись */}
+            {showAddForm && (
+                <div className="modal-overlay" onClick={cancelAddPost}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <span className="modal-icon">📝</span>
+                            <h3>Новая запись</h3>
+                        </div>
+                        <div className="modal-body">
+                            <input
+                                type="text"
+                                placeholder="Заголовок"
+                                value={newPost.title}
+                                onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                                className="form-input"
+                            />
+                            <textarea
+                                placeholder="Текст (для аудио/видео описание)"
+                                value={newPost.content}
+                                onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                                className="form-textarea"
+                                rows="4"
+                            />
+                            <div className="media-upload-section">
+                                <label className="file-upload-label">
+                                    📁 Загрузить файл
+                                    <input
+                                        type="file"
+                                        accept="audio/*,video/*,image/*"
+                                        onChange={handleFileUpload}
+                                        style={{ display: 'none' }}
+                                    />
+                                </label>
+                                <button
+                                    className={`mic-btn ${isRecording ? 'recording' : ''}`}
+                                    onClick={isRecording ? handleStopRecording : handleStartRecording}
+                                >
+                                    {isRecording ? '⏹️ Остановить запись' : '🎤 Записать аудио'}
+                                </button>
+                            </div>
+                            {isRecording && (
+                                <div className="recording-indicator">
+                                    <span className="recording-dot">🔴</span>
+                                    <span className="recording-time">{formatRecordingTime(recordingTime)}</span>
+                                </div>
+                            )}
+                            {newPost.url && (
+                                <div className="attached-file">
+                                    <span className="file-info">
+                                        {newPost.type === 'audio' ? '🎵 Аудио' : newPost.type === 'video' ? '🎬 Видео' : '📷 Фото'} прикреплено
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer">
+                            <button className="modal-btn cancel" onClick={cancelAddPost}>Отмена</button>
+                            <button className="modal-btn confirm publish" onClick={handlePublishPost}>Опубликовать</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Модалка: Редактировать запись */}
+            {showEditForm && (
+                <div className="modal-overlay" onClick={handleCancelEdit}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <span className="modal-icon">✏️</span>
+                            <h3>Редактировать запись</h3>
+                        </div>
+                        <div className="modal-body">
+                            <input
+                                type="text"
+                                placeholder="Заголовок"
+                                value={newPost.title}
+                                onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                                className="form-input"
+                            />
+                            <textarea
+                                placeholder="Текст"
+                                value={newPost.content}
+                                onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                                className="form-textarea"
+                                rows="4"
+                            />
+                            <div className="media-upload-section">
+                                <label className="file-upload-label">
+                                    📁 Заменить файл
+                                    <input
+                                        type="file"
+                                        accept="audio/*,video/*,image/*"
+                                        onChange={handleFileUpload}
+                                        style={{ display: 'none' }}
+                                    />
+                                </label>
+                                <button
+                                    className={`mic-btn ${isRecording ? 'recording' : ''}`}
+                                    onClick={isRecording ? handleStopRecording : handleStartRecording}
+                                >
+                                    {isRecording ? '⏹️ Остановить запись' : '🎤 Записать аудио'}
+                                </button>
+                            </div>
+                            {newPost.url && (
+                                <div className="attached-file">
+                                    <span className="file-info">
+                                        {newPost.type === 'audio' ? '🎵 Аудио' : newPost.type === 'video' ? '🎬 Видео' : '📷 Фото'} прикреплено
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer">
+                            <button className="modal-btn cancel" onClick={handleCancelEdit}>Отмена</button>
+                            <button className="modal-btn confirm publish" onClick={handleSaveEditedPost}>Сохранить</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

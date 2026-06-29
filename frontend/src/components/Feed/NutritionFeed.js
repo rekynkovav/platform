@@ -3,7 +3,7 @@ import { getUserRoles } from '../../keycloak';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAudioPlayer } from '../../context/AudioPlayerContext';
 import ContentModal from '../Common/ContentModal';
-import { feedApi } from '../../services/api';
+import { feedApi, dashboardApi } from '../../services/api';
 import './MainFeed.css';
 import './NutritionFeed.css';
 
@@ -231,7 +231,6 @@ const NutritionFeed = () => {
                 const data = await feedApi.getNutritionFeed();
                 setPosts(data);
             } catch (err) {
-                console.error('Failed to load nutrition feed:', err);
                 setError('Не удалось загрузить ленту питания');
                 // Fallback к демо-данным
                 const initialPosts = [
@@ -339,7 +338,6 @@ const NutritionFeed = () => {
                 stopTrack();
             }
         } catch (error) {
-            console.error('Ошибка удаления поста:', error);
             alert('Не удалось удалить запись');
         } finally {
             setShowDeleteConfirm(false);
@@ -406,7 +404,6 @@ const NutritionFeed = () => {
                 }
             }, 100);
         } catch (err) {
-            console.error('Failed to save post:', err);
             alert('Не удалось сохранить запись');
         }
     };
@@ -443,7 +440,6 @@ const NutritionFeed = () => {
                 document.body.removeChild(a);
             }
         } catch (error) {
-            console.error('Ошибка при скачивании:', error);
             setError('Не удалось скачать файл');
         }
     };
@@ -502,10 +498,9 @@ const NutritionFeed = () => {
     useEffect(() => {
         const loadMenuData = async () => {
             try {
-                const data = await nutritionApi.getMenuData();
+                const data = await dashboardApi.getMenuData();
                 setMenuData(data);
             } catch (err) {
-                console.error('Failed to load menu data:', err);
                 // Fallback для разработки
                 if (process.env.NODE_ENV === 'development') {
                     const initialData = {
@@ -523,9 +518,8 @@ const NutritionFeed = () => {
     const saveMenuData = useCallback(async (data) => {
         setMenuData(data);
         try {
-            await nutritionApi.saveMenuData(data);
+            await dashboardApi.saveMenuData(data);
         } catch (err) {
-            console.error('Failed to save menu data:', err);
             // Fallback для разработки
             if (process.env.NODE_ENV === 'development') {
                 if (process.env.NODE_ENV === 'development') {

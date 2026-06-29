@@ -3,6 +3,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { LiveBroadcast, BroadcastStatus, StreamQuality } from '../../services/live/types';
+import './BroadcastControls.css';
 import { useLiveBroadcast } from '../../hooks/live/useLiveBroadcast';
 import { useLiveSession } from '../../context/live/LiveSessionContext';
 import { mediaService } from '../../services/live';
@@ -83,7 +84,6 @@ export const BroadcastControls: React.FC<BroadcastControlsProps> = ({
         onStatusChange(newStatus);
       }
     } catch (error) {
-      console.error('[BroadcastControls] Ошибка изменения статуса:', error);
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +98,6 @@ export const BroadcastControls: React.FC<BroadcastControlsProps> = ({
       await startBroadcast(broadcast.title, broadcast.description);
       await updateStatus('live');
     } catch (error) {
-      console.error('[BroadcastControls] Ошибка начала трансляции:', error);
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +115,6 @@ export const BroadcastControls: React.FC<BroadcastControlsProps> = ({
     try {
       await stopBroadcast();
     } catch (error) {
-      console.error('[BroadcastControls] Ошибка остановки трансляции:', error);
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +144,6 @@ export const BroadcastControls: React.FC<BroadcastControlsProps> = ({
 
       setIsEditing(false);
     } catch (error) {
-      console.error('[BroadcastControls] Ошибка обновления трансляции:', error);
     } finally {
       setIsLoading(false);
     }
@@ -160,7 +157,6 @@ export const BroadcastControls: React.FC<BroadcastControlsProps> = ({
       const stream = mediaService.switchQuality(broadcast.id, quality);
       setSelectedQuality(quality);
     } catch (error) {
-      console.error('[BroadcastControls] Ошибка переключения качества:', error);
     }
   }, [canControl, broadcast.id]);
 

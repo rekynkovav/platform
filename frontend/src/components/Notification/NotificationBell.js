@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './NotificationBell.css';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getUserId, getUsername } from '../../keycloak';
@@ -13,6 +14,7 @@ import { getUserId, getUsername } from '../../keycloak';
  * @returns {JSX.Element} The notification bell button with unread badge and dropdown list
  */
 const NotificationBell = () => {
+    const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -27,7 +29,7 @@ const NotificationBell = () => {
         checkQuestionNotifications();
 
         const eventCheckInterval = setInterval(checkUpcomingEvents, 60000);
-        const questionCheckInterval = setInterval(checkQuestionNotifications, 2000);
+        const questionCheckInterval = setInterval(checkQuestionNotifications, 30000);
         window.addEventListener('storage', loadNotifications);
         window.addEventListener('newAdminReply', handleNewAdminReply);
 
@@ -67,7 +69,6 @@ const NotificationBell = () => {
                 setNotifications(parsed);
                 setUnreadCount(parsed.filter(n => !n.read).length);
             } catch (e) {
-                console.error('Ошибка загрузки уведомлений:', e);
                 localStorage.removeItem('userNotifications');
                 setNotifications([]);
                 setUnreadCount(0);
@@ -392,14 +393,11 @@ const NotificationBell = () => {
         markAsRead(notification.id);
 
         if (notification.type === 'event' && notification.eventId) {
-            const eventsTab = document.querySelector('[data-tab="scheduled"]');
-            if (eventsTab) eventsTab.click();
+            navigate('/scheduled');
         } else if (notification.type === 'admin-reply' && notification.questionId) {
-            const helpTab = document.querySelector('[data-tab="help"]');
-            if (helpTab) helpTab.click();
+            navigate('/help');
         } else if ((notification.type === 'new-question' || notification.type === 'new-answer') && notification.questionId) {
-            const helpTab = document.querySelector('[data-tab="help"]');
-            if (helpTab) helpTab.click();
+            navigate('/help');
         }
     };
 

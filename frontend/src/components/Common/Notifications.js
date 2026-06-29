@@ -93,7 +93,6 @@ const Notifications = () => {
                 setNotifications(mockNotifications);
                 setUnreadCount(mockNotifications.filter(n => !n.read).length);
             } catch (err) {
-                console.error('Failed to fetch notifications:', err);
                 setError('Не удалось загрузить уведомления');
             } finally {
                 setLoading(false);
@@ -131,7 +130,6 @@ const Notifications = () => {
             );
             setUnreadCount(prev => Math.max(0, prev - 1));
         } catch (err) {
-            console.error('Failed to mark notification as read:', err);
         }
     };
 
@@ -145,7 +143,6 @@ const Notifications = () => {
             );
             setUnreadCount(0);
         } catch (err) {
-            console.error('Failed to mark all notifications as read:', err);
         }
     };
 
@@ -160,7 +157,6 @@ const Notifications = () => {
                 return deletedNotif && !deletedNotif.read ? Math.max(0, prev - 1) : prev;
             });
         } catch (err) {
-            console.error('Failed to delete notification:', err);
         }
     };
 

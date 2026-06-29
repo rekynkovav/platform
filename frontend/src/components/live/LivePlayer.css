@@ -1,0 +1,498 @@
+/* LivePlayer.css — Styles for the HLS/DASH live streaming video player */
+
+/* ==============================
+   Container
+   ============================== */
+
+.live-player-container {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  background: #000;
+  border-radius: var(--radius);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  box-shadow: var(--shadow-lg);
+}
+
+/* ==============================
+   Video element
+   ============================== */
+
+.live-player-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+
+/* ==============================
+   Loading overlay
+   ============================== */
+
+.live-player-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  animation: fadeIn 0.2s ease;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: liveSpinnerRotate 0.8s linear infinite;
+}
+
+.loading-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
+}
+
+@keyframes liveSpinnerRotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==============================
+   Error overlay
+   ============================== */
+
+.live-player-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  padding: 24px;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.error-text {
+  font-size: 14px;
+  color: var(--danger);
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.error-retry {
+  margin-top: 4px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--accent);
+  border-radius: var(--radius-sm);
+  transition: background 0.2s, transform 0.15s;
+}
+
+.error-retry:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.error-retry:active {
+  transform: translateY(0);
+}
+
+/* ==============================
+   Stats overlay (dev only)
+   ============================== */
+
+.live-player-stats {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  z-index: 5;
+  min-width: 180px;
+  font-size: 12px;
+  font-family: 'SF Mono', 'Fira Code', monospace, var(--font-family);
+  animation: fadeIn 0.25s ease;
+}
+
+.stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+
+.stats-row + .stats-row {
+  border-top: 1px solid rgba(64, 64, 64, 0.5);
+  margin-top: 3px;
+  padding-top: 6px;
+}
+
+.stats-label {
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.stats-value {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ==============================
+   Quality controls
+   ============================== */
+
+.live-player-quality-controls {
+  position: absolute;
+  bottom: 72px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 5;
+}
+
+.quality-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.quality-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.quality-button {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.quality-button:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.quality-button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.quality-button:disabled {
+  cursor: default;
+}
+
+.quality-button.active,
+.quality-button.active:disabled {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  cursor: default;
+}
+
+/* ==============================
+   Player controls bar
+   ============================== */
+
+.live-player-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+  z-index: 5;
+}
+
+.control-btn,
+.control-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+
+.control-btn:hover,
+.control-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.control-btn:active,
+.control-button:active {
+  transform: scale(0.9);
+}
+
+/* ==============================
+   Fullscreen button
+   ============================== */
+
+.fullscreen-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-left: auto;
+  transition: background 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+
+.fullscreen-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.fullscreen-btn:active {
+  transform: scale(0.9);
+}
+
+/* ==============================
+   Volume control
+   ============================== */
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 80px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.2s;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(59, 130, 246, 0.4);
+  transition: transform 0.15s;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+.volume-slider::-moz-range-track {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  border: none;
+}
+
+/* ==============================
+   Quality selector (dropdown variant)
+   ============================== */
+
+.quality-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quality-selector:hover {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.15);
+}
+
+/* ==============================
+   Time display
+   ============================== */
+
+.time-display {
+  margin-left: auto;
+  margin-right: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-family: 'SF Mono', 'Fira Code', monospace, var(--font-family);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* ==============================
+   Broadcast info
+   ============================== */
+
+.live-player-info {
+  position: absolute;
+  bottom: 56px;
+  left: 12px;
+  right: 12px;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.broadcast-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.broadcast-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  margin-bottom: 6px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.broadcast-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stat-item {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+
+/* ==============================
+   Responsive adjustments
+   ============================== */
+
+@media (max-width: 640px) {
+  .live-player-stats {
+    font-size: 10px;
+    padding: 8px 10px;
+    min-width: 150px;
+  }
+
+  .live-player-quality-controls {
+    bottom: 64px;
+    right: 8px;
+  }
+
+  .quality-button {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .live-player-controls {
+    padding: 6px 8px;
+    gap: 2px;
+  }
+
+  .control-btn,
+  .control-button,
+  .fullscreen-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .volume-slider {
+    width: 60px;
+  }
+
+  .broadcast-title {
+    font-size: 14px;
+  }
+
+  .broadcast-description {
+    font-size: 12px;
+  }
+
+  .time-display {
+    font-size: 11px;
+  }
+}

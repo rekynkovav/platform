@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './NavTabs.css';
 
-/**
- * Path-to-tab mapping for determining which tab is active.
- */
 const PATH_TAB_MAP = {
     '/': 'main',
     '/nutrition': 'nutrition',
@@ -14,32 +11,16 @@ const PATH_TAB_MAP = {
     '/live': 'broadcast-live',
     '/chat': 'chat',
     '/chat/nutrition': 'chat-nutrition',
-    '/chat/user2': 'chat-user2',
     '/help': 'help',
     '/profile': 'profile',
     '/events': 'events',
 };
 
-/**
- * NavTabs — horizontal navigation bar with support for split (dropdown) tabs.
- *
- * Uses React Router (useNavigate + useLocation) for URL-based navigation.
- * Renders the main set of navigation tabs for the platform:
- * - "Лента Новостей" (News Feed) — splits into "Питание" / "Новости" on hover
- * - "Трансляции" (Broadcasts)
- * - "События" (Events)
- * - "Навигация" (Dashboard)
- * - "Чат" (Chat) — splits into "Основной" / "Питание" on hover
- * - "Помощь" (Help)
- *
- * @component
- */
 const NavTabs = () => {
     const [hoveredTab, setHoveredTab] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
-
-    // Determine active tab from current URL path
+    const navRef = useRef(null);
     const activeTab = PATH_TAB_MAP[location.pathname] || 'main';
 
     const tabs = [
@@ -51,36 +32,35 @@ const NavTabs = () => {
         { id: 'help', label: 'Помощь' },
     ];
 
-    /**
-     * Handles tab click — navigates to the corresponding route.
-     * @param {string} tabId - the tab ID to navigate to
-     */
-    const handleTabClick = (tabId) => {
-        // Маппинг tabId → URL путь (некоторые ID не совпадают с маршрутами)
-        const pathMap = {
-            'chat-nutrition': '/chat/nutrition',
-            'chat-user2': '/chat/user2',
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (navRef.current && !navRef.current.contains(e.target)) {
+                setHoveredTab(null);
+            }
         };
-        const path = pathMap[tabId] || ('/' + (tabId === 'main' ? '' : tabId));
-        navigate(path);
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const isTabActive = (tab) => {
+        return activeTab === tab.id ||
+            (tab.id === 'main' && activeTab === 'nutrition') ||
+            (tab.id === 'chat' && activeTab === 'chat-nutrition');
     };
 
-    /**
-     * Renders the split (sub-tab) UI for tabs that have nested options.
-     */
     const renderSplitTab = (tab) => {
         if (tab.splitType === 'feed') {
             return (
                 <div className="nav-tab-split">
                     <button
                         className={`nav-tab-half nutrition ${activeTab === 'nutrition' ? 'active' : ''}`}
-                        onClick={() => handleTabClick('nutrition')}
+                        onClick={(e) => { e.stopPropagation(); navigate('/nutrition'); setHoveredTab(null); }}
                     >
                         Питание
                     </button>
                     <button
                         className={`nav-tab-half news ${activeTab === 'main' ? 'active' : ''}`}
-                        onClick={() => handleTabClick('main')}
+                        onClick={(e) => { e.stopPropagation(); navigate('/'); setHoveredTab(null); }}
                     >
                         Новости
                     </button>
@@ -88,22 +68,16 @@ const NavTabs = () => {
             );
         } else if (tab.splitType === 'chat') {
             return (
-                <div className="nav-tab-split chat-split">
+                <div className="nav-tab-split">
                     <button
-                        className={`nav-tab-half chat-main ${activeTab === 'chat' ? 'active' : ''}`}
-                        onClick={() => handleTabClick('chat')}
+                        className={`nav-tab-half chat-user1 ${activeTab === 'chat' ? 'active' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); navigate('/chat'); setHoveredTab(null); }}
                     >
                         Основной
                     </button>
                     <button
-                        className={`nav-tab-half chat-user2 ${activeTab === 'chat-user2' ? 'active' : ''}`}
-                        onClick={() => handleTabClick('chat-user2')}
-                    >
-                        Продвинутый
-                    </button>
-                    <button
                         className={`nav-tab-half chat-nutrition ${activeTab === 'chat-nutrition' ? 'active' : ''}`}
-                        onClick={() => handleTabClick('chat-nutrition')}
+                        onClick={(e) => { e.stopPropagation(); navigate('/chat/nutrition'); setHoveredTab(null); }}
                     >
                         Питание
                     </button>
@@ -113,15 +87,11 @@ const NavTabs = () => {
     };
 
     return (
-        <div className="nav-tabs">
+        <div className="nav-tabs" ref={navRef}>
             {tabs.map(tab => (
                 <div
                     key={tab.id}
-                    className={`nav-tab-wrapper ${
-                        (activeTab === tab.id ||
-                         (tab.id === 'main' && activeTab === 'nutrition') ||
-                         (tab.id === 'chat' && (activeTab === 'chat-nutrition' || activeTab === 'chat-user2'))) ? 'active' : ''
-                    }`}
+                    className={`nav-tab-wrapper ${isTabActive(tab) ? 'active' : ''}`}
                     onMouseEnter={() => tab.hasSplit && setHoveredTab(tab.id)}
                     onMouseLeave={() => setHoveredTab(null)}
                 >
@@ -129,13 +99,8 @@ const NavTabs = () => {
                         renderSplitTab(tab)
                     ) : (
                         <button
-                            data-tab={tab.id}
-                            className={`nav-tab ${
-                                activeTab === tab.id ||
-                                (tab.id === 'main' && activeTab === 'nutrition') ||
-                                (tab.id === 'chat' && (activeTab === 'chat-nutrition' || activeTab === 'chat-user2')) ? 'active' : ''
-                                }`}
-                            onClick={() => handleTabClick(tab.id)}
+                            className={`nav-tab ${isTabActive(tab) ? 'active' : ''}`}
+                            onClick={() => navigate(tab.id === 'main' ? '/' : '/' + tab.id)}
                         >
                             {tab.label}
                         </button>

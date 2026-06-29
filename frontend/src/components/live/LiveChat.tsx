@@ -3,6 +3,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { LiveChatMessage } from '../../services/live/types';
+import './LiveChat.css';
 import { useLiveChat, useLiveReactions, useLiveQuestions } from '../../hooks/live/useLiveChat';
 import { useLiveSession } from '../../context/live/LiveSessionContext';
 import {

@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 13-01-add-rtmp-stream-key-index
+      author: platform
+      labels: performance, live-streaming
+      comment: Добавление уникального индекса на rtmp_stream_key для быстрого поиска трансляции по ключу RTMP
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            indexExists:
+              indexName: idx_live_broadcasts_rtmp_stream_key
+      changes:
+        - sql:
+            sql: CREATE UNIQUE INDEX IF NOT EXISTS idx_live_broadcasts_rtmp_stream_key ON live_broadcasts(rtmp_stream_key) WHERE rtmp_stream_key IS NOT NULL

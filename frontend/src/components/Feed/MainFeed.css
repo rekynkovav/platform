@@ -30,8 +30,7 @@
 .feed-container {
     flex: 1;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
+    min-height: 0;
 }
 
 .feed-container::-webkit-scrollbar {
@@ -134,168 +133,12 @@
     opacity: 0.9;
 }
 
-/* Встроенный аудио плеер внутри поста */
-.inline-audio-player {
-    background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 16px;
-    margin-top: 12px;
-}
-
-.inline-audio-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.inline-audio-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--accent);
-}
-
-.inline-stop-btn {
-    background: var(--danger);
-    border: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    transition: all 0.2s;
-}
-
-.inline-stop-btn:hover {
-    transform: scale(1.05);
-    background: #c82333;
-}
-
-.inline-progress {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-.inline-seek {
-    flex: 1;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--border);
-    cursor: pointer;
-    -webkit-appearance: none;
-    outline: none;
-}
-
-.inline-seek:focus {
-    outline: none;
-}
-
-.inline-seek::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--accent);
-    cursor: pointer;
-}
-
-.inline-controls {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.inline-play {
-    background: var(--accent);
-    border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    outline: none;
-}
-
-.inline-play:hover {
-    transform: scale(1.05);
-    background: var(--accent-hover);
-}
-
-.inline-play:focus {
-    outline: none;
-}
-
-.inline-volume, .inline-speed {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: var(--text-secondary);
-}
-
-.inline-volume input {
-    width: 70px;
-    cursor: pointer;
-    -webkit-appearance: none;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--border);
-    outline: none;
-}
-
-.inline-volume input:focus {
-    outline: none;
-}
-
-.inline-volume input::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--accent);
-    cursor: pointer;
-}
-
-.inline-speed select {
-    padding: 4px 8px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s;
-    outline: none;
-}
-
-.inline-speed select:focus {
-    outline: none;
-}
-
-.inline-speed select:hover {
-    border-color: var(--accent);
-}
-
-/* Админ панель */
-.admin-section {
+/* Админ панель — прибита к низу экрана */
+.admin-panel-sticky {
     flex-shrink: 0;
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 2px solid var(--border);
+    padding: 12px 0;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border);
 }
 
 .create-post-btn {
@@ -337,165 +180,39 @@
     box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
 }
 
-.admin-panel {
+/* Форма в модалке */
+.modal-body .form-input,
+.modal-body .form-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
     background: var(--bg-secondary);
-    border-radius: 16px;
-    overflow: hidden;
-    position: sticky;
-    bottom: 0;
-    z-index: 10;
-    padding: 12px;
-}
-
-.admin-panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    background: var(--bg-primary);
-    border-bottom: 1px solid var(--border);
-}
-
-.admin-panel-header h3 {
-    font-size: 16px;
-    color: var(--text-primary);
-}
-
-.toggle-panel-btn {
-    background: var(--accent);
-    color: white;
-    border: none;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-}
-
-.toggle-panel-btn:hover {
-    transform: scale(1.05);
-}
-
-.admin-panel-content {
-    padding: 20px;
-}
-
-.post-title-input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg-primary);
     color: var(--text-primary);
     font-size: 14px;
-    margin-bottom: 12px;
-}
-
-.post-title-input:focus {
-    outline: none;
-    border-color: var(--accent);
-}
-
-.post-content-input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-size: 14px;
-    resize: vertical;
-    margin-bottom: 12px;
     font-family: inherit;
+    margin-bottom: 12px;
+    transition: all 0.2s;
 }
 
-.post-content-input:focus {
+.modal-body .form-input:focus,
+.modal-body .form-textarea:focus {
     outline: none;
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
-.media-attachments {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
+.modal-body .form-textarea {
+    resize: vertical;
+    min-height: 80px;
 }
 
-.attach-button {
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    padding: 8px 16px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
+.modal-btn.confirm.publish {
+    background: var(--success, #10b981);
 }
 
-.attach-button:hover {
-    background: var(--border);
-}
-
-.attached-file {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--success);
-    color: white;
-    padding: 6px 12px;
-    border-radius: 12px;
-    font-size: 12px;
-}
-
-.attached-file button {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.post-type-selector {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.type-btn {
-    flex: 1;
-    padding: 10px;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
-}
-
-.type-btn.active {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-}
-
-.type-btn:hover:not(.active) {
-    background: var(--border);
-}
-
-.publish-btn {
-    width: 100%;
-    padding: 12px;
-    background: var(--success);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
+.modal-btn.confirm.publish:hover {
+    background: #059669;
 }
 
 .publish-btn:hover {
@@ -537,17 +254,6 @@
     opacity: 1;
 }
 
-/* Анимации */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 @keyframes slideInRight {
     from {
@@ -706,68 +412,7 @@
     gap: 12px;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
-/* Модальное окно подтверждения удаления */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    animation: fadeIn 0.2s ease;
-}
 
-.modal-content {
-    background: var(--bg-primary);
-    border-radius: 20px;
-    width: 90%;
-    max-width: 450px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-    from {
-        transform: translateY(50px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-.modal-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border);
-}
-
-.modal-icon {
-    font-size: 28px;
-}
-
-.modal-header h3 {
-    margin: 0;
-    color: var(--text-primary);
-    font-size: 20px;
-}
-
-.modal-body {
-    padding: 24px;
-}
-
-.modal-body p {
-    margin: 0 0 16px 0;
-    color: var(--text-primary);
-    font-size: 16px;
-}
 
 .post-preview {
     background: var(--bg-secondary);
@@ -795,41 +440,4 @@
     margin-top: 12px !important;
 }
 
-.modal-footer {
-    display: flex;
-    gap: 12px;
-    padding: 16px 24px 24px;
-    border-top: 1px solid var(--border);
-}
 
-.modal-btn {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.modal-btn.cancel {
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-}
-
-.modal-btn.cancel:hover {
-    background: var(--border);
-    transform: translateY(-1px);
-}
-
-.modal-btn.confirm {
-    background: #ef4444;
-    color: white;
-}
-
-.modal-btn.confirm:hover {
-    background: #dc2626;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}

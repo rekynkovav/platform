@@ -19,17 +19,17 @@ import {
   BroadcastStatus
 } from './types';
 import { broadcastApi } from '../api';
+import { getToken, getUserId, getUsername, getUserRoles } from '../../keycloak';
 
 // User context from Keycloak JWT
 function getCurrentUser(): { id: string; username: string; role: string } {
   try {
-    const token = localStorage.getItem('keycloak-token');
+    const token = getToken();
     if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
       return {
-        id: payload.sub || 'unknown',
-        username: payload.preferred_username || payload.name || 'User',
-        role: (payload.realm_access?.roles || []).find(
+        id: getUserId(),
+        username: getUsername(),
+        role: getUserRoles().find(
           (r: string) => r.startsWith('SUPER_ADMIN') || r.startsWith('MODERATOR') || r.startsWith('VYACHESLAV')
         ) || 'USER_1'
       };

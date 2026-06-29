@@ -3,6 +3,7 @@ import { getUserRoles } from '../../keycloak';
 import { usePermissions } from '../../hooks/usePermissions';
 import { api } from '../../services/api';
 import './ScheduledEvents.css';
+import '../common/Modal.css';
 
 /**
  * ScheduledEvents — event scheduling and management interface.
@@ -68,7 +69,6 @@ const ScheduledEvents = () => {
             });
             setEvents(sorted);
         } catch (err) {
-            console.error('Failed to load events:', err);
             setError('Не удалось загрузить события');
             // fallback на sessionStorage при ошибке API (только для разработки)
             if (process.env.NODE_ENV === 'development') {
@@ -86,7 +86,6 @@ const ScheduledEvents = () => {
                         setEvents(sorted);
                     }
                 } catch (localError) {
-                    console.error('LocalStorage fallback error:', localError);
                 }
             }
         }
@@ -164,7 +163,6 @@ const ScheduledEvents = () => {
             });
             setShowAddForm(false);
         } catch (err) {
-            console.error('Failed to save event:', err);
             alert('Ошибка сохранения события');
         }
     };
@@ -229,7 +227,6 @@ const ScheduledEvents = () => {
             setShowDeleteConfirm(false);
             setEventToDelete(null);
         } catch (err) {
-            console.error('Failed to delete event:', err);
             alert('Ошибка удаления события');
         }
     };

@@ -26,6 +26,7 @@ const EventsHub = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [materialToDelete, setMaterialToDelete] = useState(null);
     const [error, setError] = useState(null);
+    const [currentMaterials, setCurrentMaterials] = useState([]);
 
     const { hasLevel } = usePermissions();
 
@@ -89,7 +90,6 @@ const EventsHub = () => {
             const materials = await eventsApi.getMaterialsBySection(sectionId);
             return materials;
         } catch (err) {
-            console.error('Failed to load materials for section:', sectionId, err);
             return [];
         }
     };
@@ -155,7 +155,6 @@ const EventsHub = () => {
             }, 1000);
 
         } catch (err) {
-            console.error('Ошибка доступа к микрофону:', err);
             setError('Не удалось получить доступ к микрофону. Проверьте разрешения.');
         }
     };
@@ -215,7 +214,6 @@ const EventsHub = () => {
 
             await feedbackApi.submitQuestion(questionFeedback);
         } catch (err) {
-            console.error('Failed to submit feedback:', err);
             // Fallback для разработки
             if (process.env.NODE_ENV === 'development') {
                 const savedFeedbacks = process.env.NODE_ENV === 'development'
@@ -285,7 +283,6 @@ const EventsHub = () => {
             setShowAddForm(false);
             setActiveMenu(null);
         } catch (err) {
-            console.error('Failed to save material:', err);
             alert('Не удалось сохранить материал');
         }
     };
@@ -325,7 +322,6 @@ const EventsHub = () => {
             setShowDeleteConfirm(false);
             setMaterialToDelete(null);
         } catch (err) {
-            console.error('Failed to delete material:', err);
             alert('Не удалось удалить материал');
         }
     };
@@ -335,10 +331,22 @@ const EventsHub = () => {
         setMaterialToDelete(null);
     };
 
-    // Получение материалов для текущего раздела
-    const currentMaterials = activeMenu && activeMenu !== 'feedback' && activeMenu !== 'broadcasts'
-        ? getMaterialsForSection(activeMenu)
-        : [];
+    // Загрузка материалов при смене раздела
+    useEffect(() => {
+        const loadMaterials = async () => {
+            if (activeMenu && activeMenu !== 'feedback' && activeMenu !== 'broadcasts') {
+                try {
+                    const materials = await eventsApi.getMaterialsBySection(activeMenu);
+                    setCurrentMaterials(materials || []);
+                } catch (err) {
+                    setCurrentMaterials([]);
+                }
+            } else {
+                setCurrentMaterials([]);
+            }
+        };
+        loadMaterials();
+    }, [activeMenu]);
 
     return (
         <div className="events-hub">

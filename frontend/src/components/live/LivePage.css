@@ -1,0 +1,152 @@
+/* LivePage — layout for live broadcast page */
+
+.live-page {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: calc(100vh - 200px);
+}
+
+.live-page-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.live-page-player {
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+}
+
+.live-page-controls {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.live-page-chat {
+  width: 380px;
+  flex-shrink: 0;
+}
+
+/* Loading state */
+.live-page-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+}
+
+.live-page-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.live-page-loading .loading-text {
+  color: #6b7280;
+  font-size: 16px;
+}
+
+/* Error state */
+.live-page-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+  text-align: center;
+}
+
+.live-page-error .error-icon {
+  font-size: 48px;
+}
+
+.live-page-error .error-text {
+  color: #dc2626;
+  font-size: 18px;
+  max-width: 400px;
+}
+
+.live-page-error .error-retry {
+  padding: 10px 24px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.live-page-error .error-retry:hover {
+  background: #4338ca;
+}
+
+/* Empty state */
+.live-page-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+}
+
+.live-page-empty .empty-icon {
+  font-size: 64px;
+}
+
+.live-page-empty .empty-text {
+  color: #6b7280;
+  font-size: 18px;
+}
+
+/* Responsive: mobile */
+@media (max-width: 768px) {
+  .live-page {
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .live-page-chat {
+    width: 100%;
+  }
+
+  .live-page-player {
+    aspect-ratio: auto;
+    min-height: 240px;
+  }
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+  .live-page-controls {
+    background: #1f2937;
+  }
+
+  .live-page-error .error-retry {
+    background: #6366f1;
+  }
+
+  .live-page-error .error-retry:hover {
+    background: #818cf8;
+  }
+}

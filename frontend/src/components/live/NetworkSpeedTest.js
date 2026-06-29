@@ -30,7 +30,6 @@ const NetworkSpeedTest = ({ onTestComplete, onCancel }) => {
             return Date.now() - startTime;
         } catch (error) {
             // Если нет эндпоинта /api/ping, используем альтернативный метод
-            console.error('Ошибка тестирования пинга:', error);
             setError('Не удалось измерить пинг. Используется значение по умолчанию.');
             return 50; // Примерное значение по умолчанию
         }
@@ -58,7 +57,6 @@ const NetworkSpeedTest = ({ onTestComplete, onCancel }) => {
             const speedMbps = (receivedLength * 8) / (duration * 1000000); // Мбит/с
             return speedMbps;
         } catch (error) {
-            console.error('Ошибка тестирования скорости загрузки:', error);
             setError('Не удалось измерить скорость загрузки. Используется значение по умолчанию.');
             // Используем API navigator.connection как запасной вариант
             if (navigator.connection && navigator.connection.downlink) {
@@ -87,7 +85,6 @@ const NetworkSpeedTest = ({ onTestComplete, onCancel }) => {
             const speedMbps = (1024 * 1024 * 8) / (duration * 1000000); // Мбит/с
             return speedMbps;
         } catch (error) {
-            console.error('Ошибка тестирования скорости отдачи:', error);
             setError('Не удалось измерить скорость отдачи. Используется значение по умолчанию.');
             // Используем API navigator.connection как запасной вариант
             if (navigator.connection && navigator.connection.effectiveType) {
@@ -207,7 +204,6 @@ const NetworkSpeedTest = ({ onTestComplete, onCancel }) => {
 
             setTestStatus('complete');
         } catch (error) {
-            console.error('Ошибка тестирования сети:', error);
             setTestStatus('error');
         }
     };

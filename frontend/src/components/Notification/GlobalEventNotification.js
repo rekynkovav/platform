@@ -70,7 +70,6 @@ const GlobalEventNotification = ({ onEventClick }) => {
                 previousEventIdRef.current = null;
             }
         } catch (error) {
-            console.error('Ошибка при проверке событий:', error);
             setError('Не удалось загрузить события. Проверьте данные в sessionStorage.');
         }
         };

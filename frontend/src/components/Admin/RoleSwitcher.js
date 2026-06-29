@@ -36,7 +36,6 @@ const RoleSwitcher = ({ onRoleChange }) => {
                     setCurrentRole(role);
                 }
             } catch (err) {
-                console.error('Failed to load demo role:', err);
                 const savedRole = sessionStorage.getItem('demoRole');
                 if (savedRole) {
                     setCurrentRole(savedRole);

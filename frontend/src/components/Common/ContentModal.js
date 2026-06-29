@@ -114,7 +114,6 @@ const ContentModal = ({ isOpen, onClose, onSave, initialTitle = '', initialDescr
                 setRecordingTime(prev => prev + 1);
             }, 1000);
         } catch (err) {
-            console.error('Ошибка доступа к микрофону:', err);
             setError('Не удалось получить доступ к микрофону');
         }
     };

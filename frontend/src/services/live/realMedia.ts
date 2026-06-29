@@ -50,7 +50,6 @@ export class RealMediaService {
       const broadcast = await realLiveApi.getBroadcast(broadcastId);
       playbackUrl = broadcast.playbackUrl || '';
     } catch (err) {
-      console.error('[RealMedia] Failed to fetch broadcast:', err);
     }
     const stream: MediaStream = { url: playbackUrl, quality, bitrate: 0, codec: 'h264' };
     this.activeStreams.set(streamKey, stream);

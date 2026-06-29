@@ -51,7 +51,6 @@ const MediaRenderer = ({ mediaUrl, mediaType, fileName, onLoadError, compact = f
                 const data = await response.json();
                 if (!cancelled) setStreamUrl(data.url);
             } catch (e) {
-                console.error('Failed to get stream URL:', e);
                 if (!cancelled) setError('Не удалось загрузить медиа');
             } finally {
                 if (!cancelled) setIsLoading(false);
@@ -68,7 +67,6 @@ const MediaRenderer = ({ mediaUrl, mediaType, fileName, onLoadError, compact = f
         setIsLoading(false);
         setError('Не удалось загрузить медиа');
         onLoadError?.();
-        console.error('Media load error:', e);
     };
 
     const clearError = () => {

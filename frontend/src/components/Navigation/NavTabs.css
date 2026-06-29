@@ -9,9 +9,7 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.nav-tabs::-webkit-scrollbar {
-    display: none;
-}
+.nav-tabs::-webkit-scrollbar { display: none; }
 
 .nav-tab-wrapper {
     flex: 1;
@@ -50,25 +48,12 @@
     transition: transform 0.3s ease;
 }
 
-.nav-tab.active {
-    color: var(--accent);
-}
+.nav-tab.active { color: var(--accent); }
+.nav-tab.active::before { transform: translateX(-50%) scaleX(1); }
+.nav-tab:hover:not(.active) { color: var(--text-primary); background: rgba(255, 255, 255, 0.05); }
+.nav-tab:hover:not(.active)::before { transform: translateX(-50%) scaleX(0.5); opacity: 0.5; }
 
-.nav-tab.active::before {
-    transform: translateX(-50%) scaleX(1);
-}
-
-.nav-tab:hover:not(.active) {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.nav-tab:hover:not(.active)::before {
-    transform: translateX(-50%) scaleX(0.5);
-    opacity: 0.5;
-}
-
-/* Разделенная кнопка */
+/* Split tab — 2 items */
 .nav-tab-split {
     display: flex;
     width: 100%;
@@ -93,101 +78,20 @@
     position: relative;
 }
 
-.nav-tab-half.nutrition {
-    border-right: 1px solid var(--border);
-}
+.nav-tab-half.nutrition { border-right: 1px solid var(--border); }
+.nav-tab-half.nutrition:hover { background: rgba(25, 135, 84, 0.15); color: var(--text-primary); }
+.nav-tab-half.nutrition.active { background: rgba(25, 135, 84, 0.2); color: #198754; }
 
-.nav-tab-half.nutrition:hover {
-    background: rgba(25, 135, 84, 0.15);
-    color: var(--text-primary);
-}
+.nav-tab-half.news:hover { background: rgba(139, 92, 246, 0.15); color: var(--text-primary); }
+.nav-tab-half.news.active { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
 
-.nav-tab-half.nutrition.active {
-    background: rgba(25, 135, 84, 0.2);
-    color: #198754;
-}
+.nav-tab-half.chat-user1 { border-right: 1px solid var(--border); }
+.nav-tab-half.chat-user1:hover { background: rgba(59, 130, 246, 0.15); color: var(--text-primary); }
+.nav-tab-half.chat-user1.active { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
 
-.nav-tab-half.news:hover {
-    background: rgba(139, 92, 246, 0.15);
-    color: var(--text-primary);
-}
+.nav-tab-half.chat-nutrition:hover { background: rgba(25, 135, 84, 0.15); color: var(--text-primary); }
+.nav-tab-half.chat-nutrition.active { background: rgba(25, 135, 84, 0.2); color: #198754; }
 
-.nav-tab-half.news.active {
-    background: rgba(139, 92, 246, 0.2);
-    color: #8b5cf6;
-}
-
-/* Стили для разделенного чата */
-.chat-split {
-    border: none;
-}
-
-.nav-tab-half.chat-main,
-.nav-tab-half.chat-nutrition {
-    border: none;
-}
-
-.nav-tab-half.chat-main:hover {
-    background: rgba(139, 92, 246, 0.15);
-    color: var(--text-primary);
-}
-
-.nav-tab-half.chat-main.active {
-    background: rgba(139, 92, 246, 0.2);
-    color: #8b5cf6;
-}
-
-.nav-tab-half.chat-user1 {
-    background: rgba(59, 130, 246, 0.1);
-    color: var(--text-primary);
-}
-
-.nav-tab-half.chat-user1:hover {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-}
-
-.nav-tab-half.chat-user1.active {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-}
-
-.nav-tab-half.chat-user2 {
-    background: rgba(168, 85, 247, 0.1);
-    color: var(--text-primary);
-}
-
-.nav-tab-half.chat-user2:hover {
-    background: rgba(168, 85, 247, 0.2);
-    color: #a855f7;
-}
-
-.nav-tab-half.chat-user2.active {
-    background: rgba(168, 85, 247, 0.2);
-    color: #a855f7;
-}
-
-.nav-tab-half.chat-nutrition:hover {
-    background: rgba(25, 135, 84, 0.15);
-    color: var(--text-primary);
-}
-
-.nav-tab-half.chat-nutrition.active {
-    background: rgba(25, 135, 84, 0.2);
-    color: #198754;
-}
-
-.nav-tab-half.chat-user2:hover {
-    background: rgba(59, 130, 246, 0.15);
-    color: var(--text-primary);
-}
-
-.nav-tab-half.chat-user2.active {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-}
-
-/* Подсветка активной части */
 .nav-tab-half.active::after {
     content: '';
     position: absolute;
@@ -197,109 +101,4 @@
     height: 3px;
     background: currentColor;
     border-radius: 3px 3px 0 0;
-}
-
-/* Стили для тройного разделения чатов */
-.chat-triple {
-    display: flex;
-    width: 100%;
-    height: 100%;
-}
-
-.nav-tab-third {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px 8px;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    transition: all 0.3s;
-    cursor: pointer;
-    white-space: nowrap;
-    position: relative;
-}
-
-.nav-tab-third.chat-user1 {
-    border-right: 1px solid var(--border);
-}
-
-.nav-tab-third.chat-user2 {
-    border-right: 1px solid var(--border);
-}
-
-.nav-tab-third.chat-user1:hover {
-    background: rgba(59, 130, 246, 0.15);
-    color: var(--text-primary);
-}
-
-.nav-tab-third.chat-user1.active {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-}
-
-.nav-tab-third.chat-user2:hover {
-    background: rgba(139, 92, 246, 0.15);
-    color: var(--text-primary);
-}
-
-.nav-tab-third.chat-user2.active {
-    background: rgba(139, 92, 246, 0.2);
-    color: #8b5cf6;
-}
-
-.nav-tab-third.chat-nutrition:hover {
-    background: rgba(25, 135, 84, 0.15);
-    color: var(--text-primary);
-}
-
-.nav-tab-third.chat-nutrition.active {
-    background: rgba(25, 135, 84, 0.2);
-    color: #198754;
-}
-
-.nav-tab-third.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: currentColor;
-    border-radius: 3px 3px 0 0;
-}
-
-/* Стили для разделенной вкладки трансляций */
-.broadcast-split {
-    border: none;
-}
-
-.nav-tab-half.broadcast-live,
-.nav-tab-half.broadcast-archive {
-    border: none;
-}
-
-.nav-tab-half.broadcast-live:hover {
-    background: rgba(239, 68, 68, 0.15);
-    color: var(--text-primary);
-}
-
-.nav-tab-half.broadcast-live.active {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-    font-weight: bold;
-}
-
-.nav-tab-half.broadcast-archive:hover {
-    background: rgba(59, 130, 246, 0.15);
-    color: var(--text-primary);
-}
-
-.nav-tab-half.broadcast-archive.active {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
 }

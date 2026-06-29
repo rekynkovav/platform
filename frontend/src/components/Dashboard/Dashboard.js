@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import './Dashboard.css';
+import '../common/Modal.css';
 import { dashboardApi } from '../../services/api';
 import useAudioRecorder from '../../hooks/useAudioRecorder';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -118,7 +119,6 @@ const Dashboard = () => {
                 setMenuData(data);
                 setError(null);
             } catch (err) {
-                console.error('Error loading dashboard data from API:', err);
                 if (process.env.NODE_ENV === 'development') {
                     try {
                         const savedData = process.env.NODE_ENV === 'development'
@@ -150,7 +150,6 @@ const Dashboard = () => {
                         }
                         setError(null);
                     } catch (localError) {
-                        console.error('Error loading dashboard data from sessionStorage:', localError);
                         setError('Не удалось загрузить данные дашборда');
                     }
                 }
@@ -172,12 +171,10 @@ const Dashboard = () => {
             await dashboardApi.saveMenuData(data);
             setError(null);
         } catch (err) {
-            console.error('Ошибка сохранения данных дашборда:', err);
             if (process.env.NODE_ENV === 'development') {
                 try {
                     sessionStorage.setItem('dashboardMenuData', JSON.stringify(data));
                 } catch (localError) {
-                    console.error('Error saving to sessionStorage:', localError);
                     setError('Не удалось сохранить данные дашборда');
                 }
             } else {
@@ -464,7 +461,6 @@ const Dashboard = () => {
             setShowAddModal(false);
             setSelectedMenuId(null);
         } catch (err) {
-            console.error('Ошибка сохранения контента:', err);
             setError('Не удалось сохранить контент');
         }
     }, [newItemTitle, newItemDescription, newItemMediaUrl, newItemMediaType, menuData, selectedMenuId, editingItem, saveMenuData, cleanupBlobUrls, resetRecording]);
@@ -479,7 +475,6 @@ const Dashboard = () => {
                 setNewItemMediaType(type);
             }
         } catch (err) {
-            console.error('Ошибка загрузки файла:', err);
             setError('Не удалось загрузить файл');
         }
     }, []);
@@ -540,7 +535,6 @@ const Dashboard = () => {
             setShowDeleteConfirm(false);
             setItemToDelete(null);
         } catch (err) {
-            console.error('Ошибка удаления элемента:', err);
             setError('Не удалось удалить элемент');
         }
     }, [itemToDelete, menuData, saveMenuData]);
@@ -599,7 +593,6 @@ const Dashboard = () => {
                     window.open(parsed.href, '_blank', 'noopener,noreferrer');
                 }
             } catch (e) {
-                console.warn('Invalid URL:', url);
             }
         }
     }, []);

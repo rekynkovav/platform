@@ -14,6 +14,7 @@
  */
 
 import { EventCallback, UnsubscribeFn, WSEventType } from './types';
+import { getToken } from '../../keycloak';
 
 type SubscriberMap = Map<string, Set<EventCallback>>;
 
@@ -62,7 +63,6 @@ export class RealWebSocketService {
         try {
           cb(data);
         } catch (err) {
-          console.error(`[RealWS] Subscriber error for ${eventType}:`, err);
         }
       });
     }
@@ -90,11 +90,10 @@ export class RealWebSocketService {
       const url = `${protocol}//${host}/ws/broadcast/${broadcastId}/stats`;
 
       // Add JWT token as query param (backend interceptor reads it)
-      const token = localStorage.getItem('keycloak-token');
+      const token = getToken();
 
       // Check token expiry before connecting — skip if expired
       if (token && this.isTokenExpired(token)) {
-        console.warn('[RealWS] Token expired, skipping reconnect for', broadcastId);
         return false;
       }
 
@@ -121,7 +120,6 @@ export class RealWebSocketService {
             const data = JSON.parse(event.data);
             this.handleMessage(broadcastId, data);
           } catch (err) {
-            console.warn('[RealWS] Failed to parse message:', event.data);
           }
         };
 
@@ -138,7 +136,6 @@ export class RealWebSocketService {
         };
       });
     } catch (err) {
-      console.error(`[RealWS] Connection failed for ${broadcastId}:`, err);
       return false;
     }
   }
@@ -168,7 +165,6 @@ export class RealWebSocketService {
   private scheduleReconnect(broadcastId: string): void {
     const attempts = this.reconnectAttempts.get(broadcastId) || 0;
     if (attempts >= MAX_RECONNECT) {
-      console.warn(`[RealWS] Max reconnect attempts reached for ${broadcastId}`);
       this.emit('SYSTEM_MESSAGE', {
         type: 'reconnect_failed',
         broadcastId

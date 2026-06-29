@@ -30,7 +30,6 @@ export function useLiveBroadcast(broadcastId?: string) {
       setBroadcast(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки трансляции');
-      console.error('[useLiveBroadcast] Ошибка загрузки:', err);
     } finally {
       setLoading(false);
     }
@@ -44,7 +43,6 @@ export function useLiveBroadcast(broadcastId?: string) {
       await connectToBroadcast(broadcastId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка подключения');
-      console.error('[useLiveBroadcast] Ошибка подключения:', err);
     }
   }, [broadcastId, connectToBroadcast]);
 
@@ -64,7 +62,6 @@ export function useLiveBroadcast(broadcastId?: string) {
       setBroadcast(prev => prev ? { ...prev, status } : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка обновления статуса');
-      console.error('[useLiveBroadcast] Ошибка обновления статуса:', err);
     }
   }, [broadcastId, updateBroadcastStatus]);
 
@@ -87,7 +84,6 @@ export function useLiveBroadcast(broadcastId?: string) {
       return response.broadcast;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка начала трансляции');
-      console.error('[useLiveBroadcast] Ошибка начала трансляции:', err);
       throw err;
     }
   }, []);
@@ -101,7 +97,6 @@ export function useLiveBroadcast(broadcastId?: string) {
       await updateStatus('ended');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка остановки трансляции');
-      console.error('[useLiveBroadcast] Ошибка остановки трансляции:', err);
     }
   }, [broadcastId, updateStatus]);
 
@@ -114,7 +109,6 @@ export function useLiveBroadcast(broadcastId?: string) {
       setBroadcast(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка обновления трансляции');
-      console.error('[useLiveBroadcast] Ошибка обновления:', err);
     }
   }, [broadcastId]);
 
@@ -213,7 +207,6 @@ export function useLiveBroadcasts(filter?: {
       setBroadcasts(filtered);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки трансляций');
-      console.error('[useLiveBroadcasts] Ошибка загрузки:', err);
     } finally {
       setLoading(false);
     }
@@ -226,7 +219,6 @@ export function useLiveBroadcasts(filter?: {
       setBroadcasts(active);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки активных трансляций');
-      console.error('[useLiveBroadcasts] Ошибка загрузки активных:', err);
     }
   }, []);
 
@@ -276,7 +268,6 @@ export function useBroadcastStats(broadcastId?: string) {
       setStats(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки статистики');
-      console.error('[useBroadcastStats] Ошибка загрузки:', err);
     } finally {
       setLoading(false);
     }
@@ -289,7 +280,6 @@ export function useBroadcastStats(broadcastId?: string) {
       const data = await liveApi.getViewerStats(id);
       return data;
     } catch (err) {
-      console.error('[useBroadcastStats] Ошибка загрузки статистики зрителей:', err);
       return [];
     }
   }, []);

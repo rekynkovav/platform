@@ -17,9 +17,7 @@ const Dashboard = React.lazy(() => import('./components/Dashboard/Dashboard'));
 const EventsHub = React.lazy(() => import('./components/Events/EventsHub'));
 const ArchiveList = React.lazy(() => import('./components/Archive/ArchiveList'));
 const LivePage = React.lazy(() => import('./components/live/LivePage'));
-const GeneralChat = React.lazy(() => import('./components/Chat/GeneralChat'));
-const GeneralChatUser2 = React.lazy(() => import('./components/Chat/GeneralChat').then(m => ({ default: () => <m.default roomSlug="user2" /> })));
-const NutritionChat = React.lazy(() => import('./components/Chat/NutritionChat'));
+const ChatPage = React.lazy(() => import('./features/chat/ChatPage'));
 const Questions = React.lazy(() => import('./components/Help/Questions'));
 const UserProfile = React.lazy(() => import('./components/UserProfile/UserProfile'));
 const ScheduledEvents = React.lazy(() => import('./components/Scheduled/ScheduledEvents'));
@@ -35,8 +33,7 @@ const _preloads = [
     () => import('./components/Events/EventsHub'),
     () => import('./components/Archive/ArchiveList'),
     () => import('./components/live/LivePage'),
-    () => import('./components/Chat/GeneralChat'),
-    () => import('./components/Chat/NutritionChat'),
+    () => import('./features/chat/ChatPage'),
     () => import('./components/Help/Questions'),
     () => import('./components/UserProfile/UserProfile'),
     () => import('./components/Scheduled/ScheduledEvents'),
@@ -59,8 +56,8 @@ const preloadComponents = () => _preloads.forEach(fn => fn());
  * /events        → EventsHub
  * /archive       → ArchiveList
  * /live          → LiveBroadcastView
- * /chat          → GeneralChat
- * /chat/nutrition → NutritionChat
+ * /chat          → ChatPage (user1 + user2 switcher)
+ * /chat/nutrition → ChatPage (nutrition)
  * /help          → Questions
  * /profile       → UserProfile
  * /scheduled     → ScheduledEvents
@@ -92,7 +89,6 @@ function App() {
                 setLoading(false);
             })
             .catch((err) => {
-                console.error('Keycloak init failed', err);
                 setLoading(false);
             });
     }, []);
@@ -151,7 +147,7 @@ function App() {
 
     if (!authenticated) {
         return (
-            <div className="loading-screen">
+            <div className="loading-screen login-gate">
                 <div style={{ textAlign: 'center' }}>
                     <p style={{ marginBottom: '20px', fontSize: '18px' }}>🔐 Пожалуйста, войдите в систему</p>
                     <button
@@ -222,9 +218,8 @@ function App() {
                             <Route path="/events" element={<EventsHub />} />
                             <Route path="/archive" element={<ArchiveList />} />
                             <Route path="/live" element={<LivePage />} />
-                            <Route path="/chat" element={<GeneralChat />} />
-                            <Route path="/chat/user2" element={<GeneralChatUser2 />} />
-                            <Route path="/chat/nutrition" element={<NutritionChat />} />
+                            <Route path="/chat" element={<ChatPage configKey="general" />} />
+                            <Route path="/chat/nutrition" element={<ChatPage configKey="nutrition" />} />
                             <Route path="/help" element={<Questions />} />
                             <Route path="/profile" element={<UserProfile />} />
                             <Route path="/scheduled" element={<ScheduledEvents />} />

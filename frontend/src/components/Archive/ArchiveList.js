@@ -1,6 +1,7 @@
 // components/Archive/ArchiveList.js (Трансляции)
 import React, { useState, useEffect } from 'react';
 import './ArchiveList.css';
+import '../common/Modal.css';
 import { usePermissions } from '../../hooks/usePermissions';
 import { getUserId } from '../../keycloak';
 import { mediaApi, broadcastApi, demoApi } from '../../services/api';
@@ -84,7 +85,6 @@ const ArchiveList = () => {
             const counts = await demoApi.getWillAttendCounts();
             setWillAttendCounts(counts);
         } catch (err) {
-            console.error('Failed to load will attend counts:', err);
             // Fallback для разработки
             if (process.env.NODE_ENV === 'development') {
                 const saved = sessionStorage.getItem('willAttendCounts');
@@ -103,7 +103,6 @@ const ArchiveList = () => {
         try {
             await demoApi.saveWillAttendCounts(counts);
         } catch (err) {
-            console.error('Failed to save will attend counts:', err);
             // Fallback для разработки
             if (process.env.NODE_ENV === 'development') {
                 sessionStorage.setItem('willAttendCounts', JSON.stringify(counts));
@@ -141,7 +140,6 @@ const ArchiveList = () => {
 
             showMessage('Спасибо! Вы откликнулись на трансляцию.', 'success');
         } catch (err) {
-            console.error('Failed to mark attendance:', err);
             // Fallback для разработки
             if (process.env.NODE_ENV === 'development') {
                 const hasAttended = sessionStorage.getItem(key);
@@ -186,7 +184,6 @@ const ArchiveList = () => {
                 isPast: false
             };
         } catch (error) {
-            console.error('Ошибка расчета времени трансляции:', error);
             return { hours: 0, minutes: 0, seconds: 0, isPast: true };
         }
     };
@@ -426,7 +423,6 @@ const ArchiveList = () => {
             alert(`Трансляция "${broadcast.title}" успешно скачана!`);
 
         } catch (error) {
-            console.error('Ошибка скачивания:', error);
             alert(`Ошибка скачивания: ${error.response?.data?.message || error.message || 'Неизвестная ошибка'}`);
         } finally {
             setDownloadingFileId(null);
@@ -448,7 +444,6 @@ const ArchiveList = () => {
             window.open(streamUrl, '_blank', 'noopener,noreferrer');
 
         } catch (error) {
-            console.error('Ошибка получения ссылки для просмотра:', error);
             alert(`Ошибка: ${error.response?.data?.message || error.message || 'Неизвестная ошибка'}`);
         }
     };
@@ -745,7 +740,6 @@ const ArchiveList = () => {
             };
 
         } catch (error) {
-            console.error('Ошибка доступа к устройствам:', error);
             showMessage('Не удалось получить доступ к камере или микрофону. Проверьте разрешения.');
         }
     };

@@ -68,3 +68,12 @@ _audit_search.js
 
 # Codanna index
 .codanna/
+
+# Temporary / generated
+.fastembed_cache
+.verification_done
+frontend/src-audit-report.json
+out/
+nanograph-db/
+backups/
+.env.nano

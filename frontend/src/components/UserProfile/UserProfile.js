@@ -59,7 +59,6 @@ const UserProfile = () => {
             });
             setError(null);
         } catch (error) {
-            console.error('Failed to load user:', error);
             setError('Не удалось загрузить данные пользователя');
         } finally {
             setLoading(false);
@@ -71,7 +70,6 @@ const UserProfile = () => {
             const data = await paymentApi.getUserPayments();
             setPayments(data || []);
         } catch (error) {
-            console.error('Failed to load payments:', error);
         }
     };
 
@@ -83,7 +81,6 @@ const UserProfile = () => {
             setError(null);
             showInfoModal('Профиль обновлён', 'Данные успешно сохранены.');
         } catch (error) {
-            console.error('Failed to update profile:', error);
             setError('Не удалось обновить профиль');
         }
     };
@@ -98,7 +95,6 @@ const UserProfile = () => {
                 const qrResponse = await paymentApi.getPaymentQR(payment.id);
                 setQrCode(`data:image/png;base64,${qrResponse.qrCodeBase64}`);
             } catch (qrError) {
-                console.error('Failed to load QR code:', qrError);
                 setError('Не удалось получить QR-код');
             }
 
@@ -106,7 +102,6 @@ const UserProfile = () => {
             showInfoModal('Платёж создан', `Счёт на сумму ${payment.amount} RUB сформирован.`);
             loadPayments();
         } catch (error) {
-            console.error('Failed to create payment:', error);
             setError('Не удалось создать платеж');
         }
     };

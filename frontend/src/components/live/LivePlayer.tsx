@@ -6,6 +6,7 @@ import {
   StreamQuality,
   LiveBroadcast
 } from '../../services/live/types';
+import './LivePlayer.css';
 import { useHlsPlayer } from '../../hooks/live/useHlsPlayer';
 import { usePlayerState } from '../../context/live/LiveSessionContext';
 import {
@@ -101,7 +102,6 @@ export const LivePlayer: React.FC<LivePlayerProps> = ({
 
     if (!document.fullscreenElement) {
       containerRef.current.requestFullscreen().catch(err => {
-        console.error('[LivePlayer] Ошибка входа в полноэкранный режим:', err);
       });
       setPlayerState({ isFullscreen: true });
     } else {

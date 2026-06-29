@@ -18,8 +18,13 @@ jest.mock('../components/Feed/MainFeed', () => () => <div data-testid="main-feed
 jest.mock('../components/Feed/NutritionFeed', () => () => <div data-testid="nutrition-feed">NutritionFeed</div>);
 jest.mock('../components/Dashboard/Dashboard', () => () => <div data-testid="dashboard">Dashboard</div>);
 jest.mock('../components/live/LiveBroadcastViewSimple', () => () => <div data-testid="live-broadcast">LiveBroadcastView</div>);
-jest.mock('../components/Chat/GeneralChat', () => () => <div data-testid="general-chat">GeneralChat</div>);
-jest.mock('../components/Chat/NutritionChat', () => () => <div data-testid="nutrition-chat">NutritionChat</div>);
+jest.mock('../features/chat/ChatPage', () => (props) => <div data-testid={`chat-${props.configKey}`}>ChatPage</div>);
+jest.mock('../hooks/usePermissions', () => ({
+    usePermissions: () => ({ hasLevel: () => true }),
+}));
+jest.mock('../context/live/LiveSessionContext', () => ({
+    LiveSessionProvider: ({ children }) => <div>{children}</div>,
+}));
 jest.mock('../components/Help/Questions', () => () => <div data-testid="questions">Questions</div>);
 jest.mock('../components/UserProfile/UserProfile', () => () => <div data-testid="user-profile">UserProfile</div>);
 jest.mock('../components/Events/EventsHub', () => () => <div data-testid="events-hub">EventsHub</div>);
@@ -124,7 +129,7 @@ describe('App', () => {
             </MemoryRouter>
         );
         await waitFor(() => {
-            expect(screen.getByTestId('general-chat')).toBeInTheDocument();
+            expect(screen.getByTestId('chat-general')).toBeInTheDocument();
         });
     });
 

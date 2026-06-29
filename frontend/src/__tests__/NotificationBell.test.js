@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import NotificationBell from '../components/Notification/NotificationBell';
 
 jest.mock('../components/Notification/NotificationBell.css', () => ({}));
@@ -17,7 +18,7 @@ describe('NotificationBell', () => {
     });
 
     it('renders bell button', () => {
-        render(<NotificationBell />);
+        render(<MemoryRouter><NotificationBell /></MemoryRouter>);
         expect(screen.getByText('🔔')).toBeInTheDocument();
     });
 
@@ -27,7 +28,7 @@ describe('NotificationBell', () => {
             { id: '2', type: 'admin-reply', title: 'Reply', message: 'msg', timestamp: new Date().toISOString(), read: true },
         ];
         localStorage.setItem('userNotifications', JSON.stringify(notifications));
-        render(<NotificationBell />);
+        render(<MemoryRouter><NotificationBell /></MemoryRouter>);
         await waitFor(() => {
             expect(screen.getByText('1')).toBeInTheDocument();
         });
@@ -38,7 +39,7 @@ describe('NotificationBell', () => {
             { id: '1', type: 'event', title: 'Event Title', message: 'msg', timestamp: new Date().toISOString(), read: false },
         ];
         localStorage.setItem('userNotifications', JSON.stringify(notifications));
-        render(<NotificationBell />);
+        render(<MemoryRouter><NotificationBell /></MemoryRouter>);
         await waitFor(() => {
             expect(screen.getByText('1')).toBeInTheDocument();
         });
@@ -48,7 +49,7 @@ describe('NotificationBell', () => {
     });
 
     it('shows no notifications message when list is empty', async () => {
-        render(<NotificationBell />);
+        render(<MemoryRouter><NotificationBell /></MemoryRouter>);
         fireEvent.click(screen.getByText('🔔'));
         await waitFor(() => {
             expect(screen.getByText('Нет уведомлений')).toBeInTheDocument();
@@ -60,7 +61,7 @@ describe('NotificationBell', () => {
             { id: '1', type: 'event', title: 'Event', message: 'msg', timestamp: new Date().toISOString(), read: false },
         ];
         localStorage.setItem('userNotifications', JSON.stringify(notifications));
-        render(<NotificationBell />);
+        render(<MemoryRouter><NotificationBell /></MemoryRouter>);
         await waitFor(() => {
             expect(screen.getByText('1')).toBeInTheDocument();
         });
@@ -77,7 +78,7 @@ describe('NotificationBell', () => {
             { id: '1', type: 'event', title: 'Event', message: 'msg', timestamp: new Date().toISOString(), read: false },
         ];
         localStorage.setItem('userNotifications', JSON.stringify(notifications));
-        render(<NotificationBell />);
+        render(<MemoryRouter><NotificationBell /></MemoryRouter>);
         await waitFor(() => {
             expect(screen.getByText('1')).toBeInTheDocument();
         });

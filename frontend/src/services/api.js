@@ -57,6 +57,9 @@ class ApiClient {
                     logout(); // Перенаправляет на страницу логина Keycloak
                 }
                 if (error.response?.status === 429) {
+                    const retryCount = (error.config._retryCount || 0) + 1;
+                    if (retryCount > 3) return Promise.reject(error);
+                    error.config._retryCount = retryCount;
                     const retryAfter = error.response.headers['retry-after'] || 5;
                     await new Promise(r => setTimeout(r, retryAfter * 1000));
                     return this.client.request(error.config);
@@ -117,7 +120,6 @@ class ApiClient {
         formData.append('file', file);
 
         return this.client.post(url, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
             onUploadProgress: (progressEvent) => {
                 if (onProgress) {
                     const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);

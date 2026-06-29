@@ -1,0 +1,516 @@
+/* ============================================================
+   BroadcastControls.css
+   Styles for the live broadcast admin/moderator control panel.
+   Uses dark-theme CSS variables from index.css.
+   ============================================================ */
+
+/* ---- Main Container ---- */
+.broadcast-controls {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  color: var(--text-primary);
+}
+
+.broadcast-controls.no-access {
+  opacity: 0.7;
+}
+
+/* ---- Access Denied Banner ---- */
+.access-denied {
+  background: #ff9800;
+  color: #fff;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  margin-bottom: 20px;
+  font-weight: bold;
+}
+
+/* ---- Header ---- */
+.controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border);
+}
+
+.controls-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* ---- Header Buttons (edit, refresh) ---- */
+.edit-button,
+.refresh-button {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.edit-button:hover,
+.refresh-button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---- Section Blocks ---- */
+.controls-section {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+/* ---- Section Label ---- */
+.controls-label {
+  font-weight: bold;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+/* ---- Status Display ---- */
+.status-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.status-label {
+  font-weight: bold;
+  color: var(--text-secondary);
+}
+
+.status-value {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+/* ---- Status Controls ---- */
+.status-controls {
+  margin-top: 15px;
+}
+
+.controls-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-button {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.status-button:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.status-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status-button.live {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.status-button.paused {
+  background: #ff9800;
+  border-color: #ff9800;
+}
+
+.status-button.ended {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.status-button.preparing {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---- Broadcast Info ---- */
+.broadcast-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.info-label {
+  color: var(--text-secondary);
+}
+
+.info-value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ---- Edit Form ---- */
+.edit-form {
+  background: var(--bg-card);
+  padding: 15px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.form-group input[type="text"],
+.form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Checkboxes group */
+.form-group.checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-group.checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.form-group.checkboxes input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* ---- Save / Cancel Buttons ---- */
+.save-button,
+.cancel-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.save-button {
+  background: var(--success);
+  color: #fff;
+}
+
+.save-button:hover:not(:disabled) {
+  background: #157347;
+}
+
+.save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancel-button {
+  background: #666;
+  color: #fff;
+}
+
+.cancel-button:hover:not(:disabled) {
+  background: #777;
+}
+
+/* ---- Quality Controls ---- */
+.quality-controls {
+  margin-top: 15px;
+}
+
+.quality-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quality-button {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.quality-button:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.quality-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quality-button.active {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.quality-info {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* ---- Stats Panel ---- */
+.stats-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-header h4 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.close-button:hover {
+  color: var(--text-primary);
+}
+
+.stats-content {
+  padding: 16px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ---- Quick Actions ---- */
+.quick-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.quick-action {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+.quick-action.start {
+  background: var(--success);
+  color: #fff;
+}
+
+.quick-action.start:hover:not(:disabled) {
+  background: #157347;
+}
+
+.quick-action.stop {
+  background: var(--danger);
+  color: #fff;
+}
+
+.quick-action.stop:hover:not(:disabled) {
+  background: #bb2d3b;
+}
+
+.quick-action.stats {
+  background: var(--accent);
+  color: #fff;
+}
+
+.quick-action.stats:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.quick-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- Test Functions (danger modifier) ---- */
+.test-functions {
+  margin-top: 15px;
+}
+
+.test-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.test-button {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.test-button:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.test-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.test-button.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.test-button.danger:hover {
+  background: #bb2d3b;
+  border-color: #bb2d3b;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 640px) {
+  .broadcast-controls {
+    padding: 12px;
+  }
+
+  .controls-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .quick-actions {
+    flex-direction: column;
+  }
+
+  .quick-action {
+    width: 100%;
+  }
+
+  .controls-buttons,
+  .quality-buttons,
+  .test-buttons {
+    flex-direction: column;
+  }
+
+  .status-button,
+  .quality-button,
+  .test-button {
+    width: 100%;
+    text-align: center;
+  }
+}

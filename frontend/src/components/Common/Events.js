@@ -63,7 +63,6 @@ const Events = ({ filter = 'upcoming', limit = 20 }) => {
 
                 setEvents(mockEvents);
             } catch (err) {
-                console.error('Failed to fetch events:', err);
                 setError('Не удалось загрузить события');
             } finally {
                 setLoading(false);
@@ -191,7 +190,6 @@ const Events = ({ filter = 'upcoming', limit = 20 }) => {
                 )
             );
         } catch (err) {
-            console.error('Failed to register for event:', err);
             alert('Не удалось зарегистрироваться на событие');
         }
     };
@@ -213,7 +211,6 @@ const Events = ({ filter = 'upcoming', limit = 20 }) => {
                 )
             );
         } catch (err) {
-            console.error('Failed to unregister from event:', err);
             alert('Не удалось отменить регистрацию');
         }
     };

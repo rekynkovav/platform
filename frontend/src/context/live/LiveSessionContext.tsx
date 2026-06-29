@@ -312,7 +312,6 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
 
 
     } catch (error) {
-      console.error('[LiveSession] Ошибка подключения к трансляции:', error);
       dispatch({ type: 'SET_WS_CONNECTION', payload: false });
     } finally {
       dispatch({ type: 'SET_RECONNECTING', payload: false });
@@ -345,7 +344,6 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
       dispatch({ type: 'ADD_CHAT_MESSAGE', payload: { ...message, isOwn: true } });
 
     } catch (error) {
-      console.error('[LiveSession] Ошибка отправки сообщения:', error);
     }
   }, [state.broadcast]);
 
@@ -360,7 +358,6 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
       dispatch({ type: 'ADD_REACTION', payload: { emoji, count: 1 } });
 
     } catch (error) {
-      console.error('[LiveSession] Ошибка отправки реакции:', error);
     }
   }, [state.broadcast]);
 
@@ -390,7 +387,6 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
 
 
     } catch (error) {
-      console.error('[LiveSession] Ошибка начала трансляции:', error);
       throw error;
     }
   }, [connectToBroadcast]);
@@ -410,7 +406,6 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
 
 
     } catch (error) {
-      console.error('[LiveSession] Ошибка остановки трансляции:', error);
     }
   }, [state.broadcast, disconnectFromBroadcast]);
 
@@ -422,7 +417,6 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
       await liveApi.updateBroadcast(state.broadcast.id, { status });
       dispatch({ type: 'SET_STATUS', payload: status });
     } catch (error) {
-      console.error('[LiveSession] Ошибка обновления статуса:', error);
     }
   }, [state.broadcast]);
 
