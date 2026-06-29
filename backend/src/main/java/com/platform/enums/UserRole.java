@@ -34,6 +34,22 @@ public enum UserRole {
         this.superAdmin = superAdmin;
     }
 
+    // ---- Role name constants for SecurityConfig ----
+    public static final String[] ALL_ROLES = allRoleNames();
+    public static final String[] ADMIN_ROLES = {
+        MODERATOR_ADMIN.name(), SUPER_ADMIN.name(), VYACHESLAV.name()
+    };
+    public static final String[] CONTENT_ROLES = {
+        MODERATOR_ADMIN.name(), SUPER_ADMIN.name(),
+        CONSULTANT_PITANIE.name(), CONSULTANT_SPORT.name(),
+        DEVELOPER.name(), VYACHESLAV.name()
+    };
+    public static final String[] BROADCAST_ROLES_AUTHORITY = {
+        "ROLE_" + SUPER_ADMIN.name(), "ROLE_" + CONSULTANT_PITANIE.name(),
+        "ROLE_" + CONSULTANT_SPORT.name(), "ROLE_" + MODERATOR_ADMIN.name(),
+        "ROLE_" + VYACHESLAV.name()
+    };
+
     /**
      * Parse role string to enum. Returns USER_0 for unknown/null.
      */

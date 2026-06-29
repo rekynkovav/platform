@@ -17,9 +17,14 @@ class MediaStorageServiceTest {
     private StorageService storageService;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         storageService = mock(StorageService.class);
         mediaStorageService = new MediaStorageService(storageService);
+
+        // Set @Value field via reflection
+        java.lang.reflect.Field maxField = MediaStorageService.class.getDeclaredField("maxFileSize");
+        maxField.setAccessible(true);
+        maxField.set(mediaStorageService, 100 * 1024 * 1024L); // 100MB
     }
 
     // ==================== saveMedia - image ====================

@@ -46,7 +46,7 @@ class LiveBroadcastServiceTest {
     private LiveBroadcast broadcast;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         userId = UUID.randomUUID();
         broadcastId = UUID.randomUUID();
 
@@ -60,6 +60,15 @@ class LiveBroadcastServiceTest {
                 .rtmpStreamKey(broadcastId.toString())
                 .viewerCount(0)
                 .build();
+
+        // Set @Value fields via reflection
+        java.lang.reflect.Field rtmpField = LiveBroadcastService.class.getDeclaredField("rtmpServerUrl");
+        rtmpField.setAccessible(true);
+        rtmpField.set(broadcastService, "rtmp://localhost:1935/live");
+
+        java.lang.reflect.Field hlsField = LiveBroadcastService.class.getDeclaredField("hlsServerUrl");
+        hlsField.setAccessible(true);
+        hlsField.set(broadcastService, "http://localhost:80/hls");
     }
 
     @Test

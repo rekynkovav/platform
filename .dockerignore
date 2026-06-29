@@ -1,27 +1,54 @@
-.git
+# Dependencies
+frontend/node_modules/
+backend/target/
+**/node_modules/
+
+# Build artifacts
+frontend/build/
+backend/target/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
 .gitignore
-node_modules
-npm-debug.log
-.DS_Store
+
+# Environment (secrets)
+.env
+.env.*
+!.env.example
+
+# Documentation
 *.md
-.env*
-!.env.docker
-target
-*.class
-*.jar
-*.war
-.idea
-*.iml
-.vscode
-backups
-logs
+!README.md
+
+# Logs
 *.log
+npm-debug.log*
+
+# Docker
 docker-compose*.yml
-nginx-cdn.conf
-prometheus.yml
-alertmanager.yml
-alerts.yml
-grafana
-load-test
-scripts
-ssl
+Dockerfile*
+
+# Testing
+coverage/
+*.test.js
+*.test.ts
+__tests__/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup
+backups/
+
+# Hermes
+.hermsg/
+.codanna/
+.opencode/

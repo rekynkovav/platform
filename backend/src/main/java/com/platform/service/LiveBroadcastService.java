@@ -41,6 +41,9 @@ public class LiveBroadcastService {
     @Value("${HLS_SERVER_URL:http://rtmp:80/hls}")
     private String hlsServerUrl;
 
+    @Value("${RTMP_SERVER_URL:rtmp://localhost:1935/live}")
+    private String rtmpServerUrl;
+
     @Timed(value = "broadcast.create", description = "Time to create broadcast")
     @Transactional(rollbackFor = Exception.class, timeout = 30)
     public LiveBroadcast createBroadcast(String title, String description, String streamType, String userId) {
@@ -82,7 +85,7 @@ public class LiveBroadcastService {
         broadcast.setStartedAt(LocalDateTime.now());
         broadcastRepository.save(broadcast);
         
-        String rtmpUrl = String.format("rtmp://localhost:1935/live/%s", broadcast.getRtmpStreamKey());
+        String rtmpUrl = String.format("%s/%s", rtmpServerUrl, broadcast.getRtmpStreamKey());
         
         log.info("Broadcast started: {} by {}", broadcastId, userId);
         return rtmpUrl;

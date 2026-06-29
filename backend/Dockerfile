@@ -15,6 +15,6 @@ WORKDIR /app
 RUN apk add --no-cache curl ffmpeg
 COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 8081
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3   CMD curl -f http://localhost:8081/actuator/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3   CMD curl -f http://localhost:8081/api/health || exit 1
 ENV JAVA_TOOL_OPTIONS="-Xms512m -Xmx512m"
 ENTRYPOINT ["java", "-jar", "app.jar"]

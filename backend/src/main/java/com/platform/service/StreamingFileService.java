@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,10 +17,12 @@ import java.util.zip.ZipOutputStream;
 public class StreamingFileService {
 
     private static final int BUFFER_SIZE = 8192; // 8KB
-    private static final long MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
     private static final String BASE_UPLOAD_DIR = System.getenv("UPLOAD_DIR") != null
             ? System.getenv("UPLOAD_DIR")
             : "/app/uploads";
+
+    @Value("${app.file-upload.max-size:104857600}")
+    private long maxFileSize;
 
     private Path validateAndResolvePath(String filePath) throws IOException {
         Path basePath = Paths.get(BASE_UPLOAD_DIR).toRealPath();
@@ -39,7 +42,7 @@ public class StreamingFileService {
             return;
         }
 
-        if (file.length() > MAX_FILE_SIZE) {
+        if (file.length() > maxFileSize) {
             response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, "File too large");
             return;
         }

@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 
 @Slf4j
 @Service
@@ -22,12 +23,13 @@ public class MediaStorageService {
 
     private final StorageService storageService;
 
-    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    @Value("${app.file-upload.max-size:104857600}")
+    private long maxFileSize;
 
     @Timed(value = "media.save", description = "Time to save media")
     public PostDto.MediaUploadResponse saveMedia(MultipartFile file, String type) {
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("File size exceeds 50MB limit");
+        if (file.getSize() > maxFileSize) {
+            throw new IllegalArgumentException("File size exceeds " + (maxFileSize / 1024 / 1024) + "MB limit");
         }
 
         try {

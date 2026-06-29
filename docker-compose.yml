@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: platform_db
       POSTGRES_USER: platform_user
-      POSTGRES_PASSWORD: platform_pass_2026
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-platform_pass_2026}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
@@ -30,7 +30,7 @@ services:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/platform_db
       KC_DB_USERNAME: platform_user
-      KC_DB_PASSWORD: platform_pass_2026
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-platform_pass_2026}
       KC_HOSTNAME: auth.platform.local
       KC_HOSTNAME_STRICT: false
       KC_HTTP_ENABLED: "true"
@@ -38,7 +38,7 @@ services:
       KC_PROXY: edge
       KC_HTTP_RELATIVE_PATH: /auth
       KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
     command: ["start", "--import-realm", "--http-relative-path=/auth"]
     ports:
       - "127.0.0.1:8080:8080"
@@ -105,7 +105,7 @@ services:
       SPRING_PROFILES_ACTIVE: local
       DB_URL: jdbc:postgresql://postgres:5432/platform_db
       DB_USERNAME: platform_user
-      DB_PASSWORD: platform_pass_2026
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-platform_pass_2026}
       KEYCLOAK_AUTH_SERVER_URL: http://keycloak:8080/auth
       KEYCLOAK_ISSUER_URI: https://auth.platform.local/auth/realms/platform
       KEYCLOAK_JWK_SET_URI: http://keycloak:8080/auth/realms/platform/protocol/openid-connect/certs
@@ -126,7 +126,7 @@ services:
       - uploads:/app/uploads
       - hls:/hls:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8081/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -193,7 +193,7 @@ services:
     ports:
       - "127.0.0.1:3001:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
@@ -284,7 +284,7 @@ services:
       - ./backups:/backups
       - ./scripts/backup.sh:/backup.sh
     environment:
-      - PGPASSWORD=platform_pass_2026
+      - PGPASSWORD=${POSTGRES_PASSWORD:-platform_pass_2026}
     command: >
       sh -c "chmod +x /backup.sh &&
              echo '0 2 * * * /backup.sh' | crontab - &&
@@ -315,7 +315,7 @@ services:
       - "5349:5349"
     command: >
       -n --fingerprint --lt-cred-mech --realm=platform.com
-      --user=platform:platform123 --log-file=stdout
+      --user=platform:${COTURN_SECRET:-platform123} --log-file=stdout
     networks:
       - platform_network
 

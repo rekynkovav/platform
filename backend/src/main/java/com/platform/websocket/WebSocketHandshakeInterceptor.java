@@ -62,7 +62,6 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
         try {
             Jwt jwt = jwtDecoder.decode(token);
             attributes.put("userId", jwt.getSubject());
-            attributes.put("token", token);
             attributes.put("userRole", RoleUtils.getUserRole(jwt));
 
             log.debug("WebSocket authenticated: userId={}", jwt.getSubject());

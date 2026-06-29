@@ -1,0 +1,35 @@
+#!/bin/bash
+# pre-commit hook: blocks commits if Java files were modified without being read first
+# Tracks file reads via .file_reads_log (created by verify-before-patch.sh)
+
+READ_LOG=".file_reads_log"
+MODIFIED_FILES=$(git diff --cached --name-only --diff-filter=M -- '*.java')
+
+if [ -z "$MODIFIED_FILES" ]; then
+    exit 0
+fi
+
+MISSING_READS=()
+for file in $MODIFIED_FILES; do
+    if [ -f "$READ_LOG" ]; then
+        # Check if file was read in this session (last 30 minutes)
+        if ! grep -q "$file" "$READ_LOG" 2>/dev/null; then
+            MISSING_READS+=("$file")
+        fi
+    else
+        MISSING_READS+=("$file")
+    fi
+done
+
+if [ ${#MISSING_READS[@]} -gt 0 ]; then
+    echo "❌ BLOCKED: These files were modified but not read before editing:"
+    for f in "${MISSING_READS[@]}"; do
+        echo "   $f"
+    done
+    echo ""
+    echo "Fix: read_file $f before patch/write_file"
+    echo "Or skip this check: git commit --no-verify"
+    exit 1
+fi
+
+exit 0

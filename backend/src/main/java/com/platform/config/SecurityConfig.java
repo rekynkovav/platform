@@ -24,6 +24,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.platform.enums.UserRole;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -63,20 +64,20 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/events/upcoming", "/api/events/next", "/api/events/past").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/events/{id}").permitAll()
 
-                        .requestMatchers("/api/media/stream/**").hasAnyRole("USER_0", "USER_1", "USER_2", "MODERATOR_ADMIN", "SUPER_ADMIN", "CONSULTANT_PITANIE", "CONSULTANT_SPORT", "DEVELOPER", "VYACHESLAV")
-                        .requestMatchers("/api/media/key/**").hasAnyRole("USER_0", "USER_1", "USER_2", "MODERATOR_ADMIN", "SUPER_ADMIN", "CONSULTANT_PITANIE", "CONSULTANT_SPORT", "DEVELOPER", "VYACHESLAV")
+                        .requestMatchers("/api/media/stream/**").hasAnyRole(UserRole.ALL_ROLES)
+                        .requestMatchers("/api/media/key/**").hasAnyRole(UserRole.ALL_ROLES)
                         .requestMatchers("/api/media/download/**").hasRole("SUPER_ADMIN")
-                        .requestMatchers("/api/media/upload/**").hasAnyRole("MODERATOR_ADMIN", "SUPER_ADMIN", "CONSULTANT_PITANIE", "CONSULTANT_SPORT", "DEVELOPER", "VYACHESLAV")
+                        .requestMatchers("/api/media/upload/**").hasAnyRole(UserRole.CONTENT_ROLES)
 
-                        .requestMatchers("/api/admin/**").hasAnyRole("MODERATOR_ADMIN", "SUPER_ADMIN", "VYACHESLAV")
+                        .requestMatchers("/api/admin/**").hasAnyRole(UserRole.ADMIN_ROLES)
 
-                        .requestMatchers("/api/dashboard/**").hasAnyRole("MODERATOR_ADMIN", "SUPER_ADMIN", "VYACHESLAV")
+                        .requestMatchers("/api/dashboard/**").hasAnyRole(UserRole.ADMIN_ROLES)
 
                         .requestMatchers("/api/demo/**").authenticated()
 
                         .requestMatchers("/api/users/**").authenticated()
 
-                        .requestMatchers("/api/broadcast/create", "/api/broadcast/start", "/api/broadcast/*/end", "/api/broadcast/*/stats").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_CONSULTANT_PITANIE", "ROLE_CONSULTANT_SPORT", "ROLE_MODERATOR_ADMIN", "ROLE_VYACHESLAV")
+                        .requestMatchers("/api/broadcast/create", "/api/broadcast/start", "/api/broadcast/*/end", "/api/broadcast/*/stats").hasAnyAuthority(UserRole.BROADCAST_ROLES_AUTHORITY)
 
                         .anyRequest().authenticated()
                 )

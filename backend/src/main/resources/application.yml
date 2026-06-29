@@ -142,6 +142,9 @@ app:
       master-key: ${MEDIA_ENCRYPTION_KEY:}
       algorithm: "AES/GCM/NoPadding"
 
+  file-upload:
+    max-size: ${MAX_FILE_SIZE:104857600}  # 100MB default (bytes)
+
   payment:
     recipient-name: ${PAYMENT_RECIPIENT_NAME:БФАДД}
     account: ${PAYMENT_ACCOUNT:40703810512000002359}

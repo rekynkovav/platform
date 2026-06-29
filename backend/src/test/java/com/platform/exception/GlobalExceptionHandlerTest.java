@@ -1,5 +1,6 @@
 package com.platform.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,43 +25,49 @@ import static org.mockito.Mockito.*;
 class GlobalExceptionHandlerTest {
 
     private GlobalExceptionHandler handler;
+    private HttpServletRequest request;
 
     @BeforeEach
     void setUp() {
         handler = new GlobalExceptionHandler();
+        request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/test");
     }
 
     // ==================== ResourceNotFoundException → 404 ====================
 
     @Test
     void handleNotFound_Returns404WithMessage() {
-        ResponseEntity<Map<String, String>> response = handler.handleNotFound(
-                new ResourceNotFoundException("User not found"));
+        ResponseEntity<ErrorResponse> response = handler.handleNotFound(
+                new ResourceNotFoundException("User not found"), request);
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals("User not found", response.getBody().get("error"));
+        assertEquals("User not found", response.getBody().getMessage());
+        assertEquals(404, response.getBody().getStatus());
     }
 
     // ==================== AccessDeniedException → 403 ====================
 
     @Test
     void handleAccessDenied_Returns403WithMessage() {
-        ResponseEntity<Map<String, String>> response = handler.handleAccessDenied(
-                new AccessDeniedException("Forbidden"));
+        ResponseEntity<ErrorResponse> response = handler.handleAccessDenied(
+                new AccessDeniedException("Forbidden"), request);
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-        assertEquals("Forbidden", response.getBody().get("error"));
+        assertEquals("Forbidden", response.getBody().getMessage());
+        assertEquals(403, response.getBody().getStatus());
     }
 
     // ==================== BusinessException → 400 ====================
 
     @Test
     void handleBusiness_Returns400WithMessage() {
-        ResponseEntity<Map<String, String>> response = handler.handleBusiness(
-                new BusinessException("Invalid operation"));
+        ResponseEntity<ErrorResponse> response = handler.handleBusiness(
+                new BusinessException("Invalid operation"), request);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Invalid operation", response.getBody().get("error"));
+        assertEquals("Invalid operation", response.getBody().getMessage());
+        assertEquals(400, response.getBody().getStatus());
     }
 
     // ==================== MethodArgumentNotValidException → 400 ====================
@@ -72,13 +79,11 @@ class GlobalExceptionHandlerTest {
         when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
 
         MethodArgumentNotValidException ex = new MethodArgumentNotValidException(null, bindingResult);
-        ResponseEntity<Map<String, Object>> response = handler.handleValidation(ex);
+        ResponseEntity<ErrorResponse> response = handler.handleValidation(ex, request);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Validation failed", response.getBody().get("error"));
-        @SuppressWarnings("unchecked")
-        Map<String, String> details = (Map<String, String>) response.getBody().get("details");
-        assertEquals("must be valid", details.get("email"));
+        assertEquals("Validation Failed", response.getBody().getError());
+        assertEquals("must be valid", response.getBody().getValidationErrors().get("email"));
     }
 
     // ==================== ConstraintViolationException → 400 ====================
@@ -90,11 +95,11 @@ class GlobalExceptionHandlerTest {
         when(violation.getMessage()).thenReturn("must not be blank");
 
         ConstraintViolationException ex = new ConstraintViolationException(Set.of(violation));
-        ResponseEntity<Map<String, Object>> response = handler.handleConstraintViolation(ex);
+        ResponseEntity<ErrorResponse> response = handler.handleConstraintViolation(ex, request);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Constraint violation", response.getBody().get("error"));
-        assertTrue(response.getBody().get("details").toString().contains("must not be blank"));
+        assertEquals("Constraint Violation", response.getBody().getError());
+        assertTrue(response.getBody().getMessage().contains("must not be blank"));
     }
 
     // ==================== HttpMessageNotReadableException → 400 ====================
@@ -102,10 +107,10 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleInvalidJson_Returns400() {
         HttpMessageNotReadableException ex = new HttpMessageNotReadableException("bad json");
-        ResponseEntity<Map<String, String>> response = handler.handleInvalidJson(ex);
+        ResponseEntity<ErrorResponse> response = handler.handleInvalidJson(ex, request);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Invalid request body format", response.getBody().get("error"));
+        assertEquals("Invalid request body format", response.getBody().getMessage());
     }
 
     // ==================== MethodArgumentTypeMismatchException → 400 ====================
@@ -114,31 +119,31 @@ class GlobalExceptionHandlerTest {
     void handleTypeMismatch_Returns400WithParamInfo() {
         MethodArgumentTypeMismatchException ex = new MethodArgumentTypeMismatchException(
                 "abc", Integer.class, "page", null, null);
-        ResponseEntity<Map<String, String>> response = handler.handleTypeMismatch(ex);
+        ResponseEntity<ErrorResponse> response = handler.handleTypeMismatch(ex, request);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertTrue(response.getBody().get("error").contains("page"));
+        assertTrue(response.getBody().getMessage().contains("page"));
     }
 
     // ==================== OptimisticLockingFailureException → 409 ====================
 
     @Test
     void handleOptimisticLock_Returns409() {
-        ResponseEntity<Map<String, String>> response = handler.handleOptimisticLock(
-                new OptimisticLockingFailureException("concurrent update"));
+        ResponseEntity<ErrorResponse> response = handler.handleOptimisticLock(
+                new OptimisticLockingFailureException("concurrent update"), request);
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertTrue(response.getBody().get("error").contains("retry"));
+        assertTrue(response.getBody().getMessage().contains("retry"));
     }
 
     // ==================== Generic Exception → 500 ====================
 
     @Test
     void handleGeneric_Returns500() {
-        ResponseEntity<Map<String, String>> response = handler.handleGeneric(
-                new RuntimeException("unexpected"));
+        ResponseEntity<ErrorResponse> response = handler.handleGeneric(
+                new RuntimeException("unexpected"), request);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals("Internal server error", response.getBody().get("error"));
+        assertEquals("Internal server error", response.getBody().getMessage());
     }
 }

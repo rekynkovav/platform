@@ -23,7 +23,7 @@ public class EncryptionService {
     private String masterKey;
 
     private static final String ALGORITHM = "AES/GCM/NoPadding";
-    private static final String HLS_ALGORITHM = "AES/CBC/PKCS5Padding";
+    private static final String HLS_ALGORITHM = "AES/CBC/PKCS5Padding"; // HLS standard (RFC 8216) — FFmpeg handles encryption
     private static final String KEY_ALGORITHM = "AES";
     private static final int KEY_SIZE = 32;
     private static final int IV_SIZE = 12;
@@ -130,11 +130,4 @@ public class EncryptionService {
         }
     }
 
-    public Cipher getCipherForHLS(int mode, byte[] key, String iv) throws Exception {
-        SecretKeySpec keySpec = new SecretKeySpec(key, "AES");
-        IvParameterSpec ivSpec = new IvParameterSpec(Base64.getDecoder().decode(iv));
-        Cipher cipher = Cipher.getInstance(HLS_ALGORITHM);
-        cipher.init(mode, keySpec, ivSpec);
-        return cipher;
-    }
 }

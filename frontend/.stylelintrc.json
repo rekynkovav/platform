@@ -1,0 +1,19 @@
+{
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "color-named": "never",
+    "selector-class-pattern": null,
+    "no-descending-specificity": null,
+    "import-notation": null,
+    "keyframes-name-pattern": null,
+    "rule-empty-line-before": null,
+    "selector-type-no-unknown": null,
+    "property-no-vendor-prefix": null,
+    "color-function-notation": null,
+    "alpha-value-notation": null,
+    "shorthand-property-no-redundant-values": null,
+    "declaration-block-no-redundant-longhand-properties": null,
+    "no-irregular-whitespace": null,
+    "declaration-property-unit-disallowed-list": null
+  }
+}

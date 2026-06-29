@@ -31,6 +31,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.UUID;
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
+import org.springframework.beans.factory.annotation.Value;
 
 @Slf4j
 @Service
@@ -46,11 +47,13 @@ public class SecureMediaService {
     private final HLSStreamingService hlsStreamingService;
     private final UploadLimitService uploadLimitService;
 
+    @Value("${app.file-upload.max-size:104857600}")
+    private long maxFileSize;
+
     @Transactional
     public MediaFile uploadSecureMedia(MultipartFile file, String fileType, Jwt jwt, HttpServletRequest request) {
-        long maxFileSize = 1024 * 1024 * 1024;
         if (file.getSize() > maxFileSize) {
-            throw new BusinessException("File too large. Maximum size is 1 GB");
+            throw new BusinessException("File too large. Maximum size is " + (maxFileSize / 1024 / 1024) + " MB");
         }
 
         String userId = jwt.getSubject();

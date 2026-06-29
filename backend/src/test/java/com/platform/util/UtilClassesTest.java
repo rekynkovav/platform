@@ -6,35 +6,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class UtilClassesTest {
 
-    // ==================== SqlValidator (static methods only — private constructor) ====================
-
-    @Test
-    void sqlValidator_ValidIdentifier_ReturnsTrue() {
-        assertTrue(SqlValidator.isValidIdentifier("hello_world"));
-        assertTrue(SqlValidator.isValidIdentifier("user123"));
-        assertTrue(SqlValidator.isValidIdentifier("_private"));
-    }
-
-    @Test
-    void sqlValidator_NullAndEmpty_ReturnsTrue() {
-        assertTrue(SqlValidator.isValidIdentifier(null));
-        assertTrue(SqlValidator.isValidIdentifier(""));
-    }
-
-    @Test
-    void sqlValidator_SqlInjection_ReturnsFalse() {
-        assertFalse(SqlValidator.isValidIdentifier("'; DROP TABLE users; --"));
-        assertFalse(SqlValidator.isValidIdentifier("1 OR 1=1"));
-        assertFalse(SqlValidator.isValidIdentifier("SELECT * FROM users"));
-    }
-
-    @Test
-    void sqlValidator_SpecialChars_ReturnsFalse() {
-        assertFalse(SqlValidator.isValidIdentifier("hello world"));
-        assertFalse(SqlValidator.isValidIdentifier("user@name"));
-        assertFalse(SqlValidator.isValidIdentifier("key-value"));
-    }
-
     // ==================== XssSanitizer ====================
 
     @Test

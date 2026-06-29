@@ -58,7 +58,6 @@ class WebSocketHandshakeRedisRegistryTest {
 
         assertTrue(result);
         assertEquals("user-1", attributes.get("userId"));
-        assertEquals("valid-token", attributes.get("token"));
     }
 
     @Test
