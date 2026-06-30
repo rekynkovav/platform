@@ -43,7 +43,7 @@ const useChatWs = (slug, onMessage) => {
         return;
       }
 
-      const ws = new WebSocket(`${url}?token=${encodeURIComponent(token)}`);
+      const ws = new WebSocket(`${url}`, token ? [token] : []);
       wsRef.current = ws;
 
       ws.onopen = () => {

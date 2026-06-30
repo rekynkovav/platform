@@ -97,9 +97,12 @@ export class RealWebSocketService {
         return false;
       }
 
-      const wsUrl = token ? `${url}?token=${encodeURIComponent(token)}` : url;
+      const wsUrl = url; // token now passed via Sec-WebSocket-Protocol, not query param
 
-      const ws = new WebSocket(wsUrl);
+      // Pass JWT via Sec-WebSocket-Protocol header (RFC 6455)
+      // Browser WebSocket API doesn't allow custom headers — subprotocol is the only mechanism
+      const protocols = token ? [token] : [];
+      const ws = new WebSocket(wsUrl, protocols);
 
       // ALL handlers assigned ONCE inside Promise — no duplicate overwrite
       return new Promise<boolean>((resolve) => {

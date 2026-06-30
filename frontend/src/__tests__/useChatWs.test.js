@@ -14,8 +14,9 @@ class MockWebSocket {
     static CLOSING = 2;
     static CLOSED = 3;
 
-    constructor(url) {
+    constructor(url, protocols) {
         this.url = url;
+        this.protocols = protocols || [];
         this.readyState = 0; // CONNECTING
         this.onopen = null;
         this.onmessage = null;
@@ -72,13 +73,14 @@ describe('useChatWs', () => {
         expect(typeof result.current.send).toBe('function');
     });
 
-    it('creates a WebSocket on mount with correct URL', () => {
+    it('creates a WebSocket on mount with correct URL and token in protocols', () => {
         getToken.mockReturnValue('my-token');
         renderHook(() => useChatWs('my-room', jest.fn()));
 
         expect(MockWebSocket.instances.length).toBe(1);
         expect(MockWebSocket.instances[0].url).toContain('/ws/my-room');
-        expect(MockWebSocket.instances[0].url).toContain('token=my-token');
+        expect(MockWebSocket.instances[0].url).not.toContain('token=');
+        expect(MockWebSocket.instances[0].protocols).toContain('my-token');
     });
 
     it('sets isConnected to true when WebSocket opens', () => {

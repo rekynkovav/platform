@@ -81,6 +81,26 @@ class WebSocketHandshakeRedisRegistryTest {
     }
 
     @Test
+    void beforeHandshake_SecWebSocketProtocol_Authenticates() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.put("Sec-WebSocket-Protocol", List.of("protocol-token"));
+        when(request.getHeaders()).thenReturn(headers);
+
+        Jwt jwt = Jwt.withTokenValue("protocol-token")
+                .header("alg", "none")
+                .subject("user-3")
+                .claim("realm_access.roles", "USER")
+                .build();
+        when(jwtDecoder.decode("protocol-token")).thenReturn(jwt);
+
+        Map<String, Object> attributes = new HashMap<>();
+        boolean result = interceptor.beforeHandshake(request, response, wsHandler, attributes);
+
+        assertTrue(result);
+        assertEquals("user-3", attributes.get("userId"));
+    }
+
+    @Test
     void beforeHandshake_NoToken_ReturnsFalse() {
         HttpHeaders headers = new HttpHeaders();
         when(request.getHeaders()).thenReturn(headers);

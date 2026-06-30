@@ -27,19 +27,33 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                    WebSocketHandler wsHandler, Map<String, Object> attributes) {
-        HttpHeaders headers = request.getHeaders();
-        List<String> authHeaders = headers.get("Authorization");
-
         String token = null;
-        if (authHeaders != null && !authHeaders.isEmpty()) {
-            String authHeader = authHeaders.get(0);
-            if (authHeader.startsWith("Bearer ")) {
-                token = authHeader.substring(7);
-                log.debug("Token extracted from Authorization header");
+
+        // 1) Sec-WebSocket-Protocol header (preferred — used by frontend)
+        List<String> protocols = request.getHeaders().get("Sec-WebSocket-Protocol");
+        if (protocols != null && !protocols.isEmpty()) {
+            // Subprotocol value is the JWT token
+            String candidate = protocols.get(0);
+            if (candidate != null && !candidate.isBlank()) {
+                token = candidate;
+                log.debug("Token extracted from Sec-WebSocket-Protocol header");
             }
         }
 
-        // Fallback: check query parameter for token (common for WebSocket connections)
+        // 2) Authorization header (fallback for non-browser clients)
+        if (token == null) {
+            HttpHeaders headers = request.getHeaders();
+            List<String> authHeaders = headers.get("Authorization");
+            if (authHeaders != null && !authHeaders.isEmpty()) {
+                String authHeader = authHeaders.get(0);
+                if (authHeader.startsWith("Bearer ")) {
+                    token = authHeader.substring(7);
+                    log.debug("Token extracted from Authorization header");
+                }
+            }
+        }
+
+        // 3) Query parameter (DEPRECATED — security risk: tokens appear in server logs/URLs)
         if (token == null) {
             String query = request.getURI().getQuery();
             if (query != null) {
@@ -47,7 +61,7 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
                     String[] kv = param.split("=", 2);
                     if (kv.length == 2 && "token".equals(kv[0])) {
                         token = kv[1];
-                        log.debug("Token extracted from query parameter");
+                        log.warn("SECURITY: JWT token extracted from query parameter (deprecated, use Sec-WebSocket-Protocol instead)");
                         break;
                     }
                 }
