@@ -17,6 +17,8 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.dao.OptimisticLockingFailureException;
 import io.micrometer.core.annotation.Timed;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -91,9 +93,10 @@ public class PaymentService {
     }
 
     @Timed(value = "payment.get_user_payments", description = "Time to get user payments")
-    public List<Payment> getUserPayments(Jwt jwt) {
+    public List<Payment> getUserPayments(Jwt jwt, int limit) {
         String userId = jwt.getSubject();
-        return paymentRepository.findByUserId(UUID.fromString(userId));
+        Pageable pageable = PageRequest.of(0, limit);
+        return paymentRepository.findByUserId(UUID.fromString(userId), pageable);
     }
 
     @Timed(value = "payment.check_status", description = "Time to check payment status")
@@ -138,8 +141,9 @@ public class PaymentService {
     }
 
     @Timed(value = "payment.get_pending", description = "Time to get pending payments")
-    public List<Payment> getPendingPayments() {
-        return paymentRepository.findPendingPayments();
+    public List<Payment> getPendingPayments(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return paymentRepository.findPendingPayments(pageable);
     }
 
     @Timed(value = "payment.expire_old", description = "Time to expire old payments")

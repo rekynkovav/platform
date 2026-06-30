@@ -14,6 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -42,7 +43,7 @@ class MediaArchiveNotificationRepositoryTest {
         mediaFileRepository.save(MediaFile.builder().id("m2").ownerId("user-1").s3Key("k2").encryptionIv("iv2").fileType("video").originalFilename("b.mp4").build());
         mediaFileRepository.save(MediaFile.builder().id("m3").ownerId("user-2").s3Key("k3").encryptionIv("iv3").fileType("image").originalFilename("c.jpg").build());
 
-        List<MediaFile> files = mediaFileRepository.findByOwnerId("user-1");
+        List<MediaFile> files = mediaFileRepository.findByOwnerId("user-1", Pageable.unpaged());
         assertEquals(2, files.size());
     }
 
@@ -107,7 +108,7 @@ class MediaArchiveNotificationRepositoryTest {
         notificationRepository.save(Notification.builder().userId("u1").message("Read1").read(true).build());
         notificationRepository.save(Notification.builder().userId("u1").message("Unread2").read(false).build());
 
-        List<Notification> unread = notificationRepository.findByUserIdAndReadFalse("u1");
+        List<Notification> unread = notificationRepository.findByUserIdAndReadFalse("u1", Pageable.unpaged());
         assertEquals(2, unread.size());
         assertTrue(unread.stream().noneMatch(n -> Boolean.TRUE.equals(n.getRead())));
     }

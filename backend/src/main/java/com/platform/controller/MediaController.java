@@ -100,10 +100,11 @@ public class MediaController {
     @GetMapping("/my-files")
     @RateLimiting(name = "media-limit")
     public ResponseEntity<List<MediaFile>> getMyFiles(
-            @AuthenticationPrincipal Jwt jwt) {
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "50") int limit) {
 
         String userId = jwt.getSubject();
-        List<MediaFile> files = secureMediaService.getUserFiles(userId);
+        List<MediaFile> files = secureMediaService.getUserFiles(userId, limit);
         return ResponseEntity.ok(files);
     }
 

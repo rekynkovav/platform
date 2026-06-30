@@ -14,6 +14,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
+import org.springframework.data.domain.Pageable;
 import static org.mockito.Mockito.*;
 
 class AuditNotificationServiceTest {
@@ -109,12 +110,12 @@ class AuditNotificationServiceTest {
 
     @Test
     void notificationGetUnread_DelegatesToRepository() {
-        when(notificationRepository.findByUserIdAndReadFalse("u1")).thenReturn(List.of());
+        when(notificationRepository.findByUserIdAndReadFalse(eq("u1"), any(Pageable.class))).thenReturn(List.of());
 
-        List<Notification> result = notificationService.getUnreadForUser("u1");
+        List<Notification> result = notificationService.getUnreadForUser("u1", 50);
 
         assertNotNull(result);
-        verify(notificationRepository).findByUserIdAndReadFalse("u1");
+        verify(notificationRepository).findByUserIdAndReadFalse(eq("u1"), any(Pageable.class));
     }
 
     @Test

@@ -26,8 +26,9 @@ public class EventController {
     }
 
     @GetMapping("/past")
-    public ResponseEntity<List<EventDto>> getPastEvents() {
-        return ResponseEntity.ok(eventService.getPastEvents());
+    public ResponseEntity<List<EventDto>> getPastEvents(
+            @RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(eventService.getPastEvents(limit));
     }
 
     @GetMapping("/next")

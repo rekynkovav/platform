@@ -82,7 +82,7 @@ class NotificationControllerTest {
 
     @Test
     void getAll_ReturnsList() throws Exception {
-        when(notificationService.getAllForUser(userId)).thenReturn(List.of(notification));
+        when(notificationService.getAllForUser(userId, 50)).thenReturn(List.of(notification));
 
         mockMvc.perform(get("/api/notifications")
                         .with(withAuth(auth)))
@@ -93,7 +93,7 @@ class NotificationControllerTest {
 
     @Test
     void getAll_Empty_ReturnsEmptyArray() throws Exception {
-        when(notificationService.getAllForUser(userId)).thenReturn(List.of());
+        when(notificationService.getAllForUser(userId, 50)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/notifications")
                         .with(withAuth(auth)))
@@ -105,7 +105,7 @@ class NotificationControllerTest {
 
     @Test
     void getUnread_ReturnsUnreadOnly() throws Exception {
-        when(notificationService.getUnreadForUser(userId)).thenReturn(List.of(notification));
+        when(notificationService.getUnreadForUser(userId, 50)).thenReturn(List.of(notification));
 
         mockMvc.perform(get("/api/notifications/unread")
                         .with(withAuth(auth)))

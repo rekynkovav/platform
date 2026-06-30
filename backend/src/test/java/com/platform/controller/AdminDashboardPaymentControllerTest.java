@@ -143,10 +143,10 @@ class AdminDashboardPaymentControllerTest {
         p.setId(java.util.UUID.randomUUID());
         p.setAmount(new BigDecimal("990.00"));
         p.setStatus(Payment.PaymentStatus.PENDING);
-        when(paymentService.getUserPayments(jwt)).thenReturn(List.of(p));
+        when(paymentService.getUserPayments(jwt, 50)).thenReturn(List.of(p));
 
         PaymentController controller = new PaymentController(paymentService);
-        ResponseEntity<List<PaymentDto>> response = controller.getMyPayments(jwt);
+        ResponseEntity<List<PaymentDto>> response = controller.getMyPayments(jwt, 50);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().size());
@@ -156,10 +156,10 @@ class AdminDashboardPaymentControllerTest {
     @Test
     void paymentGetPending_ReturnsMappedDtos() {
         PaymentService paymentService = mock(PaymentService.class);
-        when(paymentService.getPendingPayments()).thenReturn(List.of());
+        when(paymentService.getPendingPayments(50)).thenReturn(List.of());
 
         PaymentController controller = new PaymentController(paymentService);
-        ResponseEntity<List<PaymentDto>> response = controller.getPendingPayments();
+        ResponseEntity<List<PaymentDto>> response = controller.getPendingPayments(50);
 
         assertEquals(200, response.getStatusCode().value());
         assertTrue(response.getBody().isEmpty());

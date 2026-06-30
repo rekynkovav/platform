@@ -32,6 +32,8 @@ import java.util.UUID;
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @Slf4j
 @Service
@@ -288,8 +290,9 @@ public class SecureMediaService {
         log.info("Media file deleted: {} by {}", fileId, userId);
     }
 
-    public List<MediaFile> getUserFiles(String userId) {
-        return mediaFileRepository.findByOwnerId(userId);
+    public List<MediaFile> getUserFiles(String userId, int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return mediaFileRepository.findByOwnerId(userId, pageable);
     }
 
     private boolean hasAccess(String userId, MediaFile file, Jwt jwt) {

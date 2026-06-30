@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -60,7 +61,7 @@ class EventPaymentRepositoryTest {
         paymentRepository.save(Payment.builder().userId(userId).amount(BigDecimal.TEN).subscriptionMonths(1).currency("RUB")
                 .status(Payment.PaymentStatus.PENDING).build());
 
-        List<Payment> pending = paymentRepository.findPendingPayments();
+        List<Payment> pending = paymentRepository.findPendingPayments(Pageable.unpaged());
         assertEquals(2, pending.size());
     }
 }

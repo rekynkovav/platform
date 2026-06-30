@@ -70,9 +70,9 @@ public class PaymentController {
     @GetMapping("/my")
     @PreAuthorize("hasRole('USER_0')")
     public ResponseEntity<List<PaymentDto>> getMyPayments(
-            @AuthenticationPrincipal Jwt jwt) {
-
-        List<Payment> payments = paymentService.getUserPayments(jwt);
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "50") int limit) {
+        List<Payment> payments = paymentService.getUserPayments(jwt, limit);
         return ResponseEntity.ok(payments.stream().map(this::toDto).collect(Collectors.toList()));
     }
 
@@ -83,8 +83,9 @@ public class PaymentController {
     @GetMapping("/user")
     @PreAuthorize("hasRole('USER_0')")
     public ResponseEntity<List<PaymentDto>> getUserPaymentsAlias(
-            @AuthenticationPrincipal Jwt jwt) {
-        return getMyPayments(jwt);
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "50") int limit) {
+        return getMyPayments(jwt, limit);
     }
 
     @GetMapping("/{paymentId}/status")
@@ -111,9 +112,10 @@ public class PaymentController {
 
     @GetMapping("/pending")
     @PreAuthorize("hasAnyRole('MODERATOR_ADMIN', 'VYACHESLAV', 'SUPER_ADMIN')")
-    public ResponseEntity<List<PaymentDto>> getPendingPayments() {
+    public ResponseEntity<List<PaymentDto>> getPendingPayments(
+            @RequestParam(defaultValue = "50") int limit) {
 
-        List<Payment> payments = paymentService.getPendingPayments();
+        List<Payment> payments = paymentService.getPendingPayments(limit);
         return ResponseEntity.ok(payments.stream().map(this::toDto).collect(Collectors.toList()));
     }
 

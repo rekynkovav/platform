@@ -22,6 +22,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
+import org.springframework.data.domain.Pageable;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -93,10 +94,10 @@ class NotificationServiceTest {
 
     @Test
     void getUnreadForUser_ReturnsUnreadList() {
-        when(notificationRepository.findByUserIdAndReadFalse(userId))
+        when(notificationRepository.findByUserIdAndReadFalse(eq(userId), any(Pageable.class)))
                 .thenReturn(List.of(notification));
 
-        List<Notification> result = notificationService.getUnreadForUser(userId);
+        List<Notification> result = notificationService.getUnreadForUser(userId, 50);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getRead()).isFalse();
@@ -104,10 +105,10 @@ class NotificationServiceTest {
 
     @Test
     void getUnreadForUser_NoUnread_ReturnsEmpty() {
-        when(notificationRepository.findByUserIdAndReadFalse(userId))
+        when(notificationRepository.findByUserIdAndReadFalse(eq(userId), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        List<Notification> result = notificationService.getUnreadForUser(userId);
+        List<Notification> result = notificationService.getUnreadForUser(userId, 50);
 
         assertThat(result).isEmpty();
     }
@@ -118,10 +119,10 @@ class NotificationServiceTest {
     void getAllForUser_ReturnsAllNotifications() {
         Notification read = Notification.builder()
                 .id(2L).userId(userId).type("info").read(true).build();
-        when(notificationRepository.findByUserIdOrderByCreatedAtDesc(userId))
+        when(notificationRepository.findByUserIdOrderByCreatedAtDesc(eq(userId), any(Pageable.class)))
                 .thenReturn(List.of(notification, read));
 
-        List<Notification> result = notificationService.getAllForUser(userId);
+        List<Notification> result = notificationService.getAllForUser(userId, 50);
 
         assertThat(result).hasSize(2);
     }

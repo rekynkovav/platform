@@ -23,16 +23,20 @@ public class NotificationController {
 
     @GetMapping
     @RateLimiting(name = "notification-limit")
-    public ResponseEntity<List<Notification>> getAll(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<List<Notification>> getAll(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "50") int limit) {
         String userId = jwt.getSubject();
-        return ResponseEntity.ok(notificationService.getAllForUser(userId));
+        return ResponseEntity.ok(notificationService.getAllForUser(userId, limit));
     }
 
     @GetMapping("/unread")
     @RateLimiting(name = "notification-limit")
-    public ResponseEntity<List<Notification>> getUnread(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<List<Notification>> getUnread(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "50") int limit) {
         String userId = jwt.getSubject();
-        return ResponseEntity.ok(notificationService.getUnreadForUser(userId));
+        return ResponseEntity.ok(notificationService.getUnreadForUser(userId, limit));
     }
 
     @PutMapping("/{id}/read")

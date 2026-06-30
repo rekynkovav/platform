@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -299,18 +300,18 @@ class SecureMediaServiceTest {
 
     @Test
     void getUserFiles_ReturnsList() {
-        when(mediaFileRepository.findByOwnerId(userId)).thenReturn(List.of(mediaFile));
+        when(mediaFileRepository.findByOwnerId(anyString(), any(Pageable.class))).thenReturn(List.of(mediaFile));
 
-        List<MediaFile> result = secureMediaService.getUserFiles(userId);
+        List<MediaFile> result = secureMediaService.getUserFiles(userId, 50);
 
         assertThat(result).hasSize(1);
     }
 
     @Test
     void getUserFiles_Empty_ReturnsEmptyList() {
-        when(mediaFileRepository.findByOwnerId(userId)).thenReturn(List.of());
+        when(mediaFileRepository.findByOwnerId(anyString(), any(Pageable.class))).thenReturn(List.of());
 
-        List<MediaFile> result = secureMediaService.getUserFiles(userId);
+        List<MediaFile> result = secureMediaService.getUserFiles(userId, 50);
 
         assertThat(result).isEmpty();
     }

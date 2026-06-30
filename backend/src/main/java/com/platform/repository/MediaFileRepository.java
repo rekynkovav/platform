@@ -8,13 +8,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
 public interface MediaFileRepository extends JpaRepository<MediaFile, String> {
 
-    List<MediaFile> findByOwnerId(String ownerId);
+    List<MediaFile> findByOwnerId(String ownerId, Pageable pageable);
 
     @Modifying(clearAutomatically = true)
     @Transactional

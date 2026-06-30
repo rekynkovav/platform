@@ -179,7 +179,7 @@ class MediaControllerTest {
 
     @Test
     void getMyFiles_ReturnsList() throws Exception {
-        when(secureMediaService.getUserFiles(userId)).thenReturn(List.of(mediaFile));
+        when(secureMediaService.getUserFiles(userId, 50)).thenReturn(List.of(mediaFile));
 
         mockMvc.perform(get("/api/media/my-files")
                         .with(withAuth(userAuth)))
@@ -190,7 +190,7 @@ class MediaControllerTest {
 
     @Test
     void getMyFiles_Empty_ReturnsEmptyArray() throws Exception {
-        when(secureMediaService.getUserFiles(userId)).thenReturn(List.of());
+        when(secureMediaService.getUserFiles(userId, 50)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/media/my-files")
                         .with(withAuth(userAuth)))

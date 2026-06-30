@@ -1,88 +1,75 @@
-# План рефакторинга — Актуальный (30.06.2026)
+# План рефакторинга — Актуальный (01.07.2026)
 
-## Статус: после полного аудита backend + frontend + infra
-## Тесты: backend 1235/1235 ✅ | frontend 332/332 ✅
-
----
-
-## 🔴 CRITICAL (1)
-
-| # | Проблема | Файл | Описание |
-|---|----------|------|----------|
-| 1 | **0 React.memo** | все компоненты | LiveChat 1272стр, feeds, Dashboard перерисовываются полностью. 0 мемоизации на 16K строк |
-
-## 🔴 HIGH (5)
-
-| # | Проблема | Файл | Описание |
-|---|----------|------|----------|
-| 2 | **application-prod.yml:5** | application-prod.yml | Захардкоженный fallback пароль `platform_pass_2026` — если DB_PASSWORD не задан, прод работает с дефолтным |
-| 3 | **Spring Boot 3.2.5 EOL** | pom.xml | Known CVE (Spring4Shell follow-ups, PathTraversal). Upgrade до 3.4.x |
-| 4 | **11/17 сервисов без healthcheck** | docker-compose.yml | keycloak, nginx, prometheus, grafana, coturn, zipkin, alertmanager, backup, nginx-cdn, rtmp, frontend |
-| 5 | **14/17 сервисов без resource limits** | docker-compose.yml | ES по умолчанию = 50% RAM. Нет mem_limit/cpus у绝大部分 сервисов |
-| 6 | **.env.docker закоммичен** | .git/.env.docker | Не в .gitignore, содержит пароли |
-
-## 🟡 MEDIUM (7)
-
-| # | Проблема | Файл | Описание |
-|---|----------|------|----------|
-| 7 | **6 компонентов >500 строк** | ArchiveList(1501), LiveChat(1272), NutritionFeed(976), BroadcastControls(963), Dashboard(867), Questions(693) | God-components |
-| 8 | **49 inline styles** | 21 файл | ~12 display:none (ок), ~5 динамические позиции, остальные → CSS классы |
-| 9 | **28 эндпоинтов без пагинации** | ChatController, FeedController, EventController и др. | Возвращают `List<>` без лимита |
-| 10 | **5 сервисов без тестов** | BroadcastChat, BroadcastReaction, DashboardMenu, KeycloakRetry, StreamingFile | Пробел в покрытии |
-| 11 | **Keycloak Admin Client 24.0.3 EOL** | pom.xml | 26.x актуальная версия |
-| 12 | **ES xpack.security=false** | docker-compose.yml | OK для dev, опасно для prod |
-| 13 | **Keycloak realm — пароли в plaintext** | keycloak/ realm export | admin123, moderator123, password, vyacheslav123 |
-
-## 🟢 LOW (4)
-
-| # | Проблема | Файл | Описание |
-|---|----------|------|----------|
-| 14 | **3 пустых catch-блока** | BroadcastStatsWebSocketHandler.java:40,45,50 | Нужен минимум log.debug |
-| 15 | **EnvValidator логирует DB URL** | EnvValidator.java:23 | INFO level — в prod раскрывает connection string |
-| 16 | **9 сервисов без restart policy** | docker-compose.yml | prometheus, grafana, elasticsearch и др. |
-| 17 | **Logback contrib 0.1.5** | pom.xml | Unmaintained с 2017, несовместим с SLF4J 2.x |
+## Статус: Blocks A-F + inline styles done. Tests: 492/492 frontend ✅ | 1263/1263 backend ✅
+## Commits: 03c161ce (inline styles), 0aa43f88 (.env.docker), 349d63c7 (WS security)
 
 ---
 
-## ✅ ЧИСТО (подтверждено аудитом)
+## 🔴 HIGH (2)
 
-- 0 System.out.println в backend
-- 0 TODO/FIXME/HACK
-- 0 мёртвого кода (все private методы имеют callers)
-- N+1 queries исправлены (PostService, ContactService)
-- @Transactional у всех DB-сервисов
-- XSS фильтр работает
-- Rate limiting работает
-- CSS variables 95% миграция
-- 0 циклических зависимостей в frontend
-- Frontend билд работает
-- 4 `any` типа в продакшне (helpers.ts — throttle/debounce)
-- Тесты покрывают все критические пути
+| # | Проблема | Файл | Описание |
+|---|----------|------|----------|
+| 1 | **Spring Boot 3.2.5 EOL** | pom.xml | Known CVE. Upgrade до 3.4.x — отдельная задача, проверка breaking changes |
+| 2 | **God-components: 5 файлов >860 строк** | см. ниже | ArchiveList(1501), LiveChat(1272), NutritionFeed(976), BroadcastControls(963), Dashboard(865) |
+
+## 🟡 MEDIUM (5)
+
+| # | Проблема | Файл | Описание |
+|---|----------|------|----------|
+| 3 | **God-classes: 2 сервиса >360 строк** | ChatService(544), SecureMediaService(363) | Нарушение SRP |
+| 4 | **27 эндпоинтов без пагинации** | ChatController, FeedController, EventController | `List<>` без Pageable |
+| 5 | **Keycloak Admin Client 24.0.3 EOL** | pom.xml | 26.x актуальная версия |
+| 6 | **ES xpack.security=false** | docker-compose.yml | OK для dev, опасно для prod |
+| 7 | **Keycloak realm — пароли в plaintext** | keycloak/realm export | admin123, moderator123 |
+
+## 🟢 LOW (2)
+
+| # | Проблема | Файл | Описание |
+|---|----------|------|----------|
+| 8 | **3 пустых catch-блока** | BroadcastStatsWebSocketHandler.java:40,45,50 | log.debug |
+| 9 | **3 pre-existing test failures** | LiveSessionContext, useLiveBroadcast, LiveChat | Async timing, pre-existing |
 
 ---
 
-## ПРИОРИТЕТЫ ВЫПОЛНЕНИЯ
+## ✅ СДЕЛАНО (не трогать!)
 
-### Раунд 1 — Безопасность (сейчас)
-1. application-prod.yml: fallback пароли → `${DB_PASSWORD:?}` (fail fast)
-2. .env.docker → добавить в .gitignore + git rm --cached
-3. Keycloak realm: plaintext пароли → env vars
+| Что | Статус |
+|-----|--------|
+| React.memo (5 крупнейших) | ✅ |
+| Inline styles → CSS (42→30, все justified) | ✅ |
+| .env.docker из git | ✅ (0aa43f88) |
+| application-prod.yml fail-fast | ✅ (${DB_PASSWORD:?}) |
+| Docker: 17/17 healthchecks | ✅ |
+| Docker: 17/17 resource limits | ✅ |
+| Docker: 17/17 restart policies | ✅ |
+| ErrorResponse DTO → GlobalExceptionHandler | ✅ |
+| Hardcoded roles → RoleConstants | ✅ |
+| Docker cache: 75GB освобождено | ✅ |
+| AES/CBC HLS dead code удалён | ✅ |
+| window.location.reload() → React patterns | ✅ |
+| @Transactional audit (infra services OK) | ✅ |
+| 5 сервисов протестированы | ✅ |
+| WebSocket JWT → Sec-WebSocket-Protocol | ✅ |
+| Console.* cleanup (0 остатков) | ✅ |
+| Dead code удалён (5 файлов) | ✅ |
+| CSS hex → variables (92%) | ✅ |
+| CSS dedup (Modal.css) | ✅ |
+| Backend healthcheck fix (/api/health) | ✅ |
+| Logback contrib удалён | ✅ |
+| EnvValidator INFO логи удалены | ✅ |
 
-### Раунд 2 — Docker (сейчас)
-4. Healthchecks: добавить keycloak, nginx, prometheus, grafana, frontend
-5. Resource limits: добавить всем сервисам
-6. Restart policies: добавить недостающим
+---
 
-### Раунд 3 — Performance (следующий)
-7. React.memo: LiveChat, feeds, Dashboard — мемоизировать
-8. Inline styles → CSS классы (5 динамических позиций + layout блоки)
+## ПОРЯДОК
 
-### Раунд 4 — Code Quality
-9. God-components: ArchiveList, LiveChat, NutritionFeed, BroadcastControls, Dashboard
-10. Тесты: 5 сервисов без покрытия
-11. Пагинация: критические эндпоинты
+### Сейчас — God-components分解
+Начать с Dashboard (865, самый маленький) → отработать паттерн → остальные.
 
-### Раунд 5 — Dependencies
-12. Spring Boot 3.2.5 → 3.4.x
-13. Keycloak Admin Client → 26.x
-14. Logback contrib → удалить/заменить
+### Потом — God-classes分解
+ChatService(544) → вынести handlers/statistics → контроллер + сервис.
+
+### Потом — Пагинация
+Паттерн уже есть в ChatController. Распространить на остальные 27 эндпоинтов.
+
+### Потом — Spring Boot upgrade
+Отдельная задача. Проверка breaking changes, обновление зависимостей.

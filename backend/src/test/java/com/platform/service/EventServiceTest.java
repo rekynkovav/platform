@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -91,9 +92,9 @@ class EventServiceTest {
     @Test
     @DisplayName("getPastEvents - returns past events")
     void getPastEvents_ShouldReturnList() {
-        when(eventRepository.findPast(any(LocalDateTime.class))).thenReturn(List.of(testEvent));
+        when(eventRepository.findPast(any(LocalDateTime.class), any(Pageable.class))).thenReturn(List.of(testEvent));
 
-        List<EventDto> result = eventService.getPastEvents();
+        List<EventDto> result = eventService.getPastEvents(50);
 
         assertThat(result).hasSize(1);
     }

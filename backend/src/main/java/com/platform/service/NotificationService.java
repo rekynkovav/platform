@@ -12,6 +12,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 @Service
@@ -61,17 +63,19 @@ public class NotificationService {
     /**
      * Получить непрочитанные уведомления пользователя
      */
-    @Cacheable(value = "unreadNotifications", key = "#userId")
-    public List<Notification> getUnreadForUser(String userId) {
-        return notificationRepository.findByUserIdAndReadFalse(userId);
+    @Cacheable(value = "unreadNotifications", key = "#userId + ':' + #limit")
+    public List<Notification> getUnreadForUser(String userId, int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return notificationRepository.findByUserIdAndReadFalse(userId, pageable);
     }
 
     /**
      * Получить все уведомления пользователя (для колокольчика)
      */
-    @Cacheable(value = "allNotifications", key = "#userId")
-    public List<Notification> getAllForUser(String userId) {
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    @Cacheable(value = "allNotifications", key = "#userId + ':' + #limit")
+    public List<Notification> getAllForUser(String userId, int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
     }
 
     @Transactional

@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -128,9 +129,9 @@ class PaymentServiceTest {
                 .status(Payment.PaymentStatus.PAID)
                 .build();
 
-        when(paymentRepository.findByUserId(userIdUuid)).thenReturn(List.of(p1));
+        when(paymentRepository.findByUserId(eq(userIdUuid), any(Pageable.class))).thenReturn(List.of(p1));
 
-        List<Payment> payments = paymentService.getUserPayments(jwt);
+        List<Payment> payments = paymentService.getUserPayments(jwt, 50);
 
         assertThat(payments).hasSize(1);
     }
@@ -196,9 +197,9 @@ class PaymentServiceTest {
 
     @Test
     void getPendingPayments_ReturnsList() {
-        when(paymentRepository.findPendingPayments()).thenReturn(List.of());
+        when(paymentRepository.findPendingPayments(any(Pageable.class))).thenReturn(List.of());
 
-        List<Payment> pending = paymentService.getPendingPayments();
+        List<Payment> pending = paymentService.getPendingPayments(50);
 
         assertThat(pending).isEmpty();
     }

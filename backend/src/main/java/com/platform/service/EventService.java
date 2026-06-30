@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -31,8 +33,9 @@ public class EventService {
                 .collect(Collectors.toList());
     }
 
-    public List<EventDto> getPastEvents() {
-        List<Event> events = eventRepository.findPast(LocalDateTime.now());
+    public List<EventDto> getPastEvents(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        List<Event> events = eventRepository.findPast(LocalDateTime.now(), pageable);
         return events.stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());

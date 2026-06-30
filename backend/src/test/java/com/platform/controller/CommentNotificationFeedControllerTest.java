@@ -75,10 +75,10 @@ class CommentNotificationFeedControllerTest {
     @Test
     void notificationGetAll_ReturnsListFromService() {
         NotificationService notificationService = mock(NotificationService.class);
-        when(notificationService.getAllForUser("user-123")).thenReturn(List.of(new Notification()));
+        when(notificationService.getAllForUser("user-123", 50)).thenReturn(List.of(new Notification()));
 
         NotificationController controller = new NotificationController(notificationService);
-        ResponseEntity<List<Notification>> response = controller.getAll(jwt);
+        ResponseEntity<List<Notification>> response = controller.getAll(jwt, 50);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals(1, response.getBody().size());
@@ -87,10 +87,10 @@ class CommentNotificationFeedControllerTest {
     @Test
     void notificationGetUnread_ReturnsListFromService() {
         NotificationService notificationService = mock(NotificationService.class);
-        when(notificationService.getUnreadForUser("user-123")).thenReturn(List.of());
+        when(notificationService.getUnreadForUser("user-123", 50)).thenReturn(List.of());
 
         NotificationController controller = new NotificationController(notificationService);
-        ResponseEntity<List<Notification>> response = controller.getUnread(jwt);
+        ResponseEntity<List<Notification>> response = controller.getUnread(jwt, 50);
 
         assertEquals(200, response.getStatusCode().value());
         assertTrue(response.getBody().isEmpty());

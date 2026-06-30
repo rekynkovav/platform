@@ -157,7 +157,7 @@ class PaymentControllerTest {
 
     @Test
     void getMyPayments_ReturnsList() throws Exception {
-        when(paymentService.getUserPayments(any(Jwt.class))).thenReturn(List.of(payment));
+        when(paymentService.getUserPayments(any(Jwt.class), eq(50))).thenReturn(List.of(payment));
 
         mockMvc.perform(get("/api/payments/my")
                         .with(withAuth(userAuth)))
@@ -170,7 +170,7 @@ class PaymentControllerTest {
 
     @Test
     void getUserPaymentsAlias_DelegatesToMyPayments() throws Exception {
-        when(paymentService.getUserPayments(any(Jwt.class))).thenReturn(List.of());
+        when(paymentService.getUserPayments(any(Jwt.class), eq(50))).thenReturn(List.of());
 
         mockMvc.perform(get("/api/payments/user")
                         .with(withAuth(userAuth)))
@@ -223,7 +223,7 @@ class PaymentControllerTest {
 
     @Test
     void getPendingPayments_AdminCanView() throws Exception {
-        when(paymentService.getPendingPayments()).thenReturn(List.of(payment));
+        when(paymentService.getPendingPayments(50)).thenReturn(List.of(payment));
 
         mockMvc.perform(get("/api/payments/pending")
                         .with(withAuth(adminAuth)))

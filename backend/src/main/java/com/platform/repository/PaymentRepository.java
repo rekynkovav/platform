@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -13,7 +14,7 @@ import java.util.UUID;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
-    List<Payment> findByUserId(UUID userId);
+    List<Payment> findByUserId(UUID userId, Pageable pageable);
 
     List<Payment> findByStatus(Payment.PaymentStatus status);
 
@@ -23,7 +24,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     Optional<Payment> findByIdAndUserId(UUID id, UUID userId);
 
     @Query("SELECT p FROM Payment p WHERE p.status = 'PENDING' ORDER BY p.createdAt DESC")
-    List<Payment> findPendingPayments();
+    List<Payment> findPendingPayments(Pageable pageable);
 
     List<Payment> findByUserIdAndStatus(UUID userId, Payment.PaymentStatus status);
 }
