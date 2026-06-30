@@ -1,0 +1,12 @@
+/* ChatInput styles */
+
+.upload-error-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.error-message-content {
+  padding: 8px 12px;
+}

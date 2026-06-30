@@ -1498,4 +1498,4 @@ const ArchiveList = () => {
     );
 };
 
-export default ArchiveList;
+export default React.memo(ArchiveList);

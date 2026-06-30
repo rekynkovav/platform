@@ -1,5 +1,6 @@
 import React from 'react';
 import { ROOM_TITLES } from './config';
+import './ChatHeader.css';
 
 /**
  * ChatHeader — room title + WS connection status.
@@ -7,7 +8,7 @@ import { ROOM_TITLES } from './config';
 const ChatHeader = ({ slug, isConnected }) => (
   <div className="chat-header">
     <h3 className="chat-title">{ROOM_TITLES[slug] || slug}</h3>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', marginTop: '4px' }}>
+    <div className="chat-status">
       <span
         style={{
           width: '8px',

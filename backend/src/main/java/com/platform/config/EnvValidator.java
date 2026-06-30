@@ -50,8 +50,5 @@ public class EnvValidator {
         }
 
         log.info("✅ All required environment variables are present for profile '{}'", activeProfile);
-        log.info("   - Database URL: {}", dbUrl);
-        log.info("   - Database User: {}", dbUser);
-        log.info("   - Database Password: [SET]");
     }
 }

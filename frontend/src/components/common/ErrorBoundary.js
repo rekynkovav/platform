@@ -1,4 +1,5 @@
 import React from 'react';
+import './ErrorBoundary.css';
 
 /**
  * ErrorBoundary — React error boundary component that catches JavaScript errors
@@ -29,15 +30,15 @@ class ErrorBoundary extends React.Component {
     render() {
         if (this.state.hasError) {
             const fallback = this.props.fallback || (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', padding: '20px', textAlign: 'center' }}>
+                <div className="error-fallback">
                     <h2>Something went wrong</h2>
-                    <p style={{ color: '#666', marginBottom: '20px' }}>An unexpected error occurred</p>
+                    <p className="error-fallback-message">An unexpected error occurred</p>
                     <button
                         onClick={() => {
                             this.setState({ hasError: false, error: null });
                             window.location.reload();
                         }}
-                        style={{ padding: '10px 24px', cursor: 'pointer' }}
+                        className="error-fallback-retry"
                     >
                         Retry
                     </button>

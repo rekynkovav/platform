@@ -56,7 +56,7 @@ export class RealWebSocketService {
   /**
    * Emit event to all subscribers of a given type.
    */
-  private emit(eventType: string, data: any): void {
+  private emit(eventType: string, data: Record<string, unknown>): void {
     const subs = this.subscribers.get(eventType);
     if (subs) {
       subs.forEach(cb => {
@@ -143,7 +143,7 @@ export class RealWebSocketService {
   /**
    * Handle incoming WebSocket message from backend.
    */
-  private handleMessage(broadcastId: string, data: any): void {
+  private handleMessage(broadcastId: string, data: { type: string; broadcastId?: string; viewerCount?: number; timestamp?: string }): void {
     switch (data.type) {
       case 'stats':
         // Backend: { type: "stats", broadcastId, viewerCount, timestamp }
@@ -209,7 +209,7 @@ export class RealWebSocketService {
    * Send data through WebSocket (for chat messages, reactions).
    * Currently not supported by backend broadcast stats endpoint.
    */
-  send(eventType: string, data: any, broadcastId: string): void {
+  send(eventType: string, data: Record<string, unknown>, broadcastId: string): void {
     const ws = this.connections.get(broadcastId);
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: eventType, ...data }));

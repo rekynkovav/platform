@@ -130,13 +130,23 @@ export interface LiveSession {
 
   // Взаимодействие
   reactions: Record<string, number>;  // Эмодзи → количество
-  polls: any[];                       // Активные опросы
+  polls: LivePoll[];                  // Активные опросы
   questions: LiveChatMessage[];       // Вопросы к спикеру
+}
+
+export interface LivePoll {
+  id: string;
+  question: string;
+  options: string[];
+  votes: Record<string, number>;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
 }
 
 export interface WebSocketEvent {
   type: string;
-  payload: any;
+  payload: Record<string, unknown>;
   timestamp: string;
 }
 

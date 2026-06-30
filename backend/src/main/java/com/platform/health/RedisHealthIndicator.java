@@ -17,12 +17,18 @@ public class RedisHealthIndicator implements HealthIndicator {
     @Override
     public Health health() {
         try {
-            String pong = redisTemplate.getConnectionFactory()
-                .getConnection().ping();
+            var connection = redisTemplate.getConnectionFactory().getConnection();
+            String pong = connection.ping();
             if ("PONG".equals(pong)) {
+                String clientName;
+                try {
+                    clientName = connection.getClientName();
+                } catch (Exception ignored) {
+                    clientName = "unknown";
+                }
                 return Health.up()
                     .withDetail("redis", "available")
-                    .withDetail("host", redisTemplate.getConnectionFactory().getConnection().getClientName())
+                    .withDetail("host", clientName != null ? clientName : "unknown")
                     .build();
             }
         } catch (Exception e) {

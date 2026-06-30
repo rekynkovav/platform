@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:postgresql://postgres:5432/platform_db
     username: platform_user
-    password: ${DB_PASSWORD:platform_pass_2026}
+    password: ${DB_PASSWORD:?ERROR: DB_PASSWORD not set}
     hikari:
       maximum-pool-size: 50
       minimum-idle: 5
@@ -18,7 +18,7 @@ spring:
     redis:
       host: redis
       port: 6379
-      password: ${REDIS_PASSWORD:redis_pass}
+      password: ${REDIS_PASSWORD:?ERROR: REDIS_PASSWORD not set}
       timeout: 5000ms
       lettuce:
         pool:

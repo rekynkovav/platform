@@ -76,8 +76,8 @@ function liveSessionReducer(state: LiveSession, action: LiveSessionAction): Live
           highestRoleName = roleName;
         }
       }
-      const isUserAdmin = [ROLES.SUPER_ADMIN, ROLES.VYACHESLAV, ROLES.MODERATOR_ADMIN].includes(highestRoleName as any);
-      const isUserModerator = isUserAdmin || [ROLES.CONSULTANT_SPORT, ROLES.CONSULTANT_PITANIE, ROLES.DEVELOPER].includes(highestRoleName as any);
+      const isUserAdmin = [ROLES.SUPER_ADMIN, ROLES.VYACHESLAV, ROLES.MODERATOR_ADMIN].includes(highestRoleName as string);
+      const isUserModerator = isUserAdmin || [ROLES.CONSULTANT_SPORT, ROLES.CONSULTANT_PITANIE, ROLES.DEVELOPER].includes(highestRoleName as string);
 
       return {
         ...state,

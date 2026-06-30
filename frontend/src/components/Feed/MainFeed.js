@@ -665,4 +665,4 @@ const MainFeed = () => {
     );
 };
 
-export default MainFeed;
+export default React.memo(MainFeed);

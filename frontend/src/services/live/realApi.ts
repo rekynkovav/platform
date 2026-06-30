@@ -16,7 +16,8 @@ import {
   UpdateBroadcastRequest,
   LiveChatMessage,
   ViewerStats,
-  BroadcastStatus
+  BroadcastStatus,
+  StreamType
 } from './types';
 import { broadcastApi } from '../api';
 import { getToken, getUserId, getUsername, getUserRoles } from '../../keycloak';
@@ -38,11 +39,52 @@ function getCurrentUser(): { id: string; username: string; role: string } {
   return { id: 'anonymous', username: 'Гость', role: 'USER_1' };
 }
 
+// Backend DTO shape (before mapping to LiveBroadcast)
+interface BackendBroadcastDto {
+  id?: string;
+  broadcastId?: string;
+  title?: string;
+  description?: string;
+  streamKey?: string;
+  rtmpStreamKey?: string;
+  ingestUrl?: string;
+  playbackUrl?: string;
+  hlsPlaylistUrl?: string;
+  streamType?: string;
+  status?: string;
+  viewerCount?: number;
+  maxViewers?: number;
+  startedAt?: string;
+  endedAt?: string;
+  duration?: number;
+  isChatEnabled?: boolean;
+  isReactionsEnabled?: boolean;
+  isRecording?: boolean;
+  isPublic?: boolean;
+  ownerId?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  linkedEventId?: string;
+}
+
+// Backend chat message DTO
+interface BackendChatMessageDto {
+  id?: string;
+  broadcastId?: string;
+  userId?: string;
+  username?: string;
+  userRole?: string;
+  content?: string;
+  type?: string;
+  timestamp?: string;
+}
+
 /**
  * Map backend LiveBroadcastDto → frontend LiveBroadcast type.
  * Backend fields don't perfectly match, so we normalize.
  */
-function mapBackendBroadcast(raw: any): LiveBroadcast {
+function mapBackendBroadcast(raw: BackendBroadcastDto): LiveBroadcast {
   return {
     id: raw.id || raw.broadcastId || '',
     title: raw.title || '',
@@ -50,7 +92,7 @@ function mapBackendBroadcast(raw: any): LiveBroadcast {
     streamKey: raw.streamKey || raw.rtmpStreamKey || raw.id || '',
     ingestUrl: raw.ingestUrl || '',
     playbackUrl: raw.playbackUrl || raw.hlsPlaylistUrl || '',
-    streamType: (raw.streamType as any) || 'video',
+    streamType: (raw.streamType as StreamType) || 'video',
     status: normalizeStatus(raw.status),
     viewerCount: raw.viewerCount || 0,
     maxViewers: raw.maxViewers || 0,
@@ -70,7 +112,7 @@ function mapBackendBroadcast(raw: any): LiveBroadcast {
   };
 }
 
-function normalizeStatus(status: any): BroadcastStatus {
+function normalizeStatus(status: string | undefined): BroadcastStatus {
   const s = (status || '').toUpperCase();
   if (s === 'LIVE') return 'live';
   if (s === 'ENDED') return 'ended';
@@ -187,7 +229,7 @@ export class RealLiveApi {
       if (!Array.isArray(data)) return [];
 
       const currentUserId = getCurrentUser().id;
-      return data.map((msg: any) => ({
+      return data.map((msg: BackendChatMessageDto) => ({
         id: msg.id || '',
         broadcastId: msg.broadcastId || broadcastId,
         userId: msg.userId || '',
@@ -257,7 +299,7 @@ export class RealLiveApi {
     return [];
   }
 
-  async getBroadcastStats(broadcastId: string): Promise<any> {
+  async getBroadcastStats(broadcastId: string): Promise<Record<string, unknown> | null> {
     try {
       const response = await broadcastApi.getStats(broadcastId);
       return response.data;

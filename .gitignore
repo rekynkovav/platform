@@ -77,3 +77,4 @@ out/
 nanograph-db/
 backups/
 .env.nano
+.env.docker

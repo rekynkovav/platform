@@ -2,7 +2,7 @@
 // Инкапсулирует всю логику HLS: init, quality switching, error recovery, stats
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Hls from 'hls.js';
+import Hls, { Level } from 'hls.js';
 import { StreamQuality, LiveBroadcast } from '../../services/live/types';
 import { mediaService } from '../../services/live';
 import { getRecommendedQuality } from '../../utils/live/helpers';
@@ -83,14 +83,14 @@ export function useHlsPlayer({
   onReadyRef.current = onReady;
 
   // Обновление доступных качеств из HLS levels
-  const updateAvailableQualities = useCallback((levels: any[]) => {
+  const updateAvailableQualities = useCallback((levels: Level[]) => {
     if (!levels || levels.length === 0) {
       const defaults: StreamQuality[] = ['1080p', '720p', '480p', '360p', 'auto'];
       setState(prev => ({ ...prev, availableQualities: defaults }));
       return;
     }
 
-    const qualities = levels.map((level: any) => {
+    const qualities = levels.map((level: Level) => {
       if (level.height >= 1080) return '1080p' as StreamQuality;
       if (level.height >= 720) return '720p' as StreamQuality;
       if (level.height >= 480) return '480p' as StreamQuality;
@@ -102,7 +102,7 @@ export function useHlsPlayer({
   }, []);
 
   // Определение качества из HLS level
-  const getQualityFromLevel = useCallback((level: any): StreamQuality => {
+  const getQualityFromLevel = useCallback((level: Level): StreamQuality => {
     if (level.height >= 1080) return '1080p';
     if (level.height >= 720) return '720p';
     if (level.height >= 480) return '480p';
@@ -222,7 +222,7 @@ export function useHlsPlayer({
             : quality === '720p' ? 720
             : quality === '480p' ? 480
             : 360;
-          const idx = hlsRef.current.levels.findIndex((l: any) => l.height >= targetHeight);
+          const idx = hlsRef.current.levels.findIndex((l: Level) => l.height >= targetHeight);
           if (idx >= 0) {
             hlsRef.current.currentLevel = idx;
           }
@@ -254,7 +254,7 @@ export function useHlsPlayer({
                 : recommended === '720p' ? 720
                 : recommended === '480p' ? 480
                 : 360;
-              const idx = hlsRef.current.levels.findIndex((l: any) => l.height >= targetHeight);
+              const idx = hlsRef.current.levels.findIndex((l: Level) => l.height >= targetHeight);
               if (idx >= 0) {
                 hlsRef.current.currentLevel = idx;
               }

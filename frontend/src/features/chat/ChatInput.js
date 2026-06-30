@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import './ChatInput.css';
 
 /**
  * ChatInput — textarea + attach/voice/send controls.
@@ -131,7 +132,7 @@ const ChatInput = ({
             {error && (
               <div className="upload-error">
                 <span>⚠️</span> {error}
-                <button onClick={() => setError(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer' }}>
+                <button onClick={() => setError(null)} className="upload-error-dismiss">
                   ×
                 </button>
               </div>
@@ -186,9 +187,9 @@ const ChatInput = ({
       </div>
 
       {error && !selectedFile && (
-        <div className="error-message" style={{ padding: '8px 12px' }}>
+        <div className="error-message error-message-content">
           <span>⚠️</span> {error}
-          <button onClick={() => setError(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <button onClick={() => setError(null)} className="upload-error-dismiss">
             ×
           </button>
         </div>

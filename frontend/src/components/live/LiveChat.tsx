@@ -201,7 +201,7 @@ export const LiveChat: React.FC<LiveChatProps> = ({
     const roleColor = getRoleColor(message.userRole);
     const roleText = getRoleText(message.userRole);
     const isQuestion = message.type === 'question';
-    const isAnswered = (message.metadata as any)?.answered;
+    const isAnswered = (message.metadata as Record<string, unknown>)?.answered;
     const isPinned = message.metadata?.pinned;
     const isSelected = selectedMessage === message.id;
 
@@ -1270,4 +1270,4 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(styleElement);
 }
 
-export default LiveChat;
+export default React.memo(LiveChat);

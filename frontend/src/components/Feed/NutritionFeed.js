@@ -973,4 +973,4 @@ const NutritionFeed = () => {
     );
 };
 
-export default NutritionFeed;
+export default React.memo(NutritionFeed);
