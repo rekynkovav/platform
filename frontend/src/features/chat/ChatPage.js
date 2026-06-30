@@ -90,7 +90,7 @@ const ChatPage = ({ configKey }) => {
           <span>⚠️</span> {error}
           <button
             onClick={clearError}
-            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}
+            className="error-close-btn"
           >
             ×
           </button>

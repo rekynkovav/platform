@@ -45,7 +45,7 @@ const ChatMessages = ({ messages, username, loading, onEdit, onDelete }) => {
   return (
     <div className="chat-messages">
       {loading && (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+        <div className="chat-loading">
           Загрузка...
         </div>
       )}

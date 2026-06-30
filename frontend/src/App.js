@@ -148,20 +148,11 @@ function App() {
     if (!authenticated) {
         return (
             <div className="loading-screen login-gate">
-                <div style={{ textAlign: 'center' }}>
-                    <p style={{ marginBottom: '20px', fontSize: '18px' }}>🔐 Пожалуйста, войдите в систему</p>
+                <div className="login-content">
+                    <p className="login-text">🔐 Пожалуйста, войдите в систему</p>
                     <button
                         onClick={handleLogin}
-                        style={{
-                            padding: '12px 32px',
-                            background: '#0d6efd',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontSize: '16px',
-                            fontWeight: '500'
-                        }}
+                        className="login-btn"
                     >
                         Войти через Keycloak
                     </button>
@@ -177,7 +168,7 @@ function App() {
             <header className="header">
                 <div className="header-spacer"></div>
                 <div className="header-left">
-                    <div className="header-info" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
+                    <div className="header-info" onClick={handleLogoClick}>
                         <h1 className="header-logo">Путь Сердца</h1>
                         <span className="header-founder">Основатель - Вячеслав Тимошенко</span>
                     </div>

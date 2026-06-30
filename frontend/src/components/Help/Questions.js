@@ -654,7 +654,7 @@ const Questions = () => {
                     </div>
                 )}
 
-                <div className="faq-list" style={{ height: '600px' }}>
+                <div className="faq-list">
                     {questions.length === 0 ? (
                         <div className="no-questions">
                             <p>❓ {(isGeneralAdmin || isNutritionConsultant || isVyacheslav || isSuperAdmin) ? 'Пока нет вопросов от пользователей' : 'У вас пока нет вопросов'}</p>

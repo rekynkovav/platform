@@ -10,12 +10,9 @@ const ChatHeader = ({ slug, isConnected }) => (
     <h3 className="chat-title">{ROOM_TITLES[slug] || slug}</h3>
     <div className="chat-status">
       <span
+        className="status-dot"
         style={{
-          width: '8px',
-          height: '8px',
-          borderRadius: '50%',
           background: isConnected ? '#10B981' : '#EF4444',
-          display: 'inline-block',
         }}
       />
       <span>{isConnected ? 'Онлайн' : 'Отключён'}</span>

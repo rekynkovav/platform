@@ -415,6 +415,22 @@
     }
 }
 
+.error-text {
+    color: var(--text-secondary);
+    margin-top: 8px;
+}
+
+.retry-btn {
+    margin-top: 16px;
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent, #0d6efd);
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+}
+
 .payment-notice {
     margin-top: 16px;
     padding: 12px;

@@ -387,7 +387,7 @@ const Events = ({ filter = 'upcoming', limit = 20 }) => {
             </div>
 
             {viewMode === 'list' ? (
-                <div className="events-list" style={{ height: '500px' }}>
+                <div className="events-list events-list-scroll">
                     <AutoSizer>
                         {({ height, width }) => (
                             <List

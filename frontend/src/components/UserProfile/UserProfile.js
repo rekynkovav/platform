@@ -116,12 +116,12 @@ const UserProfile = () => {
             </div>
             <div className="profile-header">
                 <h2>Личный кабинет</h2>
-                <p style={{color: 'var(--text-secondary)', marginTop: 8}}>
+                <p className="error-text">
                     Не удалось загрузить данные профиля. Попробуйте обновить страницу.
                 </p>
                 <button
                     onClick={() => { clearError(); loadUserData(); loadPayments(); }}
-                    style={{marginTop: 16, padding: '10px 24px', borderRadius: 8, border: 'none', background: 'var(--accent, #0d6efd)', color: 'white', cursor: 'pointer', fontWeight: 600}}
+                    className="retry-btn"
                 >
                     Повторить
                 </button>

@@ -694,7 +694,6 @@ const Dashboard = () => {
                                             handleSubmenuItemLeave();
                                         }
                                     }}
-                                    style={{ cursor: 'pointer' }}
                                 >
                                     <div className="menu-item-content">
                                         <div>
@@ -773,7 +772,6 @@ const Dashboard = () => {
                                 key={item.id}
                                 className="menu-dropdown-item"
                                 onClick={() => handleItemClick(item)}
-                                style={{ cursor: 'pointer' }}
                             >
                                 <div className="menu-item-content">
                                     <div>

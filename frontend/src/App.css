@@ -218,6 +218,15 @@
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
 }
 
+.login-content {
+    text-align: center;
+}
+
+.login-text {
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+
 @keyframes fadeInUp {
     from {
         opacity: 0;
