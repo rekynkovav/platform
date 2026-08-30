@@ -17,10 +17,12 @@ public class AllServicesHealthIndicator implements CompositeHealthContributor {
     public AllServicesHealthIndicator(
             RedisHealthIndicator redisHealth,
             DatabaseHealthIndicator dbHealth,
-            DiskSpaceHealthIndicator diskHealth) {
+            DiskSpaceHealthIndicator diskHealth,
+            KeycloakHealthIndicator keycloakHealth) {
         contributors.put("redis", redisHealth);
         contributors.put("database", dbHealth);
         contributors.put("disk", diskHealth);
+        contributors.put("keycloak", keycloakHealth);
     }
 
     @Override
