@@ -126,6 +126,8 @@ platform/
 │   ├── nginx/             # Reverse proxy конфигурация
 │   ├── postgres/          # init.sql
 │   └── keycloak/          # realm-export.json
+├── load-test/             # Нагрузочные сценарии k6 (api-test, chat-test)
+├── .github/workflows/     # CI-пайплайн (GitHub Actions)
 ├── docker-compose.yml     # Оркестрация мульти-сервисов
 ├── pom.xml                # Корневой Maven POM (родитель)
 ├── prometheus.yml         # Конфигурация скрейпинга Prometheus
@@ -153,7 +155,7 @@ platform/
 ├── monitoring/      # Метрики и мониторинг
 ├── repository/      # JPA-репозитории
 ├── security/        # JWT-аутентификация и авторизация
-├── service/         # Бизнес-логика (35 сервисов)
+├── service/         # Бизнес-логика (37 сервисов)
 ├── util/            # Утилиты (FFmpegExecutor и др.)
 ├── validation/      # Валидация входных данных
 └── websocket/       # WebSocket-обработчики
@@ -313,7 +315,7 @@ npm run analyze    # Анализ размера бандла через source-
 
 ```bash
 cd frontend
-npm test                         # Запуск всех тестов (41 тестовый файл, 333 теста)
+npm test                         # Запуск всех тестов (51 тестовый файл)
 npm test -- --coverage           # Запуск с отчётом покрытия
 ```
 
@@ -323,21 +325,31 @@ npm test -- --coverage           # Запуск с отчётом покрыти
 - `__tests__/api.test.js`
 - `__tests__/MainFeed.test.js`
 - `__tests__/NavTabs.test.js`
-- `__tests__/GeneralChat.test.js`
 - `__tests__/Dashboard.test.js`
-- `__tests__/LiveBroadcastView.test.js`
 - `__tests__/usePermissions.test.js`
 - `__tests__/useAudioRecorder.test.js`
-- `__tests__/useWebSocket.test.js`
 - `__tests__/AudioPlayerContext.test.js`
 
 ### Бэкенд
 
 ```bash
 cd backend
-mvn test                 # Запуск всех тестов (140 тестовых файлов, 1065 тестов)
+mvn test                 # Запуск всех тестов (170 тестовых файлов)
 mvn verify               # Полный цикл: сборка + тесты + проверки
 ```
+
+### Непрерывная интеграция (CI)
+
+CI настроен в `.github/workflows/ci.yml` и запускается на каждый `push` и `pull_request`. Джобы:
+
+| Джоба | Что делает |
+|-------|-----------|
+| **backend-build** | Сборка Maven (JDK 17) + запуск бэкенд-тестов |
+| **frontend-build** | Установка зависимостей (Node.js) + сборка + фронтенд-тесты |
+| **docker-build** | Сборка Docker-образов backend и frontend |
+| **k6-load-test** | Smoke-нагрузочное тестирование API через k6 (`load-test/api-test.js`), результаты выгружаются как artifact |
+
+Нагрузочные сценарии k6 лежат в директории `load-test/` (`api-test.js`, `chat-test.js`, `k6-config.js`). Базовый URL для тестов — `http://localhost:8081`.
 
 ---
 
@@ -387,9 +399,10 @@ mvn verify               # Полный цикл: сборка + тесты + п
 - **Кастомные хуки** — вся общая состоятельная логика (WebSocket, разрешения, аудио) вынесена в хуки
 - **CSS-пользовательские свойства** — переключение тем через атрибут `data-theme` на `<html>`
 - **Docker мультистадийные сборки** — фронтенд: сборка Node → обслуживание nginx; бэкенд: сборка Maven → среда JRE
-- **WebSocket** — обмен сообщениями чата в реальном времени через Spring WebSocket
+- **WebSocket** — обмен сообщениями чата в реальном времени через Spring WebSocket; JWT передаётся через заголовок `Sec-WebSocket-Protocol` (вместо query-параметров)
 - **HLS-стриминг** — RTMP-ингест через nginx-rtmp с транскодированием FFmpeg в HLS
 - **WebRTC** — TURN-сервер coturn для peer-to-peer видеосвязи
+- **Пагинация с лимитами** — все списоковые эндпоинты ограничены максимальным размером страницы (защита от неограниченных выдач)
 
 ---
 
@@ -652,7 +665,7 @@ docker image prune
 ### Рабочий процесс
 
 1. **Форк** репозитория и клонирование
-2. Создание **feature-ветки** от `main`: `git checkout -b feature/my-feature`
+2. Создание **feature-ветки** от `master`: `git checkout -b feature/my-feature`
 3. Внесение изменений с соблюдением стиля кода
 4. Запуск **тестов**: `npm test` (фронтенд) и `mvn test` (бэкенд)
 5. **Коммит** с описательным сообщением (на русском или английском)
